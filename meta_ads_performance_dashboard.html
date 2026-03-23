@@ -1,0 +1,306 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.dash { padding: 1rem 0; }
+.section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.person-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+.person-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+.person-name { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+.person-sub { font-size: 12px; color: var(--color-text-secondary); }
+.stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.stat-box { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 8px 10px; }
+.stat-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
+.stat-value { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+.stat-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 1px; }
+.media-bar { margin-top: 8px; }
+.media-label-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.bar-track { background: var(--color-background-secondary); border-radius: 4px; height: 8px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; }
+.tab-bar { display: flex; gap: 4px; margin-bottom: 1.5rem; }
+.tab { padding: 6px 14px; border-radius: var(--border-radius-md); font-size: 13px; cursor: pointer; border: 0.5px solid var(--color-border-tertiary); background: transparent; color: var(--color-text-secondary); }
+.tab.active { background: var(--color-background-secondary); color: var(--color-text-primary); font-weight: 500; border-color: var(--color-border-secondary); }
+.chart-wrap { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; background: var(--color-background-primary); margin-bottom: 1.5rem; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--color-text-secondary); }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+.ad-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ad-table th { text-align: left; padding: 6px 8px; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); border-bottom: 0.5px solid var(--color-border-tertiary); }
+.ad-table td { padding: 7px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+.ad-table tr:last-child td { border-bottom: none; }
+.badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+.badge-vdo { background: #E6F1FB; color: #0C447C; }
+.badge-img { background: #FAEEDA; color: #633806; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.filter-btn { padding: 4px 12px; border-radius: var(--border-radius-md); font-size: 12px; cursor: pointer; border: 0.5px solid var(--color-border-tertiary); background: transparent; color: var(--color-text-secondary); }
+.filter-btn.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-secondary); font-weight: 500; }
+.rank-badge { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+</style>
+
+<div class="dash">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem;">
+    <div>
+      <div style="font-size:20px; font-weight:500; color:var(--color-text-primary); margin-bottom:4px;">Meta ads performance</div>
+      <div style="font-size:13px; color:var(--color-text-secondary);">2026.03.01 ~ 03.20 &nbsp;·&nbsp; Lina · Sarah · Phoebe</div>
+    </div>
+    <div class="tab-bar" id="metricTab">
+      <button class="tab active" onclick="switchMetric('clicks')">Clicks</button>
+      <button class="tab" onclick="switchMetric('ctr')">CTR</button>
+      <button class="tab" onclick="switchMetric('cpc')">CPC</button>
+    </div>
+  </div>
+
+  <!-- Person summary cards -->
+  <div class="section-title">Overview by creator</div>
+  <div class="metric-grid" id="personCards"></div>
+
+  <!-- Trend chart -->
+  <div class="chart-wrap">
+    <div class="chart-header">
+      <div style="font-size:14px; font-weight:500; color:var(--color-text-primary);" id="chartTitle">Daily clicks by creator</div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#378ADD;"></span>Lina</span>
+        <span><span class="legend-dot" style="background:#D4537E;"></span>Phoebe</span>
+        <span><span class="legend-dot" style="background:#1D9E75;"></span>Sarah</span>
+      </div>
+    </div>
+    <div style="position:relative; width:100%; height:220px;"><canvas id="trendChart"></canvas></div>
+  </div>
+
+  <!-- Video vs Image -->
+  <div class="chart-wrap">
+    <div class="chart-header">
+      <div style="font-size:14px; font-weight:500; color:var(--color-text-primary);" id="mediaChartTitle">Video vs Image — CTR by creator</div>
+    </div>
+    <div style="position:relative; width:100%; height:200px;"><canvas id="mediaChart"></canvas></div>
+  </div>
+
+  <!-- Ad table -->
+  <div class="chart-wrap">
+    <div style="font-size:14px; font-weight:500; color:var(--color-text-primary); margin-bottom:10px;">Ad-level detail</div>
+    <div class="filter-row" id="personFilter">
+      <button class="filter-btn active" onclick="filterPerson('All')">All</button>
+      <button class="filter-btn" onclick="filterPerson('Lina')">Lina</button>
+      <button class="filter-btn" onclick="filterPerson('Phoebe')">Phoebe</button>
+      <button class="filter-btn" onclick="filterPerson('Sarah')">Sarah</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="ad-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Ad name</th><th>Creator</th><th>Media</th><th>Product</th>
+            <th style="text-align:right">Clicks</th><th style="text-align:right">Spend (₩)</th>
+            <th style="text-align:right">CTR (%)</th><th style="text-align:right">CPC (₩)</th>
+          </tr>
+        </thead>
+        <tbody id="adTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const personColors = { Lina: '#378ADD', Phoebe: '#D4537E', Sarah: '#1D9E75' };
+const personBg = { Lina: '#E6F1FB', Phoebe: '#FBEAF0', Sarah: '#E1F5EE' };
+const personText = { Lina: '#0C447C', Phoebe: '#72243E', Sarah: '#085041' };
+
+const personSummary = [
+  {person:'Lina', clicks:17499, spend:5733209, ctr:2.31, cpc:334.65, impressions:576070, link_clicks:15882, link_ctr:1.93, link_cpc:357.2},
+  {person:'Phoebe', clicks:23830, spend:9274358, ctr:2.59, cpc:390.46, impressions:872021, link_clicks:21486, link_ctr:2.05, link_cpc:422.28},
+  {person:'Sarah', clicks:64202, spend:11934492, ctr:4.33, cpc:286.22, impressions:1268542, link_clicks:56551, link_ctr:3.95, link_cpc:306.4}
+];
+
+const personMedia = [
+  {person:'Lina',media:'img',clicks:1344,spend:579322,ctr:1.33,cpc:406.58,impressions:105733},
+  {person:'Lina',media:'vdo',clicks:16155,spend:5153887,ctr:2.55,cpc:317.31,impressions:470337},
+  {person:'Phoebe',media:'img',clicks:3294,spend:1495852,ctr:1.39,cpc:416.28,impressions:222930},
+  {person:'Phoebe',media:'vdo',clicks:20536,spend:7778506,ctr:3.04,cpc:380.8,impressions:649091},
+  {person:'Sarah',media:'img',clicks:9342,spend:3028443,ctr:3.99,cpc:314.31,impressions:470461},
+  {person:'Sarah',media:'vdo',clicks:54860,spend:8906049,ctr:4.51,cpc:271.45,impressions:798081}
+];
+
+const daily = [{"일자":"03/01","person":"Lina","clicks":108,"spend":87989,"ctr":1.7,"cpc":1042.01},{"일자":"03/01","person":"Phoebe","clicks":375,"spend":395341,"ctr":1.31,"cpc":1116.09},{"일자":"03/01","person":"Sarah","clicks":21,"spend":9098,"ctr":1.56,"cpc":438.54},{"일자":"03/02","person":"Lina","clicks":359,"spend":181135,"ctr":1.24,"cpc":668.35},{"일자":"03/02","person":"Phoebe","clicks":623,"spend":471788,"ctr":1.8,"cpc":688.28},{"일자":"03/02","person":"Sarah","clicks":42,"spend":17263,"ctr":1.14,"cpc":474.84},{"일자":"03/03","person":"Lina","clicks":1069,"spend":291781,"ctr":2.63,"cpc":423.83},{"일자":"03/03","person":"Phoebe","clicks":916,"spend":369377,"ctr":1.81,"cpc":383.36},{"일자":"03/03","person":"Sarah","clicks":12,"spend":4549,"ctr":1.5,"cpc":383.18},{"일자":"03/04","person":"Phoebe","clicks":338,"spend":136438,"ctr":3.66,"cpc":398.42},{"일자":"03/05","person":"Lina","clicks":531,"spend":123970,"ctr":5.48,"cpc":54.24},{"일자":"03/05","person":"Phoebe","clicks":469,"spend":145214,"ctr":2.1,"cpc":136.63},{"일자":"03/05","person":"Sarah","clicks":3385,"spend":365414,"ctr":3.22,"cpc":36.32},{"일자":"03/06","person":"Lina","clicks":575,"spend":139093,"ctr":2.14,"cpc":68.4},{"일자":"03/06","person":"Phoebe","clicks":341,"spend":139638,"ctr":3.63,"cpc":250.28},{"일자":"03/06","person":"Sarah","clicks":3433,"spend":404554,"ctr":5.0,"cpc":58.94},{"일자":"03/07","person":"Lina","clicks":650,"spend":171729,"ctr":1.38,"cpc":112.92},{"일자":"03/07","person":"Phoebe","clicks":528,"spend":247629,"ctr":3.26,"cpc":188.33},{"일자":"03/07","person":"Sarah","clicks":3586,"spend":496320,"ctr":5.31,"cpc":318.4},{"일자":"03/08","person":"Lina","clicks":810,"spend":210636,"ctr":2.71,"cpc":177.21},{"일자":"03/08","person":"Phoebe","clicks":581,"spend":245930,"ctr":2.85,"cpc":229.18},{"일자":"03/08","person":"Sarah","clicks":3578,"spend":522752,"ctr":10.63,"cpc":360.86},{"일자":"03/09","person":"Lina","clicks":732,"spend":187397,"ctr":1.59,"cpc":104.07},{"일자":"03/09","person":"Phoebe","clicks":480,"spend":244178,"ctr":2.28,"cpc":212.48},{"일자":"03/09","person":"Sarah","clicks":4025,"spend":573079,"ctr":18.09,"cpc":97.9},{"일자":"03/10","person":"Lina","clicks":719,"spend":192199,"ctr":1.85,"cpc":134.54},{"일자":"03/10","person":"Phoebe","clicks":537,"spend":242045,"ctr":2.06,"cpc":192.78},{"일자":"03/10","person":"Sarah","clicks":4632,"spend":776889,"ctr":3.8,"cpc":188.53},{"일자":"03/11","person":"Lina","clicks":352,"spend":112474,"ctr":2.67,"cpc":247.24},{"일자":"03/11","person":"Phoebe","clicks":4801,"spend":1114003,"ctr":3.49,"cpc":335.1},{"일자":"03/11","person":"Sarah","clicks":1596,"spend":367822,"ctr":4.27,"cpc":329.88},{"일자":"03/12","person":"Lina","clicks":426,"spend":149325,"ctr":2.54,"cpc":269.47},{"일자":"03/12","person":"Phoebe","clicks":2639,"spend":654621,"ctr":3.05,"cpc":204.58},{"일자":"03/12","person":"Sarah","clicks":1273,"spend":299917,"ctr":3.87,"cpc":139.24},{"일자":"03/13","person":"Lina","clicks":851,"spend":314885,"ctr":4.11,"cpc":287.94},{"일자":"03/13","person":"Phoebe","clicks":1072,"spend":474878,"ctr":2.9,"cpc":320.0},{"일자":"03/13","person":"Sarah","clicks":1118,"spend":299984,"ctr":4.11,"cpc":313.7},{"일자":"03/14","person":"Lina","clicks":855,"spend":310938,"ctr":1.94,"cpc":230.1},{"일자":"03/14","person":"Phoebe","clicks":1024,"spend":489988,"ctr":2.58,"cpc":340.74},{"일자":"03/14","person":"Sarah","clicks":1011,"spend":305772,"ctr":3.34,"cpc":248.76},{"일자":"03/15","person":"Lina","clicks":861,"spend":319936,"ctr":1.81,"cpc":218.15},{"일자":"03/15","person":"Phoebe","clicks":1183,"spend":508728,"ctr":8.97,"cpc":348.93},{"일자":"03/15","person":"Sarah","clicks":1211,"spend":285583,"ctr":3.01,"cpc":362.01},{"일자":"03/16","person":"Lina","clicks":945,"spend":352667,"ctr":3.1,"cpc":397.4},{"일자":"03/16","person":"Phoebe","clicks":1638,"spend":655849,"ctr":2.5,"cpc":425.97},{"일자":"03/16","person":"Sarah","clicks":1884,"spend":419888,"ctr":4.4,"cpc":326.09},{"일자":"03/17","person":"Lina","clicks":1444,"spend":455528,"ctr":2.82,"cpc":307.18},{"일자":"03/17","person":"Phoebe","clicks":1597,"spend":649534,"ctr":2.29,"cpc":546.88},{"일자":"03/17","person":"Sarah","clicks":2568,"spend":725488,"ctr":4.02,"cpc":263.78},{"일자":"03/18","person":"Lina","clicks":3397,"spend":1153972,"ctr":1.87,"cpc":415.89},{"일자":"03/18","person":"Phoebe","clicks":2812,"spend":1235411,"ctr":1.76,"cpc":394.4},{"일자":"03/18","person":"Sarah","clicks":15925,"spend":2870745,"ctr":2.58,"cpc":299.98},{"일자":"03/19","person":"Lina","clicks":1549,"spend":530778,"ctr":1.61,"cpc":383.52},{"일자":"03/19","person":"Phoebe","clicks":1101,"spend":472550,"ctr":1.54,"cpc":384.95},{"일자":"03/19","person":"Sarah","clicks":7957,"spend":1605168,"ctr":2.4,"cpc":390.21},{"일자":"03/20","person":"Lina","clicks":1266,"spend":446777,"ctr":1.52,"cpc":302.98},{"일자":"03/20","person":"Phoebe","clicks":775,"spend":381218,"ctr":1.37,"cpc":334.48},{"일자":"03/20","person":"Sarah","clicks":6945,"spend":1584207,"ctr":2.27,"cpc":468.5}];
+
+const adPerf = [{"person":"Lina","ad_name":"AIRedBanner","media":"img","product":"BCA","clicks":117,"spend":49231,"ctr":1.03,"cpc":405.99},{"person":"Lina","ad_name":"AIRedBanner","media":"img","product":"BPD","clicks":48,"spend":24130,"ctr":0.97,"cpc":502.71},{"person":"Lina","ad_name":"AIRedBanner","media":"img","product":"GPG","clicks":120,"spend":48955,"ctr":1.58,"cpc":426.78},{"person":"Lina","ad_name":"Comment","media":"vdo","product":"GPG","clicks":142,"spend":69905,"ctr":2.89,"cpc":251.96},{"person":"Lina","ad_name":"FastASMR","media":"vdo","product":"GPG","clicks":1885,"spend":705741,"ctr":1.49,"cpc":326.84},{"person":"Lina","ad_name":"Game","media":"vdo","product":"GPG","clicks":1188,"spend":533180,"ctr":3.18,"cpc":385.75},{"person":"Lina","ad_name":"LaurenZeroIrritation","media":"img","product":"GPG","clicks":879,"spend":369246,"ctr":1.51,"cpc":364.83},{"person":"Lina","ad_name":"PopUp","media":"vdo","product":"PCO","clicks":156,"spend":51255,"ctr":1.16,"cpc":218.12},{"person":"Lina","ad_name":"Reviews","media":"vdo","product":"BCA","clicks":707,"spend":384041,"ctr":2.29,"cpc":580.56},{"person":"Lina","ad_name":"Reviews","media":"vdo","product":"BPD","clicks":251,"spend":118543,"ctr":2.61,"cpc":519.31},{"person":"Lina","ad_name":"milkydewASMR","media":"vdo","product":"GPG","clicks":11780,"spend":3274465,"ctr":4.01,"cpc":297.15},{"person":"Phoebe","ad_name":"KimHyunjiASMR","media":"vdo","product":"BCA","clicks":6081,"spend":2896874,"ctr":3.33,"cpc":529.31},{"person":"Phoebe","ad_name":"KimHyunjiASMR","media":"vdo","product":"BPD","clicks":302,"spend":143996,"ctr":3.48,"cpc":473.93},{"person":"Phoebe","ad_name":"KimMissokASMR","media":"vdo","product":"BCA","clicks":3798,"spend":1883177,"ctr":3.13,"cpc":433.85},{"person":"Phoebe","ad_name":"KimMissokASMR","media":"vdo","product":"BPD","clicks":554,"spend":246634,"ctr":3.38,"cpc":434.86},{"person":"Phoebe","ad_name":"allureWinner","media":"img","product":"PCO","clicks":910,"spend":490429,"ctr":1.49,"cpc":571.08},{"person":"Phoebe","ad_name":"moveyourThumb","media":"vdo","product":"PCO","clicks":7741,"spend":1381702,"ctr":5.3,"cpc":160.77},{"person":"Phoebe","ad_name":"no1hashtag","media":"img","product":"PCO","clicks":1086,"spend":478363,"ctr":1.32,"cpc":394.1},{"person":"Phoebe","ad_name":"peelFirst","media":"vdo","product":"GPG","clicks":144,"spend":77679,"ctr":5.58,"cpc":222.54},{"person":"Phoebe","ad_name":"pinkCart","media":"img","product":"BCA","clicks":265,"spend":100768,"ctr":1.74,"cpc":382.31},{"person":"Phoebe","ad_name":"99percent","media":"vdo","product":"PCO","clicks":537,"spend":422264,"ctr":0.81,"cpc":334.27},{"person":"Sarah","ad_name":"000","media":"img","product":"GPG","clicks":280,"spend":122470,"ctr":1.5,"cpc":249.31},{"person":"Sarah","ad_name":"Daily","media":"vdo","product":"PCM","clicks":2111,"spend":835456,"ctr":4.67,"cpc":417.95},{"person":"Sarah","ad_name":"ai01","media":"vdo","product":"PCO","clicks":2083,"spend":577270,"ctr":2.2,"cpc":308.23},{"person":"Sarah","ad_name":"before1","media":"vdo","product":"PCO","clicks":48879,"spend":6666503,"ctr":10.4,"cpc":123.69},{"person":"Sarah","ad_name":"news02","media":"img","product":"PCO","clicks":729,"spend":474685,"ctr":1.58,"cpc":505.45},{"person":"Sarah","ad_name":"real","media":"img","product":"BCA","clicks":869,"spend":345803,"ctr":1.46,"cpc":417.6},{"person":"Sarah","ad_name":"real","media":"img","product":"GPG","clicks":1509,"spend":546948,"ctr":1.95,"cpc":359.78},{"person":"Sarah","ad_name":"real","media":"img","product":"PCO","clicks":5774,"spend":1471620,"ctr":2.69,"cpc":255.38},{"person":"Sarah","ad_name":"waterVsOil","media":"vdo","product":"PCO","clicks":1379,"spend":641285,"ctr":1.18,"cpc":382.37}];
+
+let currentMetric = 'clicks';
+let currentPersonFilter = 'All';
+let trendChartObj, mediaChartObj;
+
+function fmt(n) { return Math.round(n).toLocaleString(); }
+function fmtD(n, d=2) { return Number(n).toFixed(d); }
+
+function renderPersonCards() {
+  const container = document.getElementById('personCards');
+  const ranks = { clicks: [...personSummary].sort((a,b) => b.clicks - a.clicks).map(p=>p.person),
+                  ctr: [...personSummary].sort((a,b) => b.ctr - a.ctr).map(p=>p.person),
+                  cpc: [...personSummary].sort((a,b) => a.cpc - b.cpc).map(p=>p.person) };
+
+  container.innerHTML = personSummary.map(p => {
+    const rank = ranks[currentMetric].indexOf(p.person) + 1;
+    const rankColors = ['#3266ad','#888780','#BA7517'];
+    const vdo = personMedia.find(m => m.person === p.person && m.media === 'vdo');
+    const img = personMedia.find(m => m.person === p.person && m.media === 'img');
+    const totalClicks = (vdo?.clicks||0) + (img?.clicks||0);
+    const vdoPct = totalClicks > 0 ? Math.round((vdo?.clicks||0)/totalClicks*100) : 0;
+
+    return `<div class="person-card">
+      <div class="person-header">
+        <div class="avatar" style="background:${personBg[p.person]};color:${personText[p.person]};">${p.person[0]}</div>
+        <div>
+          <div class="person-name">${p.person}</div>
+          <div class="person-sub">Rank #${rank} by ${currentMetric === 'clicks' ? 'clicks' : currentMetric === 'ctr' ? 'CTR' : 'CPC (lower=better)'}</div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-label">Clicks</div>
+          <div class="stat-value">${fmt(p.clicks)}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">CTR</div>
+          <div class="stat-value">${fmtD(p.ctr)}%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">CPC</div>
+          <div class="stat-value">₩${fmt(p.cpc)}</div>
+        </div>
+      </div>
+      <div class="media-bar">
+        <div class="media-label-row">
+          <span>Video ${vdoPct}%</span><span>Image ${100-vdoPct}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${vdoPct}%; background:${personColors[p.person]};"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+const dates = [...new Set(daily.map(d=>d['일자']))].sort();
+
+function getMetricLabel() {
+  return currentMetric === 'clicks' ? 'Daily clicks' : currentMetric === 'ctr' ? 'Daily CTR (%)' : 'Daily CPC (₩)';
+}
+
+function getTrendData(person) {
+  return dates.map(d => {
+    const row = daily.find(r => r['일자'] === d && r.person === person);
+    if (!row) return null;
+    return currentMetric === 'clicks' ? row.clicks : currentMetric === 'ctr' ? row.ctr : row.cpc;
+  });
+}
+
+function renderTrendChart() {
+  document.getElementById('chartTitle').textContent = getMetricLabel() + ' by creator';
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (trendChartObj) trendChartObj.destroy();
+  trendChartObj = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: ['Lina','Phoebe','Sarah'].map(p => ({
+        label: p,
+        data: getTrendData(p),
+        borderColor: personColors[p],
+        backgroundColor: personColors[p] + '22',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        spanGaps: true,
+        tension: 0.3,
+        fill: false
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 11 }, color: '#888', maxRotation: 45, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 }, color: '#888' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function getMediaMetric(row) {
+  return currentMetric === 'clicks' ? row.clicks : currentMetric === 'ctr' ? row.ctr : row.cpc;
+}
+
+function renderMediaChart() {
+  const metricLabel = currentMetric === 'clicks' ? 'Clicks' : currentMetric === 'ctr' ? 'CTR (%)' : 'CPC (₩)';
+  document.getElementById('mediaChartTitle').textContent = `Video vs image — ${metricLabel} by creator`;
+  const persons = ['Lina','Phoebe','Sarah'];
+  const vdoVals = persons.map(p => getMediaMetric(personMedia.find(m=>m.person===p&&m.media==='vdo')||{}));
+  const imgVals = persons.map(p => getMediaMetric(personMedia.find(m=>m.person===p&&m.media==='img')||{}));
+  const ctx = document.getElementById('mediaChart').getContext('2d');
+  if (mediaChartObj) mediaChartObj.destroy();
+  mediaChartObj = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: persons,
+      datasets: [
+        { label: 'Video', data: vdoVals, backgroundColor: persons.map(p => personColors[p]), borderRadius: 4, barPercentage: 0.45 },
+        { label: 'Image', data: imgVals, backgroundColor: persons.map(p => personColors[p] + '66'), borderRadius: 4, barPercentage: 0.45 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 12 }, color: '#888' }, grid: { display: false } },
+        y: { ticks: { font: { size: 11 }, color: '#888' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+function renderAdTable() {
+  let data = [...adPerf];
+  if (currentPersonFilter !== 'All') data = data.filter(d => d.person === currentPersonFilter);
+  data.sort((a,b) => currentMetric === 'cpc' ? a.cpc - b.cpc : b[currentMetric === 'clicks' ? 'clicks' : currentMetric] - a[currentMetric === 'clicks' ? 'clicks' : currentMetric]);
+  const tbody = document.getElementById('adTableBody');
+  tbody.innerHTML = data.map((row, i) => {
+    const rankBg = i === 0 ? '#B5D4F4' : i === 1 ? '#D3D1C7' : i === 2 ? '#FAC775' : 'var(--color-background-secondary)';
+    const rankTxt = i === 0 ? '#0C447C' : i === 1 ? '#444441' : i === 2 ? '#633806' : 'var(--color-text-secondary)';
+    return `<tr>
+      <td><span class="rank-badge" style="background:${rankBg};color:${rankTxt};">${i+1}</span></td>
+      <td style="font-weight:500">${row.ad_name}</td>
+      <td><span style="font-size:12px;color:${personText[row.person]};background:${personBg[row.person]};padding:2px 8px;border-radius:10px;">${row.person}</span></td>
+      <td><span class="badge badge-${row.media}">${row.media === 'vdo' ? 'Video' : 'Image'}</span></td>
+      <td style="color:var(--color-text-secondary);font-size:12px">${row.product}</td>
+      <td style="text-align:right">${fmt(row.clicks)}</td>
+      <td style="text-align:right">₩${fmt(row.spend)}</td>
+      <td style="text-align:right">${fmtD(row.ctr)}%</td>
+      <td style="text-align:right">₩${fmt(row.cpc)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function switchMetric(metric) {
+  currentMetric = metric;
+  document.querySelectorAll('#metricTab .tab').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderPersonCards();
+  renderTrendChart();
+  renderMediaChart();
+  renderAdTable();
+}
+
+function filterPerson(p) {
+  currentPersonFilter = p;
+  document.querySelectorAll('#personFilter .filter-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === p);
+  });
+  renderAdTable();
+}
+
+renderPersonCards();
+renderTrendChart();
+renderMediaChart();
+renderAdTable();
+</script>
