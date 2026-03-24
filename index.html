@@ -1,306 +1,488 @@
-
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Ads Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--font-sans); }
-.dash { padding: 1rem 0; }
-.section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
-.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
-.person-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
-.person-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; }
-.person-name { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
-.person-sub { font-size: 12px; color: var(--color-text-secondary); }
-.stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.stat-box { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 8px 10px; }
-.stat-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
-.stat-value { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
-.stat-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 1px; }
-.media-bar { margin-top: 8px; }
-.media-label-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
-.bar-track { background: var(--color-background-secondary); border-radius: 4px; height: 8px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 4px; }
-.tab-bar { display: flex; gap: 4px; margin-bottom: 1.5rem; }
-.tab { padding: 6px 14px; border-radius: var(--border-radius-md); font-size: 13px; cursor: pointer; border: 0.5px solid var(--color-border-tertiary); background: transparent; color: var(--color-text-secondary); }
-.tab.active { background: var(--color-background-secondary); color: var(--color-text-primary); font-weight: 500; border-color: var(--color-border-secondary); }
-.chart-wrap { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; background: var(--color-background-primary); margin-bottom: 1.5rem; }
-.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--color-text-secondary); }
-.legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; }
-.ad-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.ad-table th { text-align: left; padding: 6px 8px; font-size: 11px; font-weight: 500; color: var(--color-text-secondary); border-bottom: 0.5px solid var(--color-border-tertiary); }
-.ad-table td { padding: 7px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
-.ad-table tr:last-child td { border-bottom: none; }
-.badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; }
-.badge-vdo { background: #E6F1FB; color: #0C447C; }
-.badge-img { background: #FAEEDA; color: #633806; }
-.filter-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.filter-btn { padding: 4px 12px; border-radius: var(--border-radius-md); font-size: 12px; cursor: pointer; border: 0.5px solid var(--color-border-tertiary); background: transparent; color: var(--color-text-secondary); }
-.filter-btn.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-secondary); font-weight: 500; }
-.rank-badge { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+  :root{
+    --lina:#378ADD;--phoebe:#D4537E;--sarah:#1D9E75;
+    --bg:#F7F6F2;--surface:#FFFFFF;--surface2:#F1EFE8;
+    --border:rgba(0,0,0,0.08);--text:#1a1a18;--muted:#888780;
+    --radius:12px;--radius-sm:8px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{--bg:#18181A;--surface:#232325;--surface2:#2C2C2E;--border:rgba(255,255,255,0.08);--text:#F1EFE8;}
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  .nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 1.5rem;}
+  .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:0;}
+  .nav-logo{font-size:14px;font-weight:600;color:var(--text);padding:14px 0;margin-right:2rem;white-space:nowrap;}
+  .nav-logo span{color:var(--muted);font-weight:400;}
+  .nav-tab{padding:14px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;font-family:inherit;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
+  .nav-tab.active{color:var(--text);border-bottom-color:var(--text);}
+  .pg{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;display:none;}
+  .pg.active{display:block;}
+  .top-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;flex-wrap:wrap;gap:12px;}
+  .top-bar h1{font-size:22px;font-weight:600;letter-spacing:-0.02em;}
+  .top-meta{font-size:12px;color:var(--muted);margin-top:4px;}
+  .mtabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;}
+  .tab{padding:5px 14px;border-radius:6px;font-size:13px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all 0.15s;}
+  .tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+  .slabel{font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+  .pgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:1.75rem;}
+  @media(max-width:640px){.pgrid3{grid-template-columns:1fr;}}
+  .pcard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
+  .ph{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;}
+  .pn{font-size:15px;font-weight:600;}
+  .pr{font-size:11px;color:var(--muted);margin-top:1px;}
+  .srow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
+  .st{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;}
+  .stl{font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;}
+  .stv{font-size:15px;font-weight:600;}
+  .stv.g{color:#0F6E56;}
+  .mlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;}
+  .btrack{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;}
+  .bfill{height:100%;border-radius:4px;}
+  .ccard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
+  .ctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px;}
+  .ctitle{font-size:14px;font-weight:600;}
+  .leg{display:flex;gap:14px;flex-wrap:wrap;}
+  .li{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);}
+  .ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+  .frow{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .fb{padding:4px 13px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all 0.15s;}
+  .fb.active{background:var(--surface2);color:var(--text);border-color:rgba(0,0,0,0.15);}
+  .tw{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;padding:6px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;border-bottom:0.5px solid var(--border);white-space:nowrap;}
+  td{padding:8px 8px;border-bottom:0.5px solid var(--border);color:var(--text);white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--surface2);}
+  .bdg{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
+  .bv{background:#E6F1FB;color:#0C447C;}
+  .bi{background:#FAEEDA;color:#633806;}
+  .pp{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;}
+  .rd{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;}
+  /* product page */
+  .psgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;}
+  @media(max-width:700px){.psgrid{grid-template-columns:repeat(2,1fr);}}
+  .pscard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;}
+  .psname{font-size:18px;font-weight:700;letter-spacing:-0.02em;margin-bottom:10px;}
+  .pml{font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.04em;}
+  .pmv{font-size:14px;font-weight:600;margin-bottom:6px;}
+  .pbadge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 9px;border-radius:8px;margin-top:4px;}
+  .pdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:1.25rem;}
+  .pdcard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
+  .pdname{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .ptag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--surface2);color:var(--muted);letter-spacing:0.04em;}
+  .crow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
+  .crow:last-child{border-bottom:none;padding-bottom:0;}
+  .clabel{display:flex;align-items:center;gap:7px;min-width:72px;}
+  .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .cname{font-size:13px;font-weight:500;}
+  .cbw{flex:1;}
+  .cbt{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;}
+  .cbf{height:100%;border-radius:4px;transition:width 0.5s ease;}
+  .cval{min-width:90px;text-align:right;font-size:13px;font-weight:600;}
+  .pmtabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;flex-wrap:wrap;}
+  .pmtab{padding:4px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all 0.15s;}
+  .pmtab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+  .note{font-size:11px;color:var(--muted);margin-bottom:12px;}
 </style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">Meta Ads <span>Dashboard</span></div>
+    <button class="nav-tab active" onclick="goPage('creator',this)">By creator</button>
+    <button class="nav-tab" onclick="goPage('product',this)">By product</button>
+  </div>
+</nav>
 
-<div class="dash">
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem;">
-    <div>
-      <div style="font-size:20px; font-weight:500; color:var(--color-text-primary); margin-bottom:4px;">Meta ads performance</div>
-      <div style="font-size:13px; color:var(--color-text-secondary);">2026.03.01 ~ 03.20 &nbsp;·&nbsp; Lina · Sarah · Phoebe</div>
-    </div>
-    <div class="tab-bar" id="metricTab">
-      <button class="tab active" onclick="switchMetric('clicks')">Clicks</button>
-      <button class="tab" onclick="switchMetric('ctr')">CTR</button>
-      <button class="tab" onclick="switchMetric('cpc')">CPC</button>
+<!-- PAGE 1: BY CREATOR -->
+<div class="pg active" id="pg-creator">
+  <div class="top-bar">
+    <div><h1>Creator performance</h1><div class="top-meta">2026.03.01 ~ 03.22 &nbsp;·&nbsp; Meta + Amazon</div></div>
+    <div class="mtabs" id="mtabs">
+      <button class="tab active" onclick="switchM('clicks',this)">Clicks</button>
+      <button class="tab" onclick="switchM('ctr',this)">CTR</button>
+      <button class="tab" onclick="switchM('cpc',this)">CPC</button>
     </div>
   </div>
-
-  <!-- Person summary cards -->
-  <div class="section-title">Overview by creator</div>
-  <div class="metric-grid" id="personCards"></div>
-
-  <!-- Trend chart -->
-  <div class="chart-wrap">
-    <div class="chart-header">
-      <div style="font-size:14px; font-weight:500; color:var(--color-text-primary);" id="chartTitle">Daily clicks by creator</div>
-      <div class="legend">
-        <span><span class="legend-dot" style="background:#378ADD;"></span>Lina</span>
-        <span><span class="legend-dot" style="background:#D4537E;"></span>Phoebe</span>
-        <span><span class="legend-dot" style="background:#1D9E75;"></span>Sarah</span>
+  <div class="slabel">Overview</div>
+  <div class="pgrid3" id="pcards"></div>
+  <div class="ccard">
+    <div class="ctop">
+      <div class="ctitle" id="trendT">Daily clicks by creator</div>
+      <div class="leg">
+        <div class="li"><span class="ld" style="background:#378ADD"></span>Lina</div>
+        <div class="li"><span class="ld" style="background:#D4537E"></span>Phoebe</div>
+        <div class="li"><span class="ld" style="background:#1D9E75"></span>Sarah</div>
       </div>
     </div>
-    <div style="position:relative; width:100%; height:220px;"><canvas id="trendChart"></canvas></div>
+    <div style="position:relative;width:100%;height:220px;"><canvas id="trendC"></canvas></div>
   </div>
-
-  <!-- Video vs Image -->
-  <div class="chart-wrap">
-    <div class="chart-header">
-      <div style="font-size:14px; font-weight:500; color:var(--color-text-primary);" id="mediaChartTitle">Video vs Image — CTR by creator</div>
+  <div class="ccard">
+    <div class="ctop">
+      <div class="ctitle" id="mediaT">Video vs image — CTR by creator</div>
+      <div class="leg">
+        <div class="li"><span class="ld" style="background:#378ADD"></span>Video</div>
+        <div class="li"><span class="ld" style="background:#378ADD;opacity:0.4"></span>Image</div>
+      </div>
     </div>
-    <div style="position:relative; width:100%; height:200px;"><canvas id="mediaChart"></canvas></div>
+    <div style="position:relative;width:100%;height:200px;"><canvas id="mediaC"></canvas></div>
   </div>
-
-  <!-- Ad table -->
-  <div class="chart-wrap">
-    <div style="font-size:14px; font-weight:500; color:var(--color-text-primary); margin-bottom:10px;">Ad-level detail</div>
-    <div class="filter-row" id="personFilter">
-      <button class="filter-btn active" onclick="filterPerson('All')">All</button>
-      <button class="filter-btn" onclick="filterPerson('Lina')">Lina</button>
-      <button class="filter-btn" onclick="filterPerson('Phoebe')">Phoebe</button>
-      <button class="filter-btn" onclick="filterPerson('Sarah')">Sarah</button>
+  <div class="ccard">
+    <div class="ctitle" style="margin-bottom:12px;">Ad-level detail</div>
+    <div class="frow">
+      <button class="fb active" onclick="fPerson('All',this)">All</button>
+      <button class="fb" onclick="fPerson('Lina',this)">Lina</button>
+      <button class="fb" onclick="fPerson('Phoebe',this)">Phoebe</button>
+      <button class="fb" onclick="fPerson('Sarah',this)">Sarah</button>
     </div>
-    <div style="overflow-x:auto;">
-      <table class="ad-table">
-        <thead>
-          <tr>
-            <th>#</th><th>Ad name</th><th>Creator</th><th>Media</th><th>Product</th>
-            <th style="text-align:right">Clicks</th><th style="text-align:right">Spend (₩)</th>
-            <th style="text-align:right">CTR (%)</th><th style="text-align:right">CPC (₩)</th>
-          </tr>
-        </thead>
-        <tbody id="adTableBody"></tbody>
-      </table>
-    </div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th>#</th><th>Ad name</th><th>Creator</th><th>Media</th><th>Product</th>
+        <th style="text-align:right">Clicks</th><th style="text-align:right">Spend</th>
+        <th style="text-align:right">CTR</th><th style="text-align:right">CPC</th>
+      </tr></thead>
+      <tbody id="adTbody"></tbody>
+    </table></div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- PAGE 2: BY PRODUCT -->
+<div class="pg" id="pg-product">
+  <div class="top-bar">
+    <div><h1>Product performance</h1><div class="top-meta">2026.03.01 ~ 03.22 &nbsp;·&nbsp; CPA = Meta spend ÷ Amazon purchases</div></div>
+    <div class="pmtabs" id="pmtabs">
+      <button class="pmtab active" onclick="switchPM('clicks',this)">Clicks</button>
+      <button class="pmtab" onclick="switchPM('ctr',this)">CTR</button>
+      <button class="pmtab" onclick="switchPM('cpc',this)">CPC</button>
+      <button class="pmtab" onclick="switchPM('purchases',this)">Purchases</button>
+      <button class="pmtab" onclick="switchPM('cpa',this)">CPA</button>
+    </div>
+  </div>
+  <div class="slabel">Product summary</div>
+  <div class="psgrid" id="psgrid"></div>
+  <div class="ccard">
+    <div class="ctop">
+      <div class="ctitle" id="prodChartT">Clicks by product &amp; creator</div>
+      <div class="leg">
+        <div class="li"><span class="ld" style="background:#378ADD"></span>Lina</div>
+        <div class="li"><span class="ld" style="background:#D4537E"></span>Phoebe</div>
+        <div class="li"><span class="ld" style="background:#1D9E75"></span>Sarah</div>
+      </div>
+    </div>
+    <div style="position:relative;width:100%;height:260px;"><canvas id="prodC"></canvas></div>
+  </div>
+  <div class="slabel">Creator breakdown per product</div>
+  <div class="pdgrid" id="pdgrid"></div>
+  <div class="ccard">
+    <div class="ctitle" style="margin-bottom:4px;">Full detail table</div>
+    <div class="note">— means no Amazon purchases recorded for this creator × product combination</div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th>Product</th><th>Creator</th>
+        <th style="text-align:right">Clicks</th><th style="text-align:right">Spend</th>
+        <th style="text-align:right">CTR</th><th style="text-align:right">CPC</th>
+        <th style="text-align:right">Purchases</th><th style="text-align:right">CPA</th>
+      </tr></thead>
+      <tbody id="prodTbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
 <script>
-const personColors = { Lina: '#378ADD', Phoebe: '#D4537E', Sarah: '#1D9E75' };
-const personBg = { Lina: '#E6F1FB', Phoebe: '#FBEAF0', Sarah: '#E1F5EE' };
-const personText = { Lina: '#0C447C', Phoebe: '#72243E', Sarah: '#085041' };
+const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
+const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
+const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
+const PC={GPG:'#7F77DD',PCO:'#1D9E75',BCA:'#D85A30',PCM:'#BA7517',BPD:'#D4537E'};
+const PB={GPG:'#EEEDFE',PCO:'#E1F5EE',BCA:'#FAECE7',PCM:'#FAEEDA',BPD:'#FBEAF0'};
+const PT={GPG:'#3C3489',PCO:'#085041',BCA:'#993C1D',PCM:'#633806',BPD:'#72243E'};
+const PRODS=['GPG','PCO','BCA','PCM','BPD'];
 
-const personSummary = [
-  {person:'Lina', clicks:17499, spend:5733209, ctr:2.31, cpc:334.65, impressions:576070, link_clicks:15882, link_ctr:1.93, link_cpc:357.2},
-  {person:'Phoebe', clicks:23830, spend:9274358, ctr:2.59, cpc:390.46, impressions:872021, link_clicks:21486, link_ctr:2.05, link_cpc:422.28},
-  {person:'Sarah', clicks:64202, spend:11934492, ctr:4.33, cpc:286.22, impressions:1268542, link_clicks:56551, link_ctr:3.95, link_cpc:306.4}
-];
+const D={
+  ps:[
+    {person:'Lina',  clicks:17499,spend:5733209,ctr:2.31,cpc:334.65,impressions:576070,purchases:27,cpa:212341},
+    {person:'Phoebe',clicks:23830,spend:9274358,ctr:2.59,cpc:390.46,impressions:872021,purchases:9, cpa:1030484},
+    {person:'Sarah', clicks:64202,spend:11934492,ctr:4.33,cpc:286.22,impressions:1268542,purchases:35,cpa:340985}
+  ],
+  pm:[
+    {person:'Lina',  media:'img',clicks:1344, spend:579322, ctr:1.33,cpc:406.58},
+    {person:'Lina',  media:'vdo',clicks:16155,spend:5153887,ctr:2.55,cpc:317.31},
+    {person:'Phoebe',media:'img',clicks:3294, spend:1495852,ctr:1.39,cpc:416.28},
+    {person:'Phoebe',media:'vdo',clicks:20536,spend:7778506,ctr:3.04,cpc:380.8},
+    {person:'Sarah', media:'img',clicks:9342, spend:3028443,ctr:3.99,cpc:314.31},
+    {person:'Sarah', media:'vdo',clicks:54860,spend:8906049,ctr:4.51,cpc:271.45}
+  ],
+  daily:[
+    {d:'03/01',p:'Lina',clicks:108,ctr:1.7,cpc:1042.01},{d:'03/01',p:'Phoebe',clicks:375,ctr:1.31,cpc:1116.09},{d:'03/01',p:'Sarah',clicks:21,ctr:1.56,cpc:438.54},
+    {d:'03/02',p:'Lina',clicks:359,ctr:1.24,cpc:668.35},{d:'03/02',p:'Phoebe',clicks:623,ctr:1.8,cpc:688.28},{d:'03/02',p:'Sarah',clicks:42,ctr:1.14,cpc:474.84},
+    {d:'03/03',p:'Lina',clicks:1069,ctr:2.63,cpc:423.83},{d:'03/03',p:'Phoebe',clicks:916,ctr:1.81,cpc:383.36},{d:'03/03',p:'Sarah',clicks:12,ctr:1.5,cpc:383.18},
+    {d:'03/04',p:'Phoebe',clicks:338,ctr:3.66,cpc:398.42},
+    {d:'03/05',p:'Lina',clicks:531,ctr:5.48,cpc:54.24},{d:'03/05',p:'Phoebe',clicks:469,ctr:2.1,cpc:136.63},{d:'03/05',p:'Sarah',clicks:3385,ctr:3.22,cpc:36.32},
+    {d:'03/06',p:'Lina',clicks:575,ctr:2.14,cpc:68.4},{d:'03/06',p:'Phoebe',clicks:341,ctr:3.63,cpc:250.28},{d:'03/06',p:'Sarah',clicks:3433,ctr:5.0,cpc:58.94},
+    {d:'03/07',p:'Lina',clicks:650,ctr:1.38,cpc:112.92},{d:'03/07',p:'Phoebe',clicks:528,ctr:3.26,cpc:188.33},{d:'03/07',p:'Sarah',clicks:3586,ctr:5.31,cpc:318.4},
+    {d:'03/08',p:'Lina',clicks:810,ctr:2.71,cpc:177.21},{d:'03/08',p:'Phoebe',clicks:581,ctr:2.85,cpc:229.18},{d:'03/08',p:'Sarah',clicks:3578,ctr:10.63,cpc:360.86},
+    {d:'03/09',p:'Lina',clicks:732,ctr:1.59,cpc:104.07},{d:'03/09',p:'Phoebe',clicks:480,ctr:2.28,cpc:212.48},{d:'03/09',p:'Sarah',clicks:4025,ctr:18.09,cpc:97.9},
+    {d:'03/10',p:'Lina',clicks:719,ctr:1.85,cpc:134.54},{d:'03/10',p:'Phoebe',clicks:537,ctr:2.06,cpc:192.78},{d:'03/10',p:'Sarah',clicks:4632,ctr:3.8,cpc:188.53},
+    {d:'03/11',p:'Lina',clicks:352,ctr:2.67,cpc:247.24},{d:'03/11',p:'Phoebe',clicks:4801,ctr:3.49,cpc:335.1},{d:'03/11',p:'Sarah',clicks:1596,ctr:4.27,cpc:329.88},
+    {d:'03/12',p:'Lina',clicks:426,ctr:2.54,cpc:269.47},{d:'03/12',p:'Phoebe',clicks:2639,ctr:3.05,cpc:204.58},{d:'03/12',p:'Sarah',clicks:1273,ctr:3.87,cpc:139.24},
+    {d:'03/13',p:'Lina',clicks:851,ctr:4.11,cpc:287.94},{d:'03/13',p:'Phoebe',clicks:1072,ctr:2.9,cpc:320.0},{d:'03/13',p:'Sarah',clicks:1118,ctr:4.11,cpc:313.7},
+    {d:'03/14',p:'Lina',clicks:855,ctr:1.94,cpc:230.1},{d:'03/14',p:'Phoebe',clicks:1024,ctr:2.58,cpc:340.74},{d:'03/14',p:'Sarah',clicks:1011,ctr:3.34,cpc:248.76},
+    {d:'03/15',p:'Lina',clicks:861,ctr:1.81,cpc:218.15},{d:'03/15',p:'Phoebe',clicks:1183,ctr:8.97,cpc:348.93},{d:'03/15',p:'Sarah',clicks:1211,ctr:3.01,cpc:362.01},
+    {d:'03/16',p:'Lina',clicks:945,ctr:3.1,cpc:397.4},{d:'03/16',p:'Phoebe',clicks:1638,ctr:2.5,cpc:425.97},{d:'03/16',p:'Sarah',clicks:1884,ctr:4.4,cpc:326.09},
+    {d:'03/17',p:'Lina',clicks:1444,ctr:2.82,cpc:307.18},{d:'03/17',p:'Phoebe',clicks:1597,ctr:2.29,cpc:546.88},{d:'03/17',p:'Sarah',clicks:2568,ctr:4.02,cpc:263.78},
+    {d:'03/18',p:'Lina',clicks:3397,ctr:1.87,cpc:415.89},{d:'03/18',p:'Phoebe',clicks:2812,ctr:1.76,cpc:394.4},{d:'03/18',p:'Sarah',clicks:15925,ctr:2.58,cpc:299.98},
+    {d:'03/19',p:'Lina',clicks:1549,ctr:1.61,cpc:383.52},{d:'03/19',p:'Phoebe',clicks:1101,ctr:1.54,cpc:384.95},{d:'03/19',p:'Sarah',clicks:7957,ctr:2.4,cpc:390.21},
+    {d:'03/20',p:'Lina',clicks:1266,ctr:1.52,cpc:302.98},{d:'03/20',p:'Phoebe',clicks:775,ctr:1.37,cpc:334.48},{d:'03/20',p:'Sarah',clicks:6945,ctr:2.27,cpc:468.5}
+  ],
+  ad:[
+    {person:'Sarah', n:'before1',      m:'vdo',prod:'PCO',clicks:48879,spend:6666503,ctr:10.4, cpc:123.69},
+    {person:'Lina',  n:'milkydewASMR', m:'vdo',prod:'GPG',clicks:11780,spend:3274465,ctr:4.01, cpc:297.15},
+    {person:'Phoebe',n:'moveyourThumb',m:'vdo',prod:'PCO',clicks:7741, spend:1381702,ctr:5.3,  cpc:160.77},
+    {person:'Phoebe',n:'KimHyunjiASMR',m:'vdo',prod:'BCA',clicks:6081, spend:2896874,ctr:3.33, cpc:529.31},
+    {person:'Sarah', n:'real',         m:'img',prod:'PCO',clicks:5774, spend:1471620,ctr:2.69, cpc:255.38},
+    {person:'Phoebe',n:'KimMissokASMR',m:'vdo',prod:'BCA',clicks:3798, spend:1883177,ctr:3.13, cpc:433.85},
+    {person:'Sarah', n:'Daily',        m:'vdo',prod:'PCM',clicks:2111, spend:835456, ctr:4.67, cpc:417.95},
+    {person:'Sarah', n:'ai01',         m:'vdo',prod:'PCO',clicks:2083, spend:577270, ctr:2.2,  cpc:308.23},
+    {person:'Lina',  n:'FastASMR',     m:'vdo',prod:'GPG',clicks:1885, spend:705741, ctr:1.49, cpc:326.84},
+    {person:'Sarah', n:'real(GPG)',    m:'img',prod:'GPG',clicks:1509, spend:546948, ctr:1.95, cpc:359.78},
+    {person:'Sarah', n:'waterVsOil',   m:'vdo',prod:'PCO',clicks:1379, spend:641285, ctr:1.18, cpc:382.37},
+    {person:'Lina',  n:'Game',         m:'vdo',prod:'GPG',clicks:1188, spend:533180, ctr:3.18, cpc:385.75},
+    {person:'Phoebe',n:'no1hashtag',   m:'img',prod:'PCO',clicks:1086, spend:478363, ctr:1.32, cpc:394.1},
+    {person:'Phoebe',n:'allureWinner', m:'img',prod:'PCO',clicks:910,  spend:490429, ctr:1.49, cpc:571.08},
+    {person:'Lina',  n:'LaurenZero',   m:'img',prod:'GPG',clicks:879,  spend:369246, ctr:1.51, cpc:364.83},
+    {person:'Sarah', n:'real(BCA)',    m:'img',prod:'BCA',clicks:869,  spend:345803, ctr:1.46, cpc:417.6},
+    {person:'Phoebe',n:'justOneUse',   m:'vdo',prod:'GPG',clicks:800,  spend:390920, ctr:1.36, cpc:406.58},
+    {person:'Sarah', n:'news02',       m:'img',prod:'PCO',clicks:729,  spend:474685, ctr:1.58, cpc:505.45},
+    {person:'Lina',  n:'Reviews(BCA)', m:'vdo',prod:'BCA',clicks:707,  spend:384041, ctr:2.29, cpc:580.56},
+    {person:'Phoebe',n:'KimMissok(BPD)',m:'vdo',prod:'BPD',clicks:554, spend:246634, ctr:3.38, cpc:434.86}
+  ],
+  pp:[
+    {prod:'BCA',person:'Lina',  clicks:890,  spend:466667, ctr:1.61,cpc:526.64,purchases:0, cpa:0},
+    {prod:'BCA',person:'Phoebe',clicks:10491,spend:5045208,ctr:2.94,cpc:485.36,purchases:3, cpa:1681736},
+    {prod:'BCA',person:'Sarah', clicks:869,  spend:345803, ctr:1.46,cpc:417.6, purchases:0, cpa:0},
+    {prod:'BPD',person:'Lina',  clicks:316,  spend:154613, ctr:1.76,cpc:560.92,purchases:0, cpa:0},
+    {prod:'BPD',person:'Phoebe',clicks:1156, spend:523540, ctr:2.44,cpc:448.25,purchases:4, cpa:130885},
+    {prod:'BPD',person:'Sarah', clicks:35,   spend:16146,  ctr:1.35,cpc:461.31,purchases:0, cpa:0},
+    {prod:'GPG',person:'Lina',  clicks:16073,spend:5037474,ctr:2.67,cpc:332.88,purchases:27,cpa:186573},
+    {prod:'GPG',person:'Phoebe',clicks:1753, spend:884118, ctr:2.51,cpc:386.24,purchases:2, cpa:442059},
+    {prod:'GPG',person:'Sarah', clicks:1904, spend:706428, ctr:1.52,cpc:336.41,purchases:4, cpa:176607},
+    {prod:'PCM',person:'Sarah', clicks:2515, spend:1020642,ctr:2.62,cpc:362.36,purchases:0, cpa:0},
+    {prod:'PCO',person:'Lina',  clicks:220,  spend:74455,  ctr:0.69,cpc:233.8, purchases:0, cpa:0},
+    {prod:'PCO',person:'Phoebe',clicks:10430,spend:2821492,ctr:2.34,cpc:297.17,purchases:0, cpa:0},
+    {prod:'PCO',person:'Sarah', clicks:58879,spend:9845473,ctr:5.77,cpc:240.35,purchases:31,cpa:317596}
+  ],
+  psum:[
+    {prod:'BCA',clicks:12250,spend:5857678,ctr:2.76,cpc:487.92,purchases:3, cpa:1952559},
+    {prod:'BPD',clicks:1507, spend:694299, ctr:2.17,cpc:481.38,purchases:4, cpa:173575},
+    {prod:'GPG',clicks:19730,spend:6628020,ctr:2.49,cpc:350.92,purchases:33,cpa:200849},
+    {prod:'PCM',clicks:2515, spend:1020642,ctr:2.62,cpc:362.36,purchases:0, cpa:0},
+    {prod:'PCO',clicks:69529,spend:12741420,ctr:3.84,cpc:262.16,purchases:31,cpa:411014}
+  ]
+};
 
-const personMedia = [
-  {person:'Lina',media:'img',clicks:1344,spend:579322,ctr:1.33,cpc:406.58,impressions:105733},
-  {person:'Lina',media:'vdo',clicks:16155,spend:5153887,ctr:2.55,cpc:317.31,impressions:470337},
-  {person:'Phoebe',media:'img',clicks:3294,spend:1495852,ctr:1.39,cpc:416.28,impressions:222930},
-  {person:'Phoebe',media:'vdo',clicks:20536,spend:7778506,ctr:3.04,cpc:380.8,impressions:649091},
-  {person:'Sarah',media:'img',clicks:9342,spend:3028443,ctr:3.99,cpc:314.31,impressions:470461},
-  {person:'Sarah',media:'vdo',clicks:54860,spend:8906049,ctr:4.51,cpc:271.45,impressions:798081}
-];
+let cM='clicks',cF='All',cPM='clicks';
+let tC,mC,pC;
+const f=n=>Math.round(n).toLocaleString('ko-KR');
+const fd=(n,d=2)=>Number(n).toFixed(d);
 
-const daily = [{"일자":"03/01","person":"Lina","clicks":108,"spend":87989,"ctr":1.7,"cpc":1042.01},{"일자":"03/01","person":"Phoebe","clicks":375,"spend":395341,"ctr":1.31,"cpc":1116.09},{"일자":"03/01","person":"Sarah","clicks":21,"spend":9098,"ctr":1.56,"cpc":438.54},{"일자":"03/02","person":"Lina","clicks":359,"spend":181135,"ctr":1.24,"cpc":668.35},{"일자":"03/02","person":"Phoebe","clicks":623,"spend":471788,"ctr":1.8,"cpc":688.28},{"일자":"03/02","person":"Sarah","clicks":42,"spend":17263,"ctr":1.14,"cpc":474.84},{"일자":"03/03","person":"Lina","clicks":1069,"spend":291781,"ctr":2.63,"cpc":423.83},{"일자":"03/03","person":"Phoebe","clicks":916,"spend":369377,"ctr":1.81,"cpc":383.36},{"일자":"03/03","person":"Sarah","clicks":12,"spend":4549,"ctr":1.5,"cpc":383.18},{"일자":"03/04","person":"Phoebe","clicks":338,"spend":136438,"ctr":3.66,"cpc":398.42},{"일자":"03/05","person":"Lina","clicks":531,"spend":123970,"ctr":5.48,"cpc":54.24},{"일자":"03/05","person":"Phoebe","clicks":469,"spend":145214,"ctr":2.1,"cpc":136.63},{"일자":"03/05","person":"Sarah","clicks":3385,"spend":365414,"ctr":3.22,"cpc":36.32},{"일자":"03/06","person":"Lina","clicks":575,"spend":139093,"ctr":2.14,"cpc":68.4},{"일자":"03/06","person":"Phoebe","clicks":341,"spend":139638,"ctr":3.63,"cpc":250.28},{"일자":"03/06","person":"Sarah","clicks":3433,"spend":404554,"ctr":5.0,"cpc":58.94},{"일자":"03/07","person":"Lina","clicks":650,"spend":171729,"ctr":1.38,"cpc":112.92},{"일자":"03/07","person":"Phoebe","clicks":528,"spend":247629,"ctr":3.26,"cpc":188.33},{"일자":"03/07","person":"Sarah","clicks":3586,"spend":496320,"ctr":5.31,"cpc":318.4},{"일자":"03/08","person":"Lina","clicks":810,"spend":210636,"ctr":2.71,"cpc":177.21},{"일자":"03/08","person":"Phoebe","clicks":581,"spend":245930,"ctr":2.85,"cpc":229.18},{"일자":"03/08","person":"Sarah","clicks":3578,"spend":522752,"ctr":10.63,"cpc":360.86},{"일자":"03/09","person":"Lina","clicks":732,"spend":187397,"ctr":1.59,"cpc":104.07},{"일자":"03/09","person":"Phoebe","clicks":480,"spend":244178,"ctr":2.28,"cpc":212.48},{"일자":"03/09","person":"Sarah","clicks":4025,"spend":573079,"ctr":18.09,"cpc":97.9},{"일자":"03/10","person":"Lina","clicks":719,"spend":192199,"ctr":1.85,"cpc":134.54},{"일자":"03/10","person":"Phoebe","clicks":537,"spend":242045,"ctr":2.06,"cpc":192.78},{"일자":"03/10","person":"Sarah","clicks":4632,"spend":776889,"ctr":3.8,"cpc":188.53},{"일자":"03/11","person":"Lina","clicks":352,"spend":112474,"ctr":2.67,"cpc":247.24},{"일자":"03/11","person":"Phoebe","clicks":4801,"spend":1114003,"ctr":3.49,"cpc":335.1},{"일자":"03/11","person":"Sarah","clicks":1596,"spend":367822,"ctr":4.27,"cpc":329.88},{"일자":"03/12","person":"Lina","clicks":426,"spend":149325,"ctr":2.54,"cpc":269.47},{"일자":"03/12","person":"Phoebe","clicks":2639,"spend":654621,"ctr":3.05,"cpc":204.58},{"일자":"03/12","person":"Sarah","clicks":1273,"spend":299917,"ctr":3.87,"cpc":139.24},{"일자":"03/13","person":"Lina","clicks":851,"spend":314885,"ctr":4.11,"cpc":287.94},{"일자":"03/13","person":"Phoebe","clicks":1072,"spend":474878,"ctr":2.9,"cpc":320.0},{"일자":"03/13","person":"Sarah","clicks":1118,"spend":299984,"ctr":4.11,"cpc":313.7},{"일자":"03/14","person":"Lina","clicks":855,"spend":310938,"ctr":1.94,"cpc":230.1},{"일자":"03/14","person":"Phoebe","clicks":1024,"spend":489988,"ctr":2.58,"cpc":340.74},{"일자":"03/14","person":"Sarah","clicks":1011,"spend":305772,"ctr":3.34,"cpc":248.76},{"일자":"03/15","person":"Lina","clicks":861,"spend":319936,"ctr":1.81,"cpc":218.15},{"일자":"03/15","person":"Phoebe","clicks":1183,"spend":508728,"ctr":8.97,"cpc":348.93},{"일자":"03/15","person":"Sarah","clicks":1211,"spend":285583,"ctr":3.01,"cpc":362.01},{"일자":"03/16","person":"Lina","clicks":945,"spend":352667,"ctr":3.1,"cpc":397.4},{"일자":"03/16","person":"Phoebe","clicks":1638,"spend":655849,"ctr":2.5,"cpc":425.97},{"일자":"03/16","person":"Sarah","clicks":1884,"spend":419888,"ctr":4.4,"cpc":326.09},{"일자":"03/17","person":"Lina","clicks":1444,"spend":455528,"ctr":2.82,"cpc":307.18},{"일자":"03/17","person":"Phoebe","clicks":1597,"spend":649534,"ctr":2.29,"cpc":546.88},{"일자":"03/17","person":"Sarah","clicks":2568,"spend":725488,"ctr":4.02,"cpc":263.78},{"일자":"03/18","person":"Lina","clicks":3397,"spend":1153972,"ctr":1.87,"cpc":415.89},{"일자":"03/18","person":"Phoebe","clicks":2812,"spend":1235411,"ctr":1.76,"cpc":394.4},{"일자":"03/18","person":"Sarah","clicks":15925,"spend":2870745,"ctr":2.58,"cpc":299.98},{"일자":"03/19","person":"Lina","clicks":1549,"spend":530778,"ctr":1.61,"cpc":383.52},{"일자":"03/19","person":"Phoebe","clicks":1101,"spend":472550,"ctr":1.54,"cpc":384.95},{"일자":"03/19","person":"Sarah","clicks":7957,"spend":1605168,"ctr":2.4,"cpc":390.21},{"일자":"03/20","person":"Lina","clicks":1266,"spend":446777,"ctr":1.52,"cpc":302.98},{"일자":"03/20","person":"Phoebe","clicks":775,"spend":381218,"ctr":1.37,"cpc":334.48},{"일자":"03/20","person":"Sarah","clicks":6945,"spend":1584207,"ctr":2.27,"cpc":468.5}];
+function goPage(pg,btn){
+  document.querySelectorAll('.pg').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('pg-'+pg).classList.add('active');
+  btn.classList.add('active');
+  if(pg==='product') renderProdPage();
+}
 
-const adPerf = [{"person":"Lina","ad_name":"AIRedBanner","media":"img","product":"BCA","clicks":117,"spend":49231,"ctr":1.03,"cpc":405.99},{"person":"Lina","ad_name":"AIRedBanner","media":"img","product":"BPD","clicks":48,"spend":24130,"ctr":0.97,"cpc":502.71},{"person":"Lina","ad_name":"AIRedBanner","media":"img","product":"GPG","clicks":120,"spend":48955,"ctr":1.58,"cpc":426.78},{"person":"Lina","ad_name":"Comment","media":"vdo","product":"GPG","clicks":142,"spend":69905,"ctr":2.89,"cpc":251.96},{"person":"Lina","ad_name":"FastASMR","media":"vdo","product":"GPG","clicks":1885,"spend":705741,"ctr":1.49,"cpc":326.84},{"person":"Lina","ad_name":"Game","media":"vdo","product":"GPG","clicks":1188,"spend":533180,"ctr":3.18,"cpc":385.75},{"person":"Lina","ad_name":"LaurenZeroIrritation","media":"img","product":"GPG","clicks":879,"spend":369246,"ctr":1.51,"cpc":364.83},{"person":"Lina","ad_name":"PopUp","media":"vdo","product":"PCO","clicks":156,"spend":51255,"ctr":1.16,"cpc":218.12},{"person":"Lina","ad_name":"Reviews","media":"vdo","product":"BCA","clicks":707,"spend":384041,"ctr":2.29,"cpc":580.56},{"person":"Lina","ad_name":"Reviews","media":"vdo","product":"BPD","clicks":251,"spend":118543,"ctr":2.61,"cpc":519.31},{"person":"Lina","ad_name":"milkydewASMR","media":"vdo","product":"GPG","clicks":11780,"spend":3274465,"ctr":4.01,"cpc":297.15},{"person":"Phoebe","ad_name":"KimHyunjiASMR","media":"vdo","product":"BCA","clicks":6081,"spend":2896874,"ctr":3.33,"cpc":529.31},{"person":"Phoebe","ad_name":"KimHyunjiASMR","media":"vdo","product":"BPD","clicks":302,"spend":143996,"ctr":3.48,"cpc":473.93},{"person":"Phoebe","ad_name":"KimMissokASMR","media":"vdo","product":"BCA","clicks":3798,"spend":1883177,"ctr":3.13,"cpc":433.85},{"person":"Phoebe","ad_name":"KimMissokASMR","media":"vdo","product":"BPD","clicks":554,"spend":246634,"ctr":3.38,"cpc":434.86},{"person":"Phoebe","ad_name":"allureWinner","media":"img","product":"PCO","clicks":910,"spend":490429,"ctr":1.49,"cpc":571.08},{"person":"Phoebe","ad_name":"moveyourThumb","media":"vdo","product":"PCO","clicks":7741,"spend":1381702,"ctr":5.3,"cpc":160.77},{"person":"Phoebe","ad_name":"no1hashtag","media":"img","product":"PCO","clicks":1086,"spend":478363,"ctr":1.32,"cpc":394.1},{"person":"Phoebe","ad_name":"peelFirst","media":"vdo","product":"GPG","clicks":144,"spend":77679,"ctr":5.58,"cpc":222.54},{"person":"Phoebe","ad_name":"pinkCart","media":"img","product":"BCA","clicks":265,"spend":100768,"ctr":1.74,"cpc":382.31},{"person":"Phoebe","ad_name":"99percent","media":"vdo","product":"PCO","clicks":537,"spend":422264,"ctr":0.81,"cpc":334.27},{"person":"Sarah","ad_name":"000","media":"img","product":"GPG","clicks":280,"spend":122470,"ctr":1.5,"cpc":249.31},{"person":"Sarah","ad_name":"Daily","media":"vdo","product":"PCM","clicks":2111,"spend":835456,"ctr":4.67,"cpc":417.95},{"person":"Sarah","ad_name":"ai01","media":"vdo","product":"PCO","clicks":2083,"spend":577270,"ctr":2.2,"cpc":308.23},{"person":"Sarah","ad_name":"before1","media":"vdo","product":"PCO","clicks":48879,"spend":6666503,"ctr":10.4,"cpc":123.69},{"person":"Sarah","ad_name":"news02","media":"img","product":"PCO","clicks":729,"spend":474685,"ctr":1.58,"cpc":505.45},{"person":"Sarah","ad_name":"real","media":"img","product":"BCA","clicks":869,"spend":345803,"ctr":1.46,"cpc":417.6},{"person":"Sarah","ad_name":"real","media":"img","product":"GPG","clicks":1509,"spend":546948,"ctr":1.95,"cpc":359.78},{"person":"Sarah","ad_name":"real","media":"img","product":"PCO","clicks":5774,"spend":1471620,"ctr":2.69,"cpc":255.38},{"person":"Sarah","ad_name":"waterVsOil","media":"vdo","product":"PCO","clicks":1379,"spend":641285,"ctr":1.18,"cpc":382.37}];
-
-let currentMetric = 'clicks';
-let currentPersonFilter = 'All';
-let trendChartObj, mediaChartObj;
-
-function fmt(n) { return Math.round(n).toLocaleString(); }
-function fmtD(n, d=2) { return Number(n).toFixed(d); }
-
-function renderPersonCards() {
-  const container = document.getElementById('personCards');
-  const ranks = { clicks: [...personSummary].sort((a,b) => b.clicks - a.clicks).map(p=>p.person),
-                  ctr: [...personSummary].sort((a,b) => b.ctr - a.ctr).map(p=>p.person),
-                  cpc: [...personSummary].sort((a,b) => a.cpc - b.cpc).map(p=>p.person) };
-
-  container.innerHTML = personSummary.map(p => {
-    const rank = ranks[currentMetric].indexOf(p.person) + 1;
-    const rankColors = ['#3266ad','#888780','#BA7517'];
-    const vdo = personMedia.find(m => m.person === p.person && m.media === 'vdo');
-    const img = personMedia.find(m => m.person === p.person && m.media === 'img');
-    const totalClicks = (vdo?.clicks||0) + (img?.clicks||0);
-    const vdoPct = totalClicks > 0 ? Math.round((vdo?.clicks||0)/totalClicks*100) : 0;
-
-    return `<div class="person-card">
-      <div class="person-header">
-        <div class="avatar" style="background:${personBg[p.person]};color:${personText[p.person]};">${p.person[0]}</div>
-        <div>
-          <div class="person-name">${p.person}</div>
-          <div class="person-sub">Rank #${rank} by ${currentMetric === 'clicks' ? 'clicks' : currentMetric === 'ctr' ? 'CTR' : 'CPC (lower=better)'}</div>
-        </div>
+// ── Creator page ──────────────────────────────────────────
+function renderPCards(){
+  const sorted={
+    clicks:[...D.ps].sort((a,b)=>b.clicks-a.clicks).map(x=>x.person),
+    ctr:[...D.ps].sort((a,b)=>b.ctr-a.ctr).map(x=>x.person),
+    cpc:[...D.ps].sort((a,b)=>a.cpc-b.cpc).map(x=>x.person)
+  };
+  const rl={clicks:'clicks',ctr:'CTR',cpc:'CPC (lower=better)'};
+  document.getElementById('pcards').innerHTML=D.ps.map(p=>{
+    const rank=sorted[cM].indexOf(p.person)+1;
+    const vdo=D.pm.find(m=>m.person===p.person&&m.media==='vdo');
+    const img=D.pm.find(m=>m.person===p.person&&m.media==='img');
+    const tc=(vdo?.clicks||0)+(img?.clicks||0);
+    const vp=tc>0?Math.round((vdo?.clicks||0)/tc*100):0;
+    return`<div class="pcard">
+      <div class="ph"><div class="av" style="background:${CB[p.person]};color:${CT[p.person]}">${p.person[0]}</div>
+        <div><div class="pn">${p.person}</div><div class="pr">Rank #${rank} by ${rl[cM]}</div></div>
       </div>
-      <div class="stat-row">
-        <div class="stat-box">
-          <div class="stat-label">Clicks</div>
-          <div class="stat-value">${fmt(p.clicks)}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">CTR</div>
-          <div class="stat-value">${fmtD(p.ctr)}%</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">CPC</div>
-          <div class="stat-value">₩${fmt(p.cpc)}</div>
-        </div>
+      <div class="srow">
+        <div class="st"><div class="stl">Clicks</div><div class="stv">${f(p.clicks)}</div></div>
+        <div class="st"><div class="stl">CTR</div><div class="stv">${fd(p.ctr)}%</div></div>
+        <div class="st"><div class="stl">CPC</div><div class="stv">₩${f(p.cpc)}</div></div>
       </div>
-      <div class="media-bar">
-        <div class="media-label-row">
-          <span>Video ${vdoPct}%</span><span>Image ${100-vdoPct}%</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${vdoPct}%; background:${personColors[p.person]};"></div>
-        </div>
+      <div class="srow">
+        <div class="st"><div class="stl">Spend</div><div class="stv" style="font-size:13px">₩${f(p.spend)}</div></div>
+        <div class="st"><div class="stl">Purchases</div><div class="stv ${p.purchases>0?'g':''}">${p.purchases}</div></div>
+        <div class="st"><div class="stl">CPA</div><div class="stv" style="font-size:13px">${p.purchases>0?'₩'+f(p.cpa):'—'}</div></div>
+      </div>
+      <div class="mlabels"><span>Video ${vp}%</span><span>Image ${100-vp}%</span></div>
+      <div class="btrack"><div class="bfill" style="width:${vp}%;background:${C[p.person]}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderTrend(){
+  document.getElementById('trendT').textContent={clicks:'Daily clicks',ctr:'Daily CTR (%)',cpc:'Daily CPC (₩)'}[cM]+' by creator';
+  const dates=[...new Set(D.daily.map(r=>r.d))].sort();
+  const ds=person=>({label:person,
+    data:dates.map(dt=>{const r=D.daily.find(x=>x.d===dt&&x.p===person);return r?r[cM]:null;}),
+    borderColor:C[person],backgroundColor:C[person]+'22',
+    borderWidth:2,pointRadius:3,pointHoverRadius:5,spanGaps:true,tension:0.3,fill:false});
+  const ctx=document.getElementById('trendC').getContext('2d');
+  if(tC)tC.destroy();
+  tC=new Chart(ctx,{type:'line',data:{labels:dates,datasets:['Lina','Phoebe','Sarah'].map(ds)},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:11},color:'#888',maxRotation:45,autoSkip:true,maxTicksLimit:12},grid:{display:false}},
+              y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,0.1)'}}}}});
+}
+
+function renderMedia(){
+  const pp=['Lina','Phoebe','Sarah'];
+  const gv=(p,m)=>{const r=D.pm.find(x=>x.person===p&&x.media===m);return r?r[cM]:0;};
+  document.getElementById('mediaT').textContent=`Video vs image — ${{clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)'}[cM]} by creator`;
+  const ctx=document.getElementById('mediaC').getContext('2d');
+  if(mC)mC.destroy();
+  mC=new Chart(ctx,{type:'bar',data:{labels:pp,datasets:[
+    {label:'Video',data:pp.map(p=>gv(p,'vdo')),backgroundColor:pp.map(p=>C[p]),borderRadius:4,barPercentage:0.42},
+    {label:'Image',data:pp.map(p=>gv(p,'img')),backgroundColor:pp.map(p=>C[p]+'55'),borderRadius:4,barPercentage:0.42}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:12},color:'#888'},grid:{display:false}},
+            y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,0.1)'}}}}});
+}
+
+function renderAdTable(){
+  let rows=[...D.ad];
+  if(cF!=='All')rows=rows.filter(r=>r.person===cF);
+  rows.sort((a,b)=>cM==='cpc'?a.cpc-b.cpc:b[cM]-a[cM]);
+  const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
+  document.getElementById('adTbody').innerHTML=rows.map((r,i)=>`<tr>
+    <td><span class="rd" style="background:${i<3?rb[i]:'var(--surface2)'};color:${i<3?rt[i]:'var(--muted)'}">${i+1}</span></td>
+    <td style="font-weight:600">${r.n}</td>
+    <td><span class="pp" style="background:${CB[r.person]};color:${CT[r.person]}">${r.person}</span></td>
+    <td><span class="bdg ${r.m==='vdo'?'bv':'bi'}">${r.m==='vdo'?'Video':'Image'}</span></td>
+    <td><span class="bdg" style="background:${PB[r.prod]};color:${PT[r.prod]}">${r.prod}</span></td>
+    <td style="text-align:right">${f(r.clicks)}</td>
+    <td style="text-align:right">₩${f(r.spend)}</td>
+    <td style="text-align:right">${fd(r.ctr)}%</td>
+    <td style="text-align:right">₩${fd(r.cpc)}</td>
+  </tr>`).join('');
+}
+
+function switchM(m,btn){
+  cM=m;
+  document.querySelectorAll('#mtabs .tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPCards();renderTrend();renderMedia();renderAdTable();
+}
+function fPerson(p,btn){
+  cF=p;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAdTable();
+}
+
+// ── Product page ──────────────────────────────────────────
+function renderProdPage(){renderPSum();renderProdChart();renderPDGrid();renderProdTable();}
+
+function renderPSum(){
+  document.getElementById('psgrid').innerHTML=D.psum.map(p=>{
+    const has=p.purchases>0;
+    return`<div class="pscard">
+      <div class="psname" style="color:${PC[p.prod]}">${p.prod}</div>
+      <div class="pml">Clicks</div><div class="pmv">${f(p.clicks)}</div>
+      <div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩${f(p.spend)}</div>
+      <div class="pml">CTR</div><div class="pmv">${fd(p.ctr)}%</div>
+      <div class="pbadge" style="background:${has?'#E1F5EE':'var(--surface2)'};color:${has?'#085041':'var(--muted)'}">
+        ${p.purchases} purchases${has?' · ₩'+f(p.cpa):''}
       </div>
     </div>`;
   }).join('');
 }
 
-const dates = [...new Set(daily.map(d=>d['일자']))].sort();
-
-function getMetricLabel() {
-  return currentMetric === 'clicks' ? 'Daily clicks' : currentMetric === 'ctr' ? 'Daily CTR (%)' : 'Daily CPC (₩)';
-}
-
-function getTrendData(person) {
-  return dates.map(d => {
-    const row = daily.find(r => r['일자'] === d && r.person === person);
-    if (!row) return null;
-    return currentMetric === 'clicks' ? row.clicks : currentMetric === 'ctr' ? row.ctr : row.cpc;
+function renderProdChart(){
+  const m=cPM;
+  const label={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',cpa:'CPA (₩)'}[m];
+  document.getElementById('prodChartT').textContent=`${label} by product & creator`;
+  const persons=['Lina','Phoebe','Sarah'];
+  const ctx=document.getElementById('prodC').getContext('2d');
+  if(pC)pC.destroy();
+  pC=new Chart(ctx,{type:'bar',
+    data:{labels:PRODS,datasets:persons.map(person=>({
+      label:person,
+      data:PRODS.map(prod=>{const r=D.pp.find(x=>x.prod===prod&&x.person===person);return r?r[m]:0;}),
+      backgroundColor:C[person],borderRadius:4,barPercentage:0.7
+    }))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:12},color:'#888'},grid:{display:false}},
+              y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,0.1)'}}}}
   });
 }
 
-function renderTrendChart() {
-  document.getElementById('chartTitle').textContent = getMetricLabel() + ' by creator';
-  const ctx = document.getElementById('trendChart').getContext('2d');
-  if (trendChartObj) trendChartObj.destroy();
-  trendChartObj = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: dates,
-      datasets: ['Lina','Phoebe','Sarah'].map(p => ({
-        label: p,
-        data: getTrendData(p),
-        borderColor: personColors[p],
-        backgroundColor: personColors[p] + '22',
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        spanGaps: true,
-        tension: 0.3,
-        fill: false
-      }))
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { font: { size: 11 }, color: '#888', maxRotation: 45, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } },
-        y: { ticks: { font: { size: 11 }, color: '#888' }, grid: { color: 'rgba(0,0,0,0.05)' } }
-      }
-    }
-  });
+function renderPDGrid(){
+  const m=cPM;
+  document.getElementById('pdgrid').innerHTML=PRODS.map(prod=>{
+    const rows=D.pp.filter(r=>r.prod===prod);
+    if(!rows.length)return'';
+    const vals=rows.map(r=>r[m]).filter(v=>v>0);
+    const mx=vals.length?Math.max(...vals):1;
+    return`<div class="pdcard">
+      <div class="pdname"><span style="color:${PC[prod]}">${prod}</span>
+        <span class="ptag">${{clicks:'CLICKS',ctr:'CTR',cpc:'CPC',purchases:'PURCHASES',cpa:'CPA'}[m]}</span>
+      </div>
+      ${['Lina','Phoebe','Sarah'].map(person=>{
+        const r=rows.find(x=>x.person===person);
+        if(!r)return'';
+        const val=r[m];
+        const pct=mx>0&&val>0?Math.round(val/mx*100):0;
+        let dv=m==='clicks'?f(val):m==='ctr'?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):(val>0?'₩'+f(val):'—');
+        return`<div class="crow">
+          <div class="clabel"><span class="cdot" style="background:${C[person]}"></span><span class="cname">${person}</span></div>
+          <div class="cbw"><div class="cbt"><div class="cbf" style="width:${pct}%;background:${C[person]}"></div></div></div>
+          <div class="cval">${dv}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).filter(Boolean).join('');
 }
 
-function getMediaMetric(row) {
-  return currentMetric === 'clicks' ? row.clicks : currentMetric === 'ctr' ? row.ctr : row.cpc;
+function renderProdTable(){
+  const rows=[...D.pp].sort((a,b)=>a.prod.localeCompare(b.prod)||a.person.localeCompare(b.person));
+  document.getElementById('prodTbody').innerHTML=rows.map(r=>`<tr>
+    <td><span class="bdg" style="background:${PB[r.prod]};color:${PT[r.prod]}">${r.prod}</span></td>
+    <td><span class="pp" style="background:${CB[r.person]};color:${CT[r.person]}">${r.person}</span></td>
+    <td style="text-align:right">${f(r.clicks)}</td>
+    <td style="text-align:right">₩${f(r.spend)}</td>
+    <td style="text-align:right">${fd(r.ctr)}%</td>
+    <td style="text-align:right">₩${fd(r.cpc)}</td>
+    <td style="text-align:right;font-weight:600;color:${r.purchases>0?'#0F6E56':'var(--muted)'}">
+      ${r.purchases>0?r.purchases:'—'}
+    </td>
+    <td style="text-align:right">${r.purchases>0?'₩'+f(r.cpa):'—'}</td>
+  </tr>`).join('');
 }
 
-function renderMediaChart() {
-  const metricLabel = currentMetric === 'clicks' ? 'Clicks' : currentMetric === 'ctr' ? 'CTR (%)' : 'CPC (₩)';
-  document.getElementById('mediaChartTitle').textContent = `Video vs image — ${metricLabel} by creator`;
-  const persons = ['Lina','Phoebe','Sarah'];
-  const vdoVals = persons.map(p => getMediaMetric(personMedia.find(m=>m.person===p&&m.media==='vdo')||{}));
-  const imgVals = persons.map(p => getMediaMetric(personMedia.find(m=>m.person===p&&m.media==='img')||{}));
-  const ctx = document.getElementById('mediaChart').getContext('2d');
-  if (mediaChartObj) mediaChartObj.destroy();
-  mediaChartObj = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: persons,
-      datasets: [
-        { label: 'Video', data: vdoVals, backgroundColor: persons.map(p => personColors[p]), borderRadius: 4, barPercentage: 0.45 },
-        { label: 'Image', data: imgVals, backgroundColor: persons.map(p => personColors[p] + '66'), borderRadius: 4, barPercentage: 0.45 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { font: { size: 12 }, color: '#888' }, grid: { display: false } },
-        y: { ticks: { font: { size: 11 }, color: '#888' }, grid: { color: 'rgba(0,0,0,0.05)' } }
-      }
-    }
-  });
+function switchPM(m,btn){
+  cPM=m;
+  document.querySelectorAll('#pmtabs .pmtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProdChart();renderPDGrid();
 }
 
-function renderAdTable() {
-  let data = [...adPerf];
-  if (currentPersonFilter !== 'All') data = data.filter(d => d.person === currentPersonFilter);
-  data.sort((a,b) => currentMetric === 'cpc' ? a.cpc - b.cpc : b[currentMetric === 'clicks' ? 'clicks' : currentMetric] - a[currentMetric === 'clicks' ? 'clicks' : currentMetric]);
-  const tbody = document.getElementById('adTableBody');
-  tbody.innerHTML = data.map((row, i) => {
-    const rankBg = i === 0 ? '#B5D4F4' : i === 1 ? '#D3D1C7' : i === 2 ? '#FAC775' : 'var(--color-background-secondary)';
-    const rankTxt = i === 0 ? '#0C447C' : i === 1 ? '#444441' : i === 2 ? '#633806' : 'var(--color-text-secondary)';
-    return `<tr>
-      <td><span class="rank-badge" style="background:${rankBg};color:${rankTxt};">${i+1}</span></td>
-      <td style="font-weight:500">${row.ad_name}</td>
-      <td><span style="font-size:12px;color:${personText[row.person]};background:${personBg[row.person]};padding:2px 8px;border-radius:10px;">${row.person}</span></td>
-      <td><span class="badge badge-${row.media}">${row.media === 'vdo' ? 'Video' : 'Image'}</span></td>
-      <td style="color:var(--color-text-secondary);font-size:12px">${row.product}</td>
-      <td style="text-align:right">${fmt(row.clicks)}</td>
-      <td style="text-align:right">₩${fmt(row.spend)}</td>
-      <td style="text-align:right">${fmtD(row.ctr)}%</td>
-      <td style="text-align:right">₩${fmt(row.cpc)}</td>
-    </tr>`;
-  }).join('');
-}
-
-function switchMetric(metric) {
-  currentMetric = metric;
-  document.querySelectorAll('#metricTab .tab').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  renderPersonCards();
-  renderTrendChart();
-  renderMediaChart();
-  renderAdTable();
-}
-
-function filterPerson(p) {
-  currentPersonFilter = p;
-  document.querySelectorAll('#personFilter .filter-btn').forEach(b => {
-    b.classList.toggle('active', b.textContent === p);
-  });
-  renderAdTable();
-}
-
-renderPersonCards();
-renderTrendChart();
-renderMediaChart();
-renderAdTable();
+renderPCards();renderTrend();renderMedia();renderAdTable();
 </script>
+</body>
+</html>
