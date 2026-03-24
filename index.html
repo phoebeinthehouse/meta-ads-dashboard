@@ -18,7 +18,7 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
   .nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 1.5rem;}
-  .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:0;}
+  .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;}
   .nav-logo{font-size:14px;font-weight:600;color:var(--text);padding:14px 0;margin-right:2rem;white-space:nowrap;}
   .nav-logo span{color:var(--muted);font-weight:400;}
   .nav-tab{padding:14px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;font-family:inherit;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
@@ -37,14 +37,12 @@
   .pcard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
   .ph{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
   .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;}
-  .pn{font-size:15px;font-weight:600;}
-  .pr{font-size:11px;color:var(--muted);margin-top:1px;}
+  .pname{font-size:15px;font-weight:600;} .prank{font-size:11px;color:var(--muted);margin-top:1px;}
   .srow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
   .st{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;}
   .stl{font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;}
-  .stv{font-size:15px;font-weight:600;}
-  .stv.g{color:#0F6E56;}
-  .mlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;}
+  .stv{font-size:15px;font-weight:600;} .stv.good{color:#0F6E56;} .stv.sm{font-size:13px;}
+  .mlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;margin-top:8px;}
   .btrack{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;}
   .bfill{height:100%;border-radius:4px;}
   .ccard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
@@ -60,21 +58,19 @@
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th{text-align:left;padding:6px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;border-bottom:0.5px solid var(--border);white-space:nowrap;}
   td{padding:8px 8px;border-bottom:0.5px solid var(--border);color:var(--text);white-space:nowrap;}
-  tr:last-child td{border-bottom:none;}
-  tr:hover td{background:var(--surface2);}
+  tr:last-child td{border-bottom:none;} tr:hover td{background:var(--surface2);}
   .bdg{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
-  .bv{background:#E6F1FB;color:#0C447C;}
-  .bi{background:#FAEEDA;color:#633806;}
+  .bvdo{background:#E6F1FB;color:#0C447C;} .bimg{background:#FAEEDA;color:#633806;}
   .pp{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;}
   .rd{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;}
   /* product page */
-  .psgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;}
+  .psgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;}
   @media(max-width:700px){.psgrid{grid-template-columns:repeat(2,1fr);}}
   .pscard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;}
-  .psname{font-size:18px;font-weight:700;letter-spacing:-0.02em;margin-bottom:10px;}
-  .pml{font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.04em;}
-  .pmv{font-size:14px;font-weight:600;margin-bottom:6px;}
-  .pbadge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 9px;border-radius:8px;margin-top:4px;}
+  .psname{font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:10px;}
+  .pml{font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;}
+  .pmv{font-size:14px;font-weight:600;}
+  .roas-pill{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:4px 10px;border-radius:8px;margin-top:8px;}
   .pdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:1.25rem;}
   .pdcard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
   .pdname{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
@@ -84,14 +80,15 @@
   .clabel{display:flex;align-items:center;gap:7px;min-width:72px;}
   .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
   .cname{font-size:13px;font-weight:500;}
-  .cbw{flex:1;}
-  .cbt{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;}
+  .cbw{flex:1;} .cbt{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;}
   .cbf{height:100%;border-radius:4px;transition:width 0.5s ease;}
   .cval{min-width:90px;text-align:right;font-size:13px;font-weight:600;}
   .pmtabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;flex-wrap:wrap;}
   .pmtab{padding:4px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all 0.15s;}
   .pmtab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
-  .note{font-size:11px;color:var(--muted);margin-bottom:12px;}
+  .note{font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
+  .formula-box{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;}
+  .formula-box strong{color:var(--text);}
 </style>
 </head>
 <body>
@@ -106,7 +103,7 @@
 <!-- PAGE 1: BY CREATOR -->
 <div class="pg active" id="pg-creator">
   <div class="top-bar">
-    <div><h1>Creator performance</h1><div class="top-meta">2026.03.01 ~ 03.22 &nbsp;·&nbsp; Meta + Amazon</div></div>
+    <div><h1>Creator performance</h1><div class="top-meta">2026.03.01 ~ 03.22 &nbsp;·&nbsp; Meta + Amazon &nbsp;·&nbsp; BCA &amp; BPD merged</div></div>
     <div class="mtabs" id="mtabs">
       <button class="tab active" onclick="switchM('clicks',this)">Clicks</button>
       <button class="tab" onclick="switchM('ctr',this)">CTR</button>
@@ -149,6 +146,7 @@
         <th>#</th><th>Ad name</th><th>Creator</th><th>Media</th><th>Product</th>
         <th style="text-align:right">Clicks</th><th style="text-align:right">Spend</th>
         <th style="text-align:right">CTR</th><th style="text-align:right">CPC</th>
+        <th style="text-align:right">Purchases</th><th style="text-align:right">Revenue</th>
       </tr></thead>
       <tbody id="adTbody"></tbody>
     </table></div>
@@ -158,14 +156,20 @@
 <!-- PAGE 2: BY PRODUCT -->
 <div class="pg" id="pg-product">
   <div class="top-bar">
-    <div><h1>Product performance</h1><div class="top-meta">2026.03.01 ~ 03.22 &nbsp;·&nbsp; CPA = Meta spend ÷ Amazon purchases</div></div>
+    <div><h1>Product performance</h1><div class="top-meta">2026.03.01 ~ 03.22 &nbsp;·&nbsp; BCA &amp; BPD merged into one product</div></div>
     <div class="pmtabs" id="pmtabs">
       <button class="pmtab active" onclick="switchPM('clicks',this)">Clicks</button>
       <button class="pmtab" onclick="switchPM('ctr',this)">CTR</button>
       <button class="pmtab" onclick="switchPM('cpc',this)">CPC</button>
       <button class="pmtab" onclick="switchPM('purchases',this)">Purchases</button>
+      <button class="pmtab" onclick="switchPM('roas',this)">ROAS</button>
       <button class="pmtab" onclick="switchPM('cpa',this)">CPA</button>
     </div>
+  </div>
+  <div class="formula-box">
+    <strong>ROAS</strong> = 한화매출 × 1.5 ÷ 소재별 Meta 광고비 &nbsp;·&nbsp;
+    <strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp;
+    — = no Amazon data recorded
   </div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
@@ -184,13 +188,14 @@
   <div class="pdgrid" id="pdgrid"></div>
   <div class="ccard">
     <div class="ctitle" style="margin-bottom:4px;">Full detail table</div>
-    <div class="note">— means no Amazon purchases recorded for this creator × product combination</div>
+    <div class="note">ROAS = 한화매출 × 1.5 ÷ 소재별 광고비 &nbsp;·&nbsp; — = no Amazon data recorded</div>
     <div class="tw"><table>
       <thead><tr>
         <th>Product</th><th>Creator</th>
         <th style="text-align:right">Clicks</th><th style="text-align:right">Spend</th>
         <th style="text-align:right">CTR</th><th style="text-align:right">CPC</th>
-        <th style="text-align:right">Purchases</th><th style="text-align:right">CPA</th>
+        <th style="text-align:right">Purchases</th><th style="text-align:right">Revenue (KRW)</th>
+        <th style="text-align:right">ROAS</th><th style="text-align:right">CPA</th>
       </tr></thead>
       <tbody id="prodTbody"></tbody>
     </table></div>
@@ -201,16 +206,16 @@
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
 const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
-const PC={GPG:'#7F77DD',PCO:'#1D9E75',BCA:'#D85A30',PCM:'#BA7517',BPD:'#D4537E'};
-const PB={GPG:'#EEEDFE',PCO:'#E1F5EE',BCA:'#FAECE7',PCM:'#FAEEDA',BPD:'#FBEAF0'};
-const PT={GPG:'#3C3489',PCO:'#085041',BCA:'#993C1D',PCM:'#633806',BPD:'#72243E'};
-const PRODS=['GPG','PCO','BCA','PCM','BPD'];
+const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517'};
+const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA'};
+const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806'};
+const PRODS=['GPG','PCO','BCA/BPD','PCM'];
 
 const D={
   ps:[
-    {person:'Lina',  clicks:17499,spend:5733209,ctr:2.31,cpc:334.65,impressions:576070,purchases:27,cpa:212341},
-    {person:'Phoebe',clicks:23830,spend:9274358,ctr:2.59,cpc:390.46,impressions:872021,purchases:9, cpa:1030484},
-    {person:'Sarah', clicks:64202,spend:11934492,ctr:4.33,cpc:286.22,impressions:1268542,purchases:35,cpa:340985}
+    {person:'Lina',  clicks:17499, spend:5733209, ctr:2.31,cpc:334.65,impressions:576070, purchases:21,revenue_krw:453330, roas:0.1186,cpa:273010},
+    {person:'Phoebe',clicks:23830, spend:9274358, ctr:2.59,cpc:390.46,impressions:872021, purchases:5, revenue_krw:82490,  roas:0.0133,cpa:1854872},
+    {person:'Sarah', clicks:64202, spend:11934492,ctr:4.33,cpc:286.22,impressions:1268542,purchases:33,revenue_krw:787232, roas:0.0989,cpa:361651}
   ],
   pm:[
     {person:'Lina',  media:'img',clicks:1344, spend:579322, ctr:1.33,cpc:406.58},
@@ -243,48 +248,44 @@ const D={
     {d:'03/20',p:'Lina',clicks:1266,ctr:1.52,cpc:302.98},{d:'03/20',p:'Phoebe',clicks:775,ctr:1.37,cpc:334.48},{d:'03/20',p:'Sarah',clicks:6945,ctr:2.27,cpc:468.5}
   ],
   ad:[
-    {person:'Sarah', n:'before1',      m:'vdo',prod:'PCO',clicks:48879,spend:6666503,ctr:10.4, cpc:123.69},
-    {person:'Lina',  n:'milkydewASMR', m:'vdo',prod:'GPG',clicks:11780,spend:3274465,ctr:4.01, cpc:297.15},
-    {person:'Phoebe',n:'moveyourThumb',m:'vdo',prod:'PCO',clicks:7741, spend:1381702,ctr:5.3,  cpc:160.77},
-    {person:'Phoebe',n:'KimHyunjiASMR',m:'vdo',prod:'BCA',clicks:6081, spend:2896874,ctr:3.33, cpc:529.31},
-    {person:'Sarah', n:'real',         m:'img',prod:'PCO',clicks:5774, spend:1471620,ctr:2.69, cpc:255.38},
-    {person:'Phoebe',n:'KimMissokASMR',m:'vdo',prod:'BCA',clicks:3798, spend:1883177,ctr:3.13, cpc:433.85},
-    {person:'Sarah', n:'Daily',        m:'vdo',prod:'PCM',clicks:2111, spend:835456, ctr:4.67, cpc:417.95},
-    {person:'Sarah', n:'ai01',         m:'vdo',prod:'PCO',clicks:2083, spend:577270, ctr:2.2,  cpc:308.23},
-    {person:'Lina',  n:'FastASMR',     m:'vdo',prod:'GPG',clicks:1885, spend:705741, ctr:1.49, cpc:326.84},
-    {person:'Sarah', n:'real(GPG)',    m:'img',prod:'GPG',clicks:1509, spend:546948, ctr:1.95, cpc:359.78},
-    {person:'Sarah', n:'waterVsOil',   m:'vdo',prod:'PCO',clicks:1379, spend:641285, ctr:1.18, cpc:382.37},
-    {person:'Lina',  n:'Game',         m:'vdo',prod:'GPG',clicks:1188, spend:533180, ctr:3.18, cpc:385.75},
-    {person:'Phoebe',n:'no1hashtag',   m:'img',prod:'PCO',clicks:1086, spend:478363, ctr:1.32, cpc:394.1},
-    {person:'Phoebe',n:'allureWinner', m:'img',prod:'PCO',clicks:910,  spend:490429, ctr:1.49, cpc:571.08},
-    {person:'Lina',  n:'LaurenZero',   m:'img',prod:'GPG',clicks:879,  spend:369246, ctr:1.51, cpc:364.83},
-    {person:'Sarah', n:'real(BCA)',    m:'img',prod:'BCA',clicks:869,  spend:345803, ctr:1.46, cpc:417.6},
-    {person:'Phoebe',n:'justOneUse',   m:'vdo',prod:'GPG',clicks:800,  spend:390920, ctr:1.36, cpc:406.58},
-    {person:'Sarah', n:'news02',       m:'img',prod:'PCO',clicks:729,  spend:474685, ctr:1.58, cpc:505.45},
-    {person:'Lina',  n:'Reviews(BCA)', m:'vdo',prod:'BCA',clicks:707,  spend:384041, ctr:2.29, cpc:580.56},
-    {person:'Phoebe',n:'KimMissok(BPD)',m:'vdo',prod:'BPD',clicks:554, spend:246634, ctr:3.38, cpc:434.86}
+    {n:'before1',       person:'Sarah', prod:'PCO',    m:'vdo',clicks:48879,spend:6666503,ctr:10.40,cpc:123.69,purchases:22,revenue_krw:512898, roas:0.1154,cpa:303023},
+    {n:'milkydewASMR',  person:'Lina',  prod:'GPG',    m:'vdo',clicks:11780,spend:3274465,ctr:4.01, cpc:297.15,purchases:11,revenue_krw:239732, roas:0.1098,cpa:297679},
+    {n:'moveyourThumb', person:'Phoebe',prod:'PCO',    m:'vdo',clicks:7741, spend:1381702,ctr:5.30, cpc:160.77,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'KimHyunjiASMR', person:'Phoebe',prod:'BCA/BPD',m:'vdo',clicks:6383, spend:3040870,ctr:3.33, cpc:526.79,purchases:1, revenue_krw:28470,   roas:0.014,cpa:3040870},
+    {n:'real(PCO)',      person:'Sarah', prod:'PCO',    m:'img',clicks:5774, spend:1471620,ctr:2.69, cpc:255.38,purchases:5, revenue_krw:118990,  roas:0.1213,cpa:294324},
+    {n:'KimMissokASMR', person:'Phoebe',prod:'BCA/BPD',m:'vdo',clicks:4352, spend:2129811,ctr:3.14, cpc:433.90,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'Daily',         person:'Sarah', prod:'PCM',    m:'vdo',clicks:2111, spend:835456, ctr:4.67, cpc:417.95,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'ai01',          person:'Sarah', prod:'PCO',    m:'vdo',clicks:2083, spend:577270, ctr:2.20, cpc:308.23,purchases:1, revenue_krw:25550,   roas:0.0664,cpa:577270},
+    {n:'FastASMR',      person:'Lina',  prod:'GPG',    m:'vdo',clicks:1885, spend:705741, ctr:1.49, cpc:326.84,purchases:9, revenue_krw:174762,  roas:0.3714,cpa:78416},
+    {n:'real(GPG)',     person:'Sarah', prod:'GPG',    m:'img',clicks:1509, spend:546948, ctr:1.95, cpc:359.78,purchases:4, revenue_krw:102200,  roas:0.2803,cpa:136737},
+    {n:'waterVsOil',    person:'Sarah', prod:'PCO',    m:'vdo',clicks:1379, spend:641285, ctr:1.18, cpc:382.37,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'Game',          person:'Lina',  prod:'GPG',    m:'vdo',clicks:1188, spend:533180, ctr:3.18, cpc:385.75,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'no1hashtag',    person:'Phoebe',prod:'PCO',    m:'img',clicks:1086, spend:478363, ctr:1.32, cpc:394.10,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'Reviews',       person:'Lina',  prod:'BCA/BPD',m:'vdo',clicks:958,  spend:502584, ctr:2.37, cpc:565.25,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'allureWinner',  person:'Phoebe',prod:'PCO',    m:'img',clicks:910,  spend:490429, ctr:1.49, cpc:571.08,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'real(BCA/BPD)', person:'Sarah', prod:'BCA/BPD',m:'img',clicks:904,  spend:361949, ctr:1.44, cpc:428.52,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'LaurenZero',    person:'Lina',  prod:'GPG',    m:'img',clicks:879,  spend:369246, ctr:1.51, cpc:364.83,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'justOneUse',    person:'Phoebe',prod:'GPG',    m:'vdo',clicks:800,  spend:390920, ctr:1.36, cpc:406.58,purchases:2, revenue_krw:0,       roas:0,    cpa:195460},
+    {n:'news02',        person:'Sarah', prod:'PCO',    m:'img',clicks:729,  spend:474685, ctr:1.58, cpc:505.45,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
+    {n:'99percent',     person:'Phoebe',prod:'PCO',    m:'vdo',clicks:537,  spend:422264, ctr:0.81, cpc:334.27,purchases:0, revenue_krw:0,       roas:0,    cpa:0}
   ],
   pp:[
-    {prod:'BCA',person:'Lina',  clicks:890,  spend:466667, ctr:1.61,cpc:526.64,purchases:0, cpa:0},
-    {prod:'BCA',person:'Phoebe',clicks:10491,spend:5045208,ctr:2.94,cpc:485.36,purchases:3, cpa:1681736},
-    {prod:'BCA',person:'Sarah', clicks:869,  spend:345803, ctr:1.46,cpc:417.6, purchases:0, cpa:0},
-    {prod:'BPD',person:'Lina',  clicks:316,  spend:154613, ctr:1.76,cpc:560.92,purchases:0, cpa:0},
-    {prod:'BPD',person:'Phoebe',clicks:1156, spend:523540, ctr:2.44,cpc:448.25,purchases:4, cpa:130885},
-    {prod:'BPD',person:'Sarah', clicks:35,   spend:16146,  ctr:1.35,cpc:461.31,purchases:0, cpa:0},
-    {prod:'GPG',person:'Lina',  clicks:16073,spend:5037474,ctr:2.67,cpc:332.88,purchases:27,cpa:186573},
-    {prod:'GPG',person:'Phoebe',clicks:1753, spend:884118, ctr:2.51,cpc:386.24,purchases:2, cpa:442059},
-    {prod:'GPG',person:'Sarah', clicks:1904, spend:706428, ctr:1.52,cpc:336.41,purchases:4, cpa:176607},
-    {prod:'PCM',person:'Sarah', clicks:2515, spend:1020642,ctr:2.62,cpc:362.36,purchases:0, cpa:0},
-    {prod:'PCO',person:'Lina',  clicks:220,  spend:74455,  ctr:0.69,cpc:233.8, purchases:0, cpa:0},
-    {prod:'PCO',person:'Phoebe',clicks:10430,spend:2821492,ctr:2.34,cpc:297.17,purchases:0, cpa:0},
-    {prod:'PCO',person:'Sarah', clicks:58879,spend:9845473,ctr:5.77,cpc:240.35,purchases:31,cpa:317596}
+    {prod:'BCA/BPD',person:'Lina',  clicks:1206, spend:621280, ctr:1.64,cpc:535.21,purchases:0, revenue_krw:0,      roas:0,     cpa:0},
+    {prod:'BCA/BPD',person:'Phoebe',clicks:11647,spend:5568748,ctr:2.90,cpc:482.27,purchases:3, revenue_krw:82490,  roas:0.0222,cpa:1856249},
+    {prod:'BCA/BPD',person:'Sarah', clicks:904,  spend:361949, ctr:1.44,cpc:428.52,purchases:0, revenue_krw:0,      roas:0,     cpa:0},
+    {prod:'GPG',    person:'Lina',  clicks:16073,spend:5037474,ctr:2.67,cpc:332.88,purchases:21,revenue_krw:453330, roas:0.135, cpa:239880},
+    {prod:'GPG',    person:'Phoebe',clicks:1753, spend:884118, ctr:2.51,cpc:386.24,purchases:2, revenue_krw:0,      roas:0,     cpa:442059},
+    {prod:'GPG',    person:'Sarah', clicks:1904, spend:706428, ctr:1.52,cpc:336.41,purchases:4, revenue_krw:102200, roas:0.217, cpa:176607},
+    {prod:'PCM',    person:'Sarah', clicks:2515, spend:1020642,ctr:2.62,cpc:362.36,purchases:1, revenue_krw:27594,  roas:0.0406,cpa:1020642},
+    {prod:'PCO',    person:'Lina',  clicks:220,  spend:74455,  ctr:0.69,cpc:233.80,purchases:0, revenue_krw:0,      roas:0,     cpa:0},
+    {prod:'PCO',    person:'Phoebe',clicks:10430,spend:2821492,ctr:2.34,cpc:297.17,purchases:0, revenue_krw:0,      roas:0,     cpa:0},
+    {prod:'PCO',    person:'Sarah', clicks:58879,spend:9845473,ctr:5.77,cpc:240.35,purchases:28,revenue_krw:657438, roas:0.1002,cpa:351624}
   ],
   psum:[
-    {prod:'BCA',clicks:12250,spend:5857678,ctr:2.76,cpc:487.92,purchases:3, cpa:1952559},
-    {prod:'BPD',clicks:1507, spend:694299, ctr:2.17,cpc:481.38,purchases:4, cpa:173575},
-    {prod:'GPG',clicks:19730,spend:6628020,ctr:2.49,cpc:350.92,purchases:33,cpa:200849},
-    {prod:'PCM',clicks:2515, spend:1020642,ctr:2.62,cpc:362.36,purchases:0, cpa:0},
-    {prod:'PCO',clicks:69529,spend:12741420,ctr:3.84,cpc:262.16,purchases:31,cpa:411014}
+    {prod:'BCA/BPD',clicks:13757,spend:6551977, ctr:2.70,cpc:487.21,purchases:3, revenue_krw:82490,  roas:0.0189,cpa:2183992},
+    {prod:'GPG',    clicks:19730,spend:6628020, ctr:2.49,cpc:350.92,purchases:27,revenue_krw:555530, roas:0.1257,cpa:245482},
+    {prod:'PCM',    clicks:2515, spend:1020642, ctr:2.62,cpc:362.36,purchases:1, revenue_krw:27594,  roas:0.0406,cpa:1020642},
+    {prod:'PCO',    clicks:69529,spend:12741420,ctr:3.84,cpc:262.16,purchases:28,revenue_krw:657438, roas:0.0774,cpa:455051}
   ]
 };
 
@@ -292,6 +293,9 @@ let cM='clicks',cF='All',cPM='clicks';
 let tC,mC,pC;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
+const fRoas=r=>r>0?(r*100).toFixed(1)+'%':'—';
+function rcol(r){return r>=0.3?'#0F6E56':r>=0.1?'#3B6D11':r>0?'#BA7517':'var(--muted)';}
+function rbg(r){return r>=0.3?'#E1F5EE':r>=0.1?'#EAF3DE':r>0?'#FAEEDA':'var(--surface2)';}
 
 function goPage(pg,btn){
   document.querySelectorAll('.pg').forEach(x=>x.classList.remove('active'));
@@ -301,7 +305,6 @@ function goPage(pg,btn){
   if(pg==='product') renderProdPage();
 }
 
-// ── Creator page ──────────────────────────────────────────
 function renderPCards(){
   const sorted={
     clicks:[...D.ps].sort((a,b)=>b.clicks-a.clicks).map(x=>x.person),
@@ -309,15 +312,18 @@ function renderPCards(){
     cpc:[...D.ps].sort((a,b)=>a.cpc-b.cpc).map(x=>x.person)
   };
   const rl={clicks:'clicks',ctr:'CTR',cpc:'CPC (lower=better)'};
+  const maxR=Math.max(...D.ps.map(x=>x.roas));
   document.getElementById('pcards').innerHTML=D.ps.map(p=>{
     const rank=sorted[cM].indexOf(p.person)+1;
     const vdo=D.pm.find(m=>m.person===p.person&&m.media==='vdo');
     const img=D.pm.find(m=>m.person===p.person&&m.media==='img');
     const tc=(vdo?.clicks||0)+(img?.clicks||0);
     const vp=tc>0?Math.round((vdo?.clicks||0)/tc*100):0;
+    const rp=maxR>0?Math.round(p.roas/maxR*100):0;
     return`<div class="pcard">
-      <div class="ph"><div class="av" style="background:${CB[p.person]};color:${CT[p.person]}">${p.person[0]}</div>
-        <div><div class="pn">${p.person}</div><div class="pr">Rank #${rank} by ${rl[cM]}</div></div>
+      <div class="ph">
+        <div class="av" style="background:${CB[p.person]};color:${CT[p.person]}">${p.person[0]}</div>
+        <div><div class="pname">${p.person}</div><div class="prank">Rank #${rank} by ${rl[cM]}</div></div>
       </div>
       <div class="srow">
         <div class="st"><div class="stl">Clicks</div><div class="stv">${f(p.clicks)}</div></div>
@@ -325,9 +331,9 @@ function renderPCards(){
         <div class="st"><div class="stl">CPC</div><div class="stv">₩${f(p.cpc)}</div></div>
       </div>
       <div class="srow">
-        <div class="st"><div class="stl">Spend</div><div class="stv" style="font-size:13px">₩${f(p.spend)}</div></div>
-        <div class="st"><div class="stl">Purchases</div><div class="stv ${p.purchases>0?'g':''}">${p.purchases}</div></div>
-        <div class="st"><div class="stl">CPA</div><div class="stv" style="font-size:13px">${p.purchases>0?'₩'+f(p.cpa):'—'}</div></div>
+        <div class="st"><div class="stl">Spend</div><div class="stv sm">₩${f(p.spend)}</div></div>
+        <div class="st"><div class="stl">Purchases</div><div class="stv ${p.purchases>0?'good':''}">${p.purchases}</div></div>
+        <div class="st"><div class="stl">Revenue</div><div class="stv sm">${p.revenue_krw>0?'₩'+f(p.revenue_krw):'—'}</div></div>
       </div>
       <div class="mlabels"><span>Video ${vp}%</span><span>Image ${100-vp}%</span></div>
       <div class="btrack"><div class="bfill" style="width:${vp}%;background:${C[p.person]}"></div></div>
@@ -373,62 +379,57 @@ function renderAdTable(){
     <td><span class="rd" style="background:${i<3?rb[i]:'var(--surface2)'};color:${i<3?rt[i]:'var(--muted)'}">${i+1}</span></td>
     <td style="font-weight:600">${r.n}</td>
     <td><span class="pp" style="background:${CB[r.person]};color:${CT[r.person]}">${r.person}</span></td>
-    <td><span class="bdg ${r.m==='vdo'?'bv':'bi'}">${r.m==='vdo'?'Video':'Image'}</span></td>
+    <td><span class="bdg ${r.m==='vdo'?'bvdo':'bimg'}">${r.m==='vdo'?'Video':'Image'}</span></td>
     <td><span class="bdg" style="background:${PB[r.prod]};color:${PT[r.prod]}">${r.prod}</span></td>
     <td style="text-align:right">${f(r.clicks)}</td>
     <td style="text-align:right">₩${f(r.spend)}</td>
     <td style="text-align:right">${fd(r.ctr)}%</td>
     <td style="text-align:right">₩${fd(r.cpc)}</td>
+    <td style="text-align:right;font-weight:600;color:${r.purchases>0?'#0F6E56':'var(--muted)'}">
+      ${r.purchases>0?r.purchases:'—'}</td>
+    <td style="text-align:right">${r.revenue_krw>0?'₩'+f(r.revenue_krw):'—'}</td>
   </tr>`).join('');
 }
 
 function switchM(m,btn){
-  cM=m;
-  document.querySelectorAll('#mtabs .tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  cM=m;document.querySelectorAll('#mtabs .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
   renderPCards();renderTrend();renderMedia();renderAdTable();
 }
 function fPerson(p,btn){
-  cF=p;
-  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  cF=p;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
   renderAdTable();
 }
 
-// ── Product page ──────────────────────────────────────────
 function renderProdPage(){renderPSum();renderProdChart();renderPDGrid();renderProdTable();}
 
 function renderPSum(){
-  document.getElementById('psgrid').innerHTML=D.psum.map(p=>{
-    const has=p.purchases>0;
-    return`<div class="pscard">
-      <div class="psname" style="color:${PC[p.prod]}">${p.prod}</div>
-      <div class="pml">Clicks</div><div class="pmv">${f(p.clicks)}</div>
-      <div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩${f(p.spend)}</div>
-      <div class="pml">CTR</div><div class="pmv">${fd(p.ctr)}%</div>
-      <div class="pbadge" style="background:${has?'#E1F5EE':'var(--surface2)'};color:${has?'#085041':'var(--muted)'}">
-        ${p.purchases} purchases${has?' · ₩'+f(p.cpa):''}
-      </div>
-    </div>`;
-  }).join('');
+  document.getElementById('psgrid').innerHTML=D.psum.map(p=>`<div class="pscard">
+    <div class="psname" style="color:${PC[p.prod]}">${p.prod}</div>
+    <div class="pml">Clicks</div><div class="pmv">${f(p.clicks)}</div>
+    <div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩${f(p.spend)}</div>
+    <div class="pml">Purchases</div><div class="pmv" style="color:${p.purchases>0?'#0F6E56':'var(--muted)'}">${p.purchases}</div>
+    <div class="roas-pill" style="background:${rbg(p.roas)};color:${rcol(p.roas)}">ROAS ${fRoas(p.roas)}</div>
+  </div>`).join('');
 }
 
 function renderProdChart(){
   const m=cPM;
-  const label={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',cpa:'CPA (₩)'}[m];
-  document.getElementById('prodChartT').textContent=`${label} by product & creator`;
+  const lbl={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',roas:'ROAS',cpa:'CPA (₩)'}[m];
+  document.getElementById('prodChartT').textContent=`${lbl} by product & creator`;
   const persons=['Lina','Phoebe','Sarah'];
   const ctx=document.getElementById('prodC').getContext('2d');
   if(pC)pC.destroy();
   pC=new Chart(ctx,{type:'bar',
     data:{labels:PRODS,datasets:persons.map(person=>({
       label:person,
-      data:PRODS.map(prod=>{const r=D.pp.find(x=>x.prod===prod&&x.person===person);return r?r[m]:0;}),
+      data:PRODS.map(prod=>{const r=D.pp.find(x=>x.prod===prod&&x.person===person);return r?r[m]||0:0;}),
       backgroundColor:C[person],borderRadius:4,barPercentage:0.7
     }))},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{x:{ticks:{font:{size:12},color:'#888'},grid:{display:false}},
-              y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,0.1)'}}}}
+              y:{ticks:{font:{size:11},color:'#888',callback:m==='roas'?v=>(v*100).toFixed(0)+'%':undefined},
+                grid:{color:'rgba(128,128,128,0.1)'}}}
+    }
   });
 }
 
@@ -441,18 +442,16 @@ function renderPDGrid(){
     const mx=vals.length?Math.max(...vals):1;
     return`<div class="pdcard">
       <div class="pdname"><span style="color:${PC[prod]}">${prod}</span>
-        <span class="ptag">${{clicks:'CLICKS',ctr:'CTR',cpc:'CPC',purchases:'PURCHASES',cpa:'CPA'}[m]}</span>
+        <span class="ptag">${{clicks:'CLICKS',ctr:'CTR',cpc:'CPC',purchases:'PURCHASES',roas:'ROAS',cpa:'CPA'}[m]}</span>
       </div>
       ${['Lina','Phoebe','Sarah'].map(person=>{
-        const r=rows.find(x=>x.person===person);
-        if(!r)return'';
-        const val=r[m];
-        const pct=mx>0&&val>0?Math.round(val/mx*100):0;
-        let dv=m==='clicks'?f(val):m==='ctr'?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):(val>0?'₩'+f(val):'—');
+        const r=rows.find(x=>x.person===person);if(!r)return'';
+        const val=r[m];const pct=mx>0&&val>0?Math.round(val/mx*100):0;
+        let dv=m==='clicks'?f(val):m==='ctr'?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):m==='roas'?fRoas(val):(val>0?'₩'+f(val):'—');
         return`<div class="crow">
           <div class="clabel"><span class="cdot" style="background:${C[person]}"></span><span class="cname">${person}</span></div>
           <div class="cbw"><div class="cbt"><div class="cbf" style="width:${pct}%;background:${C[person]}"></div></div></div>
-          <div class="cval">${dv}</div>
+          <div class="cval" style="color:${m==='roas'?rcol(val):'var(--text)'}">${dv}</div>
         </div>`;
       }).join('')}
     </div>`;
@@ -469,16 +468,15 @@ function renderProdTable(){
     <td style="text-align:right">${fd(r.ctr)}%</td>
     <td style="text-align:right">₩${fd(r.cpc)}</td>
     <td style="text-align:right;font-weight:600;color:${r.purchases>0?'#0F6E56':'var(--muted)'}">
-      ${r.purchases>0?r.purchases:'—'}
-    </td>
+      ${r.purchases>0?r.purchases:'—'}</td>
+    <td style="text-align:right">${r.revenue_krw>0?'₩'+f(r.revenue_krw):'—'}</td>
+    <td style="text-align:right;font-weight:600;color:${rcol(r.roas)}">${fRoas(r.roas)}</td>
     <td style="text-align:right">${r.purchases>0?'₩'+f(r.cpa):'—'}</td>
   </tr>`).join('');
 }
 
 function switchPM(m,btn){
-  cPM=m;
-  document.querySelectorAll('#pmtabs .pmtab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  cPM=m;document.querySelectorAll('#pmtabs .pmtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
   renderProdChart();renderPDGrid();
 }
 
