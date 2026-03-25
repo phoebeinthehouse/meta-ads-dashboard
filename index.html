@@ -6,26 +6,24 @@
 <title>Meta Ads Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  :root{
-    --lina:#378ADD;--phoebe:#D4537E;--sarah:#1D9E75;
-    --bg:#F7F6F2;--surface:#FFFFFF;--surface2:#F1EFE8;
-    --border:rgba(0,0,0,0.08);--text:#1a1a18;--muted:#888780;
-    --radius:12px;--radius-sm:8px;
-  }
-  @media(prefers-color-scheme:dark){
-    :root{--bg:#18181A;--surface:#232325;--surface2:#2C2C2E;--border:rgba(255,255,255,0.08);--text:#F1EFE8;}
-  }
+  :root{--lina:#378ADD;--phoebe:#D4537E;--sarah:#1D9E75;--bg:#F7F6F2;--surface:#FFFFFF;--surface2:#F1EFE8;--border:rgba(0,0,0,0.08);--text:#1a1a18;--muted:#888780;--radius:12px;--radius-sm:8px;}
+  @media(prefers-color-scheme:dark){:root{--bg:#18181A;--surface:#232325;--surface2:#2C2C2E;--border:rgba(255,255,255,0.08);--text:#F1EFE8;}}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
   .nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 1.5rem;}
-  .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;}
-  .nav-logo{font-size:14px;font-weight:600;color:var(--text);padding:14px 0;margin-right:2rem;white-space:nowrap;}
+  .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;flex-wrap:wrap;}
+  .nav-logo{font-size:14px;font-weight:600;color:var(--text);padding:14px 0;margin-right:1.5rem;white-space:nowrap;}
   .nav-logo span{color:var(--muted);font-weight:400;}
-  .nav-tab{padding:14px 18px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;font-family:inherit;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
+  .nav-tab{padding:14px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;font-family:inherit;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;}
   .nav-tab.active{color:var(--text);border-bottom-color:var(--text);}
-  .pg{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;display:none;}
+  .month-bar{background:var(--surface);border-bottom:0.5px solid var(--border);padding:8px 1.5rem;}
+  .month-bar-inner{max-width:1100px;margin:0 auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .month-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-right:4px;}
+  .mpill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;transition:all 0.15s;}
+  .mpill.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+  .pg{max-width:1100px;margin:0 auto;padding:1.75rem 1.5rem;display:none;}
   .pg.active{display:block;}
-  .top-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;flex-wrap:wrap;gap:12px;}
+  .top-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px;}
   .top-bar h1{font-size:22px;font-weight:600;letter-spacing:-0.02em;}
   .top-meta{font-size:12px;color:var(--muted);margin-top:4px;}
   .mtabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;}
@@ -37,12 +35,12 @@
   .pcard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
   .ph{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
   .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;}
-  .pname{font-size:15px;font-weight:600;} .prank{font-size:11px;color:var(--muted);margin-top:1px;}
+  .pname{font-size:15px;font-weight:600;}.prank{font-size:11px;color:var(--muted);margin-top:1px;}
   .srow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
   .st{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;}
   .stl{font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;}
-  .stv{font-size:15px;font-weight:600;} .stv.good{color:#0F6E56;} .stv.sm{font-size:13px;}
-  .mlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;margin-top:8px;}
+  .stv{font-size:15px;font-weight:600;}.stv.good{color:#0F6E56;}.stv.sm{font-size:12px;}
+  .mlabels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px;margin-top:4px;}
   .btrack{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;}
   .bfill{height:100%;border-radius:4px;}
   .ccard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
@@ -51,19 +49,15 @@
   .leg{display:flex;gap:14px;flex-wrap:wrap;}
   .li{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);}
   .ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
-  .frow{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
-  .fb{padding:4px 13px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all 0.15s;}
-  .fb.active{background:var(--surface2);color:var(--text);border-color:rgba(0,0,0,0.15);}
   .tw{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th{text-align:left;padding:6px 8px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;border-bottom:0.5px solid var(--border);white-space:nowrap;}
   td{padding:8px 8px;border-bottom:0.5px solid var(--border);color:var(--text);white-space:nowrap;}
-  tr:last-child td{border-bottom:none;} tr:hover td{background:var(--surface2);}
+  tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   .bdg{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
-  .bvdo{background:#E6F1FB;color:#0C447C;} .bimg{background:#FAEEDA;color:#633806;}
+  .bvdo{background:#E6F1FB;color:#0C447C;}.bimg{background:#FAEEDA;color:#633806;}
   .pp{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;}
   .rd{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;}
-  /* product page */
   .psgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;}
   @media(max-width:700px){.psgrid{grid-template-columns:repeat(2,1fr);}}
   .pscard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1rem;}
@@ -71,24 +65,24 @@
   .pml{font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.04em;margin-top:4px;}
   .pmv{font-size:14px;font-weight:600;}
   .roas-pill{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:4px 10px;border-radius:8px;margin-top:8px;}
-  .pdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:1.25rem;}
+  .pdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:1.25rem;}
   .pdcard{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
   .pdname{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
   .ptag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--surface2);color:var(--muted);letter-spacing:0.04em;}
   .crow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
   .crow:last-child{border-bottom:none;padding-bottom:0;}
   .clabel{display:flex;align-items:center;gap:7px;min-width:72px;}
-  .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-  .cname{font-size:13px;font-weight:500;}
-  .cbw{flex:1;} .cbt{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;}
+  .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}.cname{font-size:13px;font-weight:500;}
+  .cbw{flex:1;}.cbt{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;}
   .cbf{height:100%;border-radius:4px;transition:width 0.5s ease;}
   .cval{min-width:90px;text-align:right;font-size:13px;font-weight:600;}
   .pmtabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;flex-wrap:wrap;}
   .pmtab{padding:4px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all 0.15s;}
   .pmtab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.08);}
-  .note{font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
   .formula-box{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;}
   .formula-box strong{color:var(--text);}
+  .note{font-size:11px;color:var(--muted);margin-bottom:12px;}
+  .notice{background:#FAEEDA;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#633806;margin-bottom:1.25rem;}
 </style>
 </head>
 <body>
@@ -99,17 +93,27 @@
     <button class="nav-tab" onclick="goPage('product',this)">By product</button>
   </div>
 </nav>
+<div class="month-bar">
+  <div class="month-bar-inner">
+    <span class="month-label">Month</span>
+    <button class="mpill" onclick="switchMonth('2025-11',this)">Nov 2025</button>
+    <button class="mpill" onclick="switchMonth('2025-12',this)">Dec 2025</button>
+    <button class="mpill" onclick="switchMonth('2026-01',this)">Jan 2026</button>
+    <button class="mpill" onclick="switchMonth('2026-02',this)">Feb 2026</button>
+    <button class="mpill active" onclick="switchMonth('2026-03',this)">Mar 2026</button>
+  </div>
+</div>
 
-<!-- PAGE 1: BY CREATOR -->
 <div class="pg active" id="pg-creator">
   <div class="top-bar">
-    <div><h1>Creator performance</h1><div class="top-meta">2026.03.01 ~ 03.22 &nbsp;·&nbsp; Meta + Amazon &nbsp;·&nbsp; BCA &amp; BPD merged</div></div>
+    <div><h1>Creator performance</h1><div class="top-meta" id="creatorMeta"></div></div>
     <div class="mtabs" id="mtabs">
       <button class="tab active" onclick="switchM('clicks',this)">Clicks</button>
       <button class="tab" onclick="switchM('ctr',this)">CTR</button>
       <button class="tab" onclick="switchM('cpc',this)">CPC</button>
     </div>
   </div>
+  <div id="novNotice" style="display:none" class="notice">Nov 2025: Amazon purchase data not available. Only Meta ad metrics shown.</div>
   <div class="slabel">Overview</div>
   <div class="pgrid3" id="pcards"></div>
   <div class="ccard">
@@ -127,36 +131,17 @@
     <div class="ctop">
       <div class="ctitle" id="mediaT">Video vs image — CTR by creator</div>
       <div class="leg">
-        <div class="li"><span class="ld" style="background:#378ADD"></span>Video</div>
-        <div class="li"><span class="ld" style="background:#378ADD;opacity:0.4"></span>Image</div>
+        <div class="li"><span class="ld" style="background:#888780"></span>Video</div>
+        <div class="li"><span class="ld" style="background:#888780;opacity:0.4"></span>Image</div>
       </div>
     </div>
     <div style="position:relative;width:100%;height:200px;"><canvas id="mediaC"></canvas></div>
   </div>
-  <div class="ccard">
-    <div class="ctitle" style="margin-bottom:12px;">Ad-level detail</div>
-    <div class="frow">
-      <button class="fb active" onclick="fPerson('All',this)">All</button>
-      <button class="fb" onclick="fPerson('Lina',this)">Lina</button>
-      <button class="fb" onclick="fPerson('Phoebe',this)">Phoebe</button>
-      <button class="fb" onclick="fPerson('Sarah',this)">Sarah</button>
-    </div>
-    <div class="tw"><table>
-      <thead><tr>
-        <th>#</th><th>Ad name</th><th>Creator</th><th>Media</th><th>Product</th>
-        <th style="text-align:right">Clicks</th><th style="text-align:right">Spend</th>
-        <th style="text-align:right">CTR</th><th style="text-align:right">CPC</th>
-        <th style="text-align:right">Purchases</th><th style="text-align:right">Revenue</th>
-      </tr></thead>
-      <tbody id="adTbody"></tbody>
-    </table></div>
-  </div>
 </div>
 
-<!-- PAGE 2: BY PRODUCT -->
 <div class="pg" id="pg-product">
   <div class="top-bar">
-    <div><h1>Product performance</h1><div class="top-meta">2026.03.01 ~ 03.22 &nbsp;·&nbsp; BCA &amp; BPD merged into one product</div></div>
+    <div><h1>Product performance</h1><div class="top-meta" id="productMeta"></div></div>
     <div class="pmtabs" id="pmtabs">
       <button class="pmtab active" onclick="switchPM('clicks',this)">Clicks</button>
       <button class="pmtab" onclick="switchPM('ctr',this)">CTR</button>
@@ -166,11 +151,7 @@
       <button class="pmtab" onclick="switchPM('cpa',this)">CPA</button>
     </div>
   </div>
-  <div class="formula-box">
-    <strong>ROAS</strong> = 한화매출 × 1.5 ÷ 소재별 Meta 광고비 &nbsp;·&nbsp;
-    <strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp;
-    — = no Amazon data recorded
-  </div>
+  <div class="formula-box"><strong>ROAS</strong> = 한화매출 × 1.5 ÷ 소재별 Meta 광고비 &nbsp;·&nbsp; <strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; — = no data</div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
   <div class="ccard">
@@ -188,13 +169,13 @@
   <div class="pdgrid" id="pdgrid"></div>
   <div class="ccard">
     <div class="ctitle" style="margin-bottom:4px;">Full detail table</div>
-    <div class="note">ROAS = 한화매출 × 1.5 ÷ 소재별 광고비 &nbsp;·&nbsp; — = no Amazon data recorded</div>
+    <div class="note">ROAS = 한화매출 × 1.5 ÷ 소재별 광고비 &nbsp;·&nbsp; — = no Amazon data</div>
     <div class="tw"><table>
       <thead><tr>
         <th>Product</th><th>Creator</th>
         <th style="text-align:right">Clicks</th><th style="text-align:right">Spend</th>
         <th style="text-align:right">CTR</th><th style="text-align:right">CPC</th>
-        <th style="text-align:right">Purchases</th><th style="text-align:right">Revenue (KRW)</th>
+        <th style="text-align:right">Purchases</th><th style="text-align:right">Revenue</th>
         <th style="text-align:right">ROAS</th><th style="text-align:right">CPA</th>
       </tr></thead>
       <tbody id="prodTbody"></tbody>
@@ -209,95 +190,36 @@ const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
 const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517'};
 const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA'};
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806'};
-const PRODS=['GPG','PCO','BCA/BPD','PCM'];
+const MONTH_LABELS={'2025-11':'Nov 2025','2025-12':'Dec 2025','2026-01':'Jan 2026','2026-02':'Feb 2026','2026-03':'Mar 2026'};
+const ALL_DATA={"2025-11": {"ps": [{"person": "Lina", "clicks": 31642.0, "spend": 18346849.67, "impressions": 3922550, "ctr": 0.81, "cpc": 580.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0}], "pm": [{"person": "Lina", "media": "img", "clicks": 31642.0, "spend": 18346849.67, "impressions": 3922550, "ctr": 0.81, "cpc": 580.0}], "daily": [{"date": "11/14", "p": "Lina", "clicks": 923.0, "spend": 499025.0, "impressions": 108944, "ctr": 0.85, "cpc": 541.0}, {"date": "11/15", "p": "Lina", "clicks": 869.0, "spend": 477288.0, "impressions": 110325, "ctr": 0.79, "cpc": 549.0}, {"date": "11/16", "p": "Lina", "clicks": 1001.0, "spend": 531724.0, "impressions": 131385, "ctr": 0.76, "cpc": 531.0}, {"date": "11/17", "p": "Lina", "clicks": 777.0, "spend": 440806.0, "impressions": 100625, "ctr": 0.77, "cpc": 567.0}, {"date": "11/18", "p": "Lina", "clicks": 951.0, "spend": 576002.0, "impressions": 136143, "ctr": 0.7, "cpc": 606.0}, {"date": "11/19", "p": "Lina", "clicks": 922.0, "spend": 537148.0, "impressions": 130663, "ctr": 0.71, "cpc": 583.0}, {"date": "11/20", "p": "Lina", "clicks": 3530.0, "spend": 2124301.0, "impressions": 415385, "ctr": 0.85, "cpc": 602.0}, {"date": "11/21", "p": "Lina", "clicks": 1809.0, "spend": 976797.0, "impressions": 254640, "ctr": 0.71, "cpc": 540.0}, {"date": "11/22", "p": "Lina", "clicks": 1576.0, "spend": 809216.0, "impressions": 191511, "ctr": 0.82, "cpc": 513.0}, {"date": "11/23", "p": "Lina", "clicks": 1747.0, "spend": 850574.95, "impressions": 226184, "ctr": 0.77, "cpc": 487.0}, {"date": "11/24", "p": "Lina", "clicks": 2072.0, "spend": 1232486.28, "impressions": 216997, "ctr": 0.95, "cpc": 595.0}, {"date": "11/25", "p": "Lina", "clicks": 2377.0, "spend": 1254056.91, "impressions": 251526, "ctr": 0.95, "cpc": 528.0}, {"date": "11/26", "p": "Lina", "clicks": 3538.0, "spend": 1979479.65, "impressions": 463919, "ctr": 0.76, "cpc": 559.0}, {"date": "11/27", "p": "Lina", "clicks": 3304.0, "spend": 1709129.16, "impressions": 466430, "ctr": 0.71, "cpc": 517.0}, {"date": "11/28", "p": "Lina", "clicks": 5986.0, "spend": 4222128.09, "impressions": 693474, "ctr": 0.86, "cpc": 705.0}, {"date": "11/30", "p": "Lina", "clicks": 260.0, "spend": 126687.63, "impressions": 24399, "ctr": 1.07, "cpc": 487.0}], "pp": [{"product": "BCA/BPD", "person": "Lina", "clicks": 6284.0, "spend": 2888032.19, "impressions": 836085, "ctr": 0.75, "cpc": 460.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0, "cpa": 0}, {"product": "GPG", "person": "Lina", "clicks": 5686.0, "spend": 3297289.21, "impressions": 582410, "ctr": 0.98, "cpc": 580.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0, "cpa": 0}, {"product": "PCO", "person": "Lina", "clicks": 11500.0, "spend": 6854662.66, "impressions": 1648948, "ctr": 0.7, "cpc": 596.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0, "cpa": 0}], "psum": [{"product": "BCA/BPD", "clicks": 6284.0, "spend": 2888032.19, "impressions": 836085, "ctr": 0.75, "cpc": 460.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0, "cpa": 0}, {"product": "GPG", "clicks": 5686.0, "spend": 3297289.21, "impressions": 582410, "ctr": 0.98, "cpc": 580.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0, "cpa": 0}, {"product": "PCO", "clicks": 11500.0, "spend": 6854662.66, "impressions": 1648948, "ctr": 0.7, "cpc": 596.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0, "cpa": 0}]}, "2025-12": {"ps": [{"person": "Lina", "clicks": 63796.0, "spend": 25903128.72, "impressions": 2847267, "ctr": 2.24, "cpc": 406.0, "purchases": 61.0, "revenue_krw": 1125952.0, "roas": 0.07}, {"person": "Phoebe", "clicks": 4897.0, "spend": 2476432.2, "impressions": 283407, "ctr": 1.73, "cpc": 506.0, "purchases": 21.0, "revenue_krw": 372008.0, "roas": 0.23}, {"person": "Sarah", "clicks": 6.0, "spend": 2360.97, "impressions": 78, "ctr": 7.69, "cpc": 393.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0}], "pm": [{"person": "Lina", "media": "img", "clicks": 15935.0, "spend": 8448456.42, "impressions": 1508737, "ctr": 1.06, "cpc": 530.0}, {"person": "Lina", "media": "vdo", "clicks": 47662.0, "spend": 17345748.0, "impressions": 1331332, "ctr": 3.58, "cpc": 364.0}, {"person": "Phoebe", "media": "img", "clicks": 2124.0, "spend": 1039499.46, "impressions": 163118, "ctr": 1.3, "cpc": 489.0}, {"person": "Phoebe", "media": "vdo", "clicks": 2773.0, "spend": 1436932.74, "impressions": 120289, "ctr": 2.31, "cpc": 518.0}, {"person": "Sarah", "media": "vdo", "clicks": 6.0, "spend": 2360.97, "impressions": 78, "ctr": 7.69, "cpc": 393.0}], "daily": [{"date": "12/01", "p": "Lina", "clicks": 8127.0, "spend": 4483940.46, "impressions": 830808, "ctr": 0.98, "cpc": 552.0}, {"date": "12/02", "p": "Lina", "clicks": 3357.0, "spend": 1588540.98, "impressions": 362619, "ctr": 0.93, "cpc": 473.0}, {"date": "12/05", "p": "Lina", "clicks": 18.0, "spend": 6675.54, "impressions": 1536, "ctr": 1.17, "cpc": 371.0}, {"date": "12/06", "p": "Lina", "clicks": 43.0, "spend": 14471.07, "impressions": 5064, "ctr": 0.85, "cpc": 337.0}, {"date": "12/07", "p": "Lina", "clicks": 52.0, "spend": 18404.91, "impressions": 7310, "ctr": 0.71, "cpc": 354.0}, {"date": "12/08", "p": "Lina", "clicks": 85.0, "spend": 29675.85, "impressions": 11387, "ctr": 0.75, "cpc": 349.0}, {"date": "12/09", "p": "Lina", "clicks": 6.0, "spend": 2214.45, "impressions": 1889, "ctr": 0.32, "cpc": 369.0}, {"date": "12/12", "p": "Lina", "clicks": 60.0, "spend": 32354.28, "impressions": 3840, "ctr": 1.56, "cpc": 539.0}, {"date": "12/13", "p": "Lina", "clicks": 44.0, "spend": 25335.75, "impressions": 4277, "ctr": 1.03, "cpc": 576.0}, {"date": "12/14", "p": "Lina", "clicks": 21.0, "spend": 11148.84, "impressions": 1877, "ctr": 1.12, "cpc": 531.0}, {"date": "12/15", "p": "Lina", "clicks": 8.0, "spend": 3944.94, "impressions": 488, "ctr": 1.64, "cpc": 493.0}, {"date": "12/16", "p": "Lina", "clicks": 16.0, "spend": 5896.32, "impressions": 889, "ctr": 1.8, "cpc": 369.0}, {"date": "12/17", "p": "Lina", "clicks": 5.0, "spend": 2264.4, "impressions": 135, "ctr": 3.7, "cpc": 453.0}, {"date": "12/19", "p": "Lina", "clicks": 259.0, "spend": 170554.83, "impressions": 9320, "ctr": 2.78, "cpc": 659.0}, {"date": "12/20", "p": "Lina", "clicks": 284.0, "spend": 163011.27, "impressions": 10754, "ctr": 2.64, "cpc": 574.0}, {"date": "12/21", "p": "Lina", "clicks": 278.0, "spend": 176347.92, "impressions": 11599, "ctr": 2.4, "cpc": 634.0}, {"date": "12/22", "p": "Lina", "clicks": 240.0, "spend": 152721.57, "impressions": 9994, "ctr": 2.4, "cpc": 636.0}, {"date": "12/22", "p": "Phoebe", "clicks": 6.0, "spend": 4773.0, "impressions": 85, "ctr": 7.06, "cpc": 796.0}, {"date": "12/22", "p": "Sarah", "clicks": 1.0, "spend": 670.44, "impressions": 8, "ctr": 12.5, "cpc": 670.0}, {"date": "12/23", "p": "Lina", "clicks": 711.0, "spend": 265372.14, "impressions": 15077, "ctr": 4.72, "cpc": 373.0}, {"date": "12/23", "p": "Phoebe", "clicks": 4.0, "spend": 1413.03, "impressions": 35, "ctr": 11.43, "cpc": 353.0}, {"date": "12/23", "p": "Sarah", "clicks": 5.0, "spend": 1690.53, "impressions": 70, "ctr": 7.14, "cpc": 338.0}, {"date": "12/24", "p": "Lina", "clicks": 9212.0, "spend": 4056583.8, "impressions": 342172, "ctr": 2.69, "cpc": 440.0}, {"date": "12/24", "p": "Phoebe", "clicks": 167.0, "spend": 68808.9, "impressions": 18828, "ctr": 0.89, "cpc": 412.0}, {"date": "12/25", "p": "Lina", "clicks": 9267.0, "spend": 2679892.98, "impressions": 245487, "ctr": 3.77, "cpc": 289.0}, {"date": "12/25", "p": "Phoebe", "clicks": 22.0, "spend": 5966.25, "impressions": 3984, "ctr": 0.55, "cpc": 271.0}, {"date": "12/26", "p": "Lina", "clicks": 5455.0, "spend": 1572449.31, "impressions": 136459, "ctr": 4.0, "cpc": 288.0}, {"date": "12/26", "p": "Phoebe", "clicks": 3.0, "spend": 873.57, "impressions": 298, "ctr": 1.01, "cpc": 291.0}, {"date": "12/27", "p": "Lina", "clicks": 5560.0, "spend": 1665054.39, "impressions": 146557, "ctr": 3.79, "cpc": 299.0}, {"date": "12/27", "p": "Phoebe", "clicks": 4.0, "spend": 1094.46, "impressions": 123, "ctr": 3.25, "cpc": 274.0}, {"date": "12/28", "p": "Lina", "clicks": 6034.0, "spend": 2167479.24, "impressions": 208778, "ctr": 2.89, "cpc": 359.0}, {"date": "12/28", "p": "Phoebe", "clicks": 256.0, "spend": 135618.69, "impressions": 28673, "ctr": 0.89, "cpc": 530.0}, {"date": "12/29", "p": "Lina", "clicks": 4260.0, "spend": 1788321.0, "impressions": 165658, "ctr": 2.57, "cpc": 420.0}, {"date": "12/29", "p": "Phoebe", "clicks": 645.0, "spend": 342387.27, "impressions": 54999, "ctr": 1.17, "cpc": 531.0}, {"date": "12/30", "p": "Lina", "clicks": 4899.0, "spend": 2291466.24, "impressions": 142517, "ctr": 3.44, "cpc": 468.0}, {"date": "12/30", "p": "Phoebe", "clicks": 2095.0, "spend": 1062066.87, "impressions": 94028, "ctr": 2.23, "cpc": 507.0}, {"date": "12/31", "p": "Lina", "clicks": 5495.0, "spend": 2529006.24, "impressions": 170776, "ctr": 3.22, "cpc": 460.0}, {"date": "12/31", "p": "Phoebe", "clicks": 1695.0, "spend": 853430.16, "impressions": 82354, "ctr": 2.06, "cpc": 503.0}], "pp": [{"product": "GPG", "person": "Lina", "clicks": 53704.0, "spend": 21571822.14, "impressions": 2176598, "ctr": 2.47, "cpc": 402.0, "purchases": 54.0, "revenue_krw": 969586.0, "roas": 0.07, "cpa": 399478}, {"product": "GPG", "person": "Phoebe", "clicks": 4886.0, "spend": 2470059.69, "impressions": 283280, "ctr": 1.72, "cpc": 506.0, "purchases": 21.0, "revenue_krw": 372008.0, "roas": 0.23, "cpa": 117622}, {"product": "PCO", "person": "Lina", "clicks": 10092.0, "spend": 4331306.58, "impressions": 670669, "ctr": 1.5, "cpc": 429.0, "purchases": 7.0, "revenue_krw": 156366.0, "roas": 0.05, "cpa": 618758}, {"product": "PCO", "person": "Phoebe", "clicks": 11.0, "spend": 6372.51, "impressions": 127, "ctr": 8.66, "cpc": 579.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "PCO", "person": "Sarah", "clicks": 6.0, "spend": 2360.97, "impressions": 78, "ctr": 7.69, "cpc": 393.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}], "psum": [{"product": "GPG", "clicks": 58590.0, "spend": 24041881.83, "impressions": 2459878, "ctr": 2.38, "cpc": 410.0, "purchases": 75.0, "revenue_krw": 1341594.0, "roas": 0.08, "cpa": 320558}, {"product": "PCO", "clicks": 10109.0, "spend": 4340040.06, "impressions": 670874, "ctr": 1.51, "cpc": 429.0, "purchases": 7.0, "revenue_krw": 156366.0, "roas": 0.05, "cpa": 620006}]}, "2026-01": {"ps": [{"person": "Lina", "clicks": 64048.0, "spend": 21695961.21, "impressions": 2737352, "ctr": 2.34, "cpc": 339.0, "purchases": 167.0, "revenue_krw": 3454476.0, "roas": 0.24}, {"person": "Phoebe", "clicks": 16264.0, "spend": 6713805.03, "impressions": 729450, "ctr": 2.23, "cpc": 413.0, "purchases": 27.0, "revenue_krw": 600936.0, "roas": 0.13}, {"person": "Sarah", "clicks": 45613.0, "spend": 13198436.13, "impressions": 1554074, "ctr": 2.94, "cpc": 289.0, "purchases": 100.0, "revenue_krw": 1971730.0, "roas": 0.22}], "pm": [{"person": "Lina", "media": "img", "clicks": 24873.0, "spend": 9486515.1, "impressions": 1570603, "ctr": 1.58, "cpc": 381.0}, {"person": "Lina", "media": "vdo", "clicks": 21388.0, "spend": 6608652.51, "impressions": 639957, "ctr": 3.34, "cpc": 309.0}, {"person": "Phoebe", "media": "img", "clicks": 9187.0, "spend": 3341808.18, "impressions": 421368, "ctr": 2.18, "cpc": 364.0}, {"person": "Phoebe", "media": "vdo", "clicks": 7077.0, "spend": 3371996.85, "impressions": 308082, "ctr": 2.3, "cpc": 476.0}, {"person": "Sarah", "media": "img", "clicks": 14803.0, "spend": 3462649.44, "impressions": 496653, "ctr": 2.98, "cpc": 234.0}, {"person": "Sarah", "media": "vdo", "clicks": 30810.0, "spend": 9735786.69, "impressions": 1057421, "ctr": 2.91, "cpc": 316.0}], "daily": [{"date": "01/01", "p": "Lina", "clicks": 7013.0, "spend": 2635434.15, "impressions": 275241, "ctr": 2.55, "cpc": 376.0}, {"date": "01/01", "p": "Phoebe", "clicks": 4378.0, "spend": 1516427.61, "impressions": 150228, "ctr": 2.91, "cpc": 346.0}, {"date": "01/01", "p": "Sarah", "clicks": 9510.0, "spend": 3686018.07, "impressions": 400194, "ctr": 2.38, "cpc": 388.0}, {"date": "01/02", "p": "Lina", "clicks": 2141.0, "spend": 744453.69, "impressions": 158771, "ctr": 1.35, "cpc": 348.0}, {"date": "01/03", "p": "Lina", "clicks": 1626.0, "spend": 587476.38, "impressions": 105602, "ctr": 1.54, "cpc": 361.0}, {"date": "01/04", "p": "Lina", "clicks": 2008.0, "spend": 750417.72, "impressions": 128173, "ctr": 1.57, "cpc": 374.0}, {"date": "01/05", "p": "Lina", "clicks": 1186.0, "spend": 449432.34, "impressions": 63796, "ctr": 1.86, "cpc": 379.0}, {"date": "01/06", "p": "Lina", "clicks": 1170.0, "spend": 441464.76, "impressions": 62963, "ctr": 1.86, "cpc": 377.0}, {"date": "01/07", "p": "Lina", "clicks": 2631.0, "spend": 876197.37, "impressions": 94143, "ctr": 2.79, "cpc": 333.0}, {"date": "01/08", "p": "Lina", "clicks": 3279.0, "spend": 842245.8, "impressions": 97477, "ctr": 3.36, "cpc": 257.0}, {"date": "01/09", "p": "Lina", "clicks": 455.0, "spend": 89596.98, "impressions": 10552, "ctr": 4.31, "cpc": 197.0}, {"date": "01/09", "p": "Sarah", "clicks": 5515.0, "spend": 979461.78, "impressions": 104194, "ctr": 5.29, "cpc": 178.0}, {"date": "01/10", "p": "Lina", "clicks": 571.0, "spend": 104888.34, "impressions": 11655, "ctr": 4.9, "cpc": 184.0}, {"date": "01/10", "p": "Sarah", "clicks": 2121.0, "spend": 355657.32, "impressions": 34154, "ctr": 6.21, "cpc": 168.0}, {"date": "01/11", "p": "Lina", "clicks": 651.0, "spend": 125044.83, "impressions": 13870, "ctr": 4.69, "cpc": 192.0}, {"date": "01/11", "p": "Sarah", "clicks": 3908.0, "spend": 663984.24, "impressions": 72466, "ctr": 5.39, "cpc": 170.0}, {"date": "01/12", "p": "Lina", "clicks": 647.0, "spend": 133125.63, "impressions": 12210, "ctr": 5.3, "cpc": 206.0}, {"date": "01/12", "p": "Phoebe", "clicks": 64.0, "spend": 44102.52, "impressions": 3286, "ctr": 1.95, "cpc": 689.0}, {"date": "01/12", "p": "Sarah", "clicks": 3114.0, "spend": 581859.78, "impressions": 61158, "ctr": 5.09, "cpc": 187.0}, {"date": "01/13", "p": "Lina", "clicks": 1530.0, "spend": 457611.93, "impressions": 50687, "ctr": 3.02, "cpc": 299.0}, {"date": "01/13", "p": "Phoebe", "clicks": 744.0, "spend": 335224.44, "impressions": 29981, "ctr": 2.48, "cpc": 451.0}, {"date": "01/13", "p": "Sarah", "clicks": 1736.0, "spend": 428596.53, "impressions": 39602, "ctr": 4.38, "cpc": 247.0}, {"date": "01/14", "p": "Lina", "clicks": 1494.0, "spend": 355436.43, "impressions": 38411, "ctr": 3.89, "cpc": 238.0}, {"date": "01/14", "p": "Phoebe", "clicks": 779.0, "spend": 338654.34, "impressions": 35610, "ctr": 2.19, "cpc": 435.0}, {"date": "01/14", "p": "Sarah", "clicks": 1111.0, "spend": 269804.37, "impressions": 22961, "ctr": 4.84, "cpc": 243.0}, {"date": "01/15", "p": "Lina", "clicks": 1685.0, "spend": 337592.07, "impressions": 38300, "ctr": 4.4, "cpc": 200.0}, {"date": "01/15", "p": "Phoebe", "clicks": 734.0, "spend": 333287.49, "impressions": 30957, "ctr": 2.37, "cpc": 454.0}, {"date": "01/15", "p": "Sarah", "clicks": 1397.0, "spend": 349884.21, "impressions": 29640, "ctr": 4.71, "cpc": 250.0}, {"date": "01/16", "p": "Lina", "clicks": 1562.0, "spend": 356022.51, "impressions": 42767, "ctr": 3.65, "cpc": 228.0}, {"date": "01/16", "p": "Phoebe", "clicks": 749.0, "spend": 314833.74, "impressions": 26477, "ctr": 2.83, "cpc": 420.0}, {"date": "01/16", "p": "Sarah", "clicks": 1209.0, "spend": 288491.22, "impressions": 23034, "ctr": 5.25, "cpc": 239.0}, {"date": "01/17", "p": "Lina", "clicks": 1315.0, "spend": 338128.2, "impressions": 44730, "ctr": 2.94, "cpc": 257.0}, {"date": "01/17", "p": "Phoebe", "clicks": 628.0, "spend": 251128.62, "impressions": 24216, "ctr": 2.59, "cpc": 400.0}, {"date": "01/17", "p": "Sarah", "clicks": 1146.0, "spend": 296656.38, "impressions": 25938, "ctr": 4.42, "cpc": 259.0}, {"date": "01/18", "p": "Lina", "clicks": 1559.0, "spend": 380342.61, "impressions": 44991, "ctr": 3.47, "cpc": 244.0}, {"date": "01/18", "p": "Phoebe", "clicks": 657.0, "spend": 264126.72, "impressions": 23163, "ctr": 2.84, "cpc": 402.0}, {"date": "01/18", "p": "Sarah", "clicks": 1461.0, "spend": 328930.74, "impressions": 28845, "ctr": 5.07, "cpc": 225.0}, {"date": "01/19", "p": "Lina", "clicks": 1387.0, "spend": 378746.43, "impressions": 41821, "ctr": 3.32, "cpc": 273.0}, {"date": "01/19", "p": "Phoebe", "clicks": 641.0, "spend": 298992.93, "impressions": 23548, "ctr": 2.72, "cpc": 466.0}, {"date": "01/19", "p": "Sarah", "clicks": 887.0, "spend": 293081.07, "impressions": 24394, "ctr": 3.64, "cpc": 330.0}, {"date": "01/20", "p": "Lina", "clicks": 1435.0, "spend": 514773.6, "impressions": 51375, "ctr": 2.79, "cpc": 359.0}, {"date": "01/20", "p": "Phoebe", "clicks": 643.0, "spend": 323398.5, "impressions": 27050, "ctr": 2.38, "cpc": 503.0}, {"date": "01/20", "p": "Sarah", "clicks": 833.0, "spend": 268383.57, "impressions": 21135, "ctr": 3.94, "cpc": 322.0}, {"date": "01/21", "p": "Lina", "clicks": 1781.0, "spend": 621558.93, "impressions": 58357, "ctr": 3.05, "cpc": 349.0}, {"date": "01/21", "p": "Phoebe", "clicks": 731.0, "spend": 330253.86, "impressions": 30734, "ctr": 2.38, "cpc": 452.0}, {"date": "01/21", "p": "Sarah", "clicks": 952.0, "spend": 287299.08, "impressions": 24263, "ctr": 3.92, "cpc": 302.0}, {"date": "01/22", "p": "Lina", "clicks": 1713.0, "spend": 637397.52, "impressions": 66658, "ctr": 2.57, "cpc": 372.0}, {"date": "01/22", "p": "Phoebe", "clicks": 697.0, "spend": 335309.91, "impressions": 35474, "ctr": 1.96, "cpc": 481.0}, {"date": "01/22", "p": "Sarah", "clicks": 837.0, "spend": 300803.34, "impressions": 33874, "ctr": 2.47, "cpc": 359.0}, {"date": "01/23", "p": "Lina", "clicks": 1965.0, "spend": 685741.35, "impressions": 87712, "ctr": 2.24, "cpc": 349.0}, {"date": "01/23", "p": "Phoebe", "clicks": 710.0, "spend": 308924.1, "impressions": 38867, "ctr": 1.83, "cpc": 435.0}, {"date": "01/23", "p": "Sarah", "clicks": 500.0, "spend": 244812.72, "impressions": 43157, "ctr": 1.16, "cpc": 490.0}, {"date": "01/24", "p": "Lina", "clicks": 2419.0, "spend": 825673.5, "impressions": 105337, "ctr": 2.3, "cpc": 341.0}, {"date": "01/24", "p": "Phoebe", "clicks": 628.0, "spend": 245646.33, "impressions": 35469, "ctr": 1.77, "cpc": 391.0}, {"date": "01/24", "p": "Sarah", "clicks": 546.0, "spend": 283915.8, "impressions": 49864, "ctr": 1.09, "cpc": 520.0}, {"date": "01/25", "p": "Lina", "clicks": 2118.0, "spend": 689803.95, "impressions": 90878, "ctr": 2.33, "cpc": 326.0}, {"date": "01/25", "p": "Phoebe", "clicks": 832.0, "spend": 331695.75, "impressions": 51587, "ctr": 1.61, "cpc": 399.0}, {"date": "01/25", "p": "Sarah", "clicks": 608.0, "spend": 287441.16, "impressions": 57686, "ctr": 1.05, "cpc": 473.0}, {"date": "01/26", "p": "Lina", "clicks": 3968.0, "spend": 1509022.8, "impressions": 176309, "ctr": 2.25, "cpc": 380.0}, {"date": "01/26", "p": "Phoebe", "clicks": 824.0, "spend": 349587.84, "impressions": 47646, "ctr": 1.73, "cpc": 424.0}, {"date": "01/26", "p": "Sarah", "clicks": 418.0, "spend": 174761.73, "impressions": 34575, "ctr": 1.21, "cpc": 418.0}, {"date": "01/27", "p": "Lina", "clicks": 4031.0, "spend": 1523016.57, "impressions": 187037, "ctr": 2.16, "cpc": 378.0}, {"date": "01/27", "p": "Phoebe", "clicks": 355.0, "spend": 150228.51, "impressions": 19539, "ctr": 1.82, "cpc": 423.0}, {"date": "01/27", "p": "Sarah", "clicks": 392.0, "spend": 157159.35, "impressions": 36078, "ctr": 1.09, "cpc": 401.0}, {"date": "01/28", "p": "Lina", "clicks": 3182.0, "spend": 1269422.64, "impressions": 163358, "ctr": 1.95, "cpc": 399.0}, {"date": "01/28", "p": "Phoebe", "clicks": 406.0, "spend": 176758.62, "impressions": 21942, "ctr": 1.85, "cpc": 435.0}, {"date": "01/28", "p": "Sarah", "clicks": 1430.0, "spend": 534693.66, "impressions": 78388, "ctr": 1.82, "cpc": 374.0}, {"date": "01/29", "p": "Lina", "clicks": 2227.0, "spend": 916252.83, "impressions": 130050, "ctr": 1.71, "cpc": 411.0}, {"date": "01/29", "p": "Phoebe", "clicks": 353.0, "spend": 150063.12, "impressions": 20631, "ctr": 1.71, "cpc": 425.0}, {"date": "01/29", "p": "Sarah", "clicks": 2381.0, "spend": 857703.66, "impressions": 121247, "ctr": 1.96, "cpc": 360.0}, {"date": "01/30", "p": "Lina", "clicks": 2309.0, "spend": 947756.85, "impressions": 126625, "ctr": 1.82, "cpc": 410.0}, {"date": "01/30", "p": "Phoebe", "clicks": 348.0, "spend": 155997.18, "impressions": 24623, "ctr": 1.41, "cpc": 448.0}, {"date": "01/30", "p": "Sarah", "clicks": 1954.0, "spend": 700183.56, "impressions": 99121, "ctr": 1.97, "cpc": 358.0}, {"date": "01/31", "p": "Lina", "clicks": 2990.0, "spend": 1171882.5, "impressions": 157496, "ctr": 1.9, "cpc": 392.0}, {"date": "01/31", "p": "Phoebe", "clicks": 363.0, "spend": 159162.9, "impressions": 28422, "ctr": 1.28, "cpc": 438.0}, {"date": "01/31", "p": "Sarah", "clicks": 1647.0, "spend": 578852.79, "impressions": 88106, "ctr": 1.87, "cpc": 351.0}], "pp": [{"product": "BCA/BPD", "person": "Phoebe", "clicks": 1940.0, "spend": 1007374.95, "impressions": 87376, "ctr": 2.22, "cpc": 519.0, "purchases": 1.0, "revenue_krw": 20440.0, "roas": 0.03, "cpa": 1007375}, {"product": "GPG", "person": "Lina", "clicks": 54696.0, "spend": 17980232.88, "impressions": 2192823, "ctr": 2.49, "cpc": 329.0, "purchases": 166.0, "revenue_krw": 3426736.0, "roas": 0.29, "cpa": 108315}, {"product": "GPG", "person": "Phoebe", "clicks": 5411.0, "spend": 1993546.68, "impressions": 212332, "ctr": 2.55, "cpc": 368.0, "purchases": 10.0, "revenue_krw": 167900.0, "roas": 0.13, "cpa": 199355}, {"product": "GPG", "person": "Sarah", "clicks": 43818.0, "spend": 12359625.78, "impressions": 1426368, "ctr": 3.07, "cpc": 282.0, "purchases": 98.0, "revenue_krw": 1931872.0, "roas": 0.23, "cpa": 126119}, {"product": "PCM", "person": "Lina", "clicks": 3826.0, "spend": 1614607.11, "impressions": 305776, "ctr": 1.25, "cpc": 422.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "PCM", "person": "Phoebe", "clicks": 686.0, "spend": 374727.12, "impressions": 33715, "ctr": 2.03, "cpc": 546.0, "purchases": 2.0, "revenue_krw": 44968.0, "roas": 0.18, "cpa": 187364}, {"product": "PCO", "person": "Lina", "clicks": 5526.0, "spend": 2101121.22, "impressions": 238753, "ctr": 2.31, "cpc": 380.0, "purchases": 1.0, "revenue_krw": 27740.0, "roas": 0.02, "cpa": 2101121}, {"product": "PCO", "person": "Phoebe", "clicks": 8227.0, "spend": 3338156.28, "impressions": 396027, "ctr": 2.08, "cpc": 406.0, "purchases": 14.0, "revenue_krw": 367628.0, "roas": 0.17, "cpa": 238440}, {"product": "PCO", "person": "Sarah", "clicks": 1795.0, "spend": 838810.35, "impressions": 127706, "ctr": 1.41, "cpc": 467.0, "purchases": 2.0, "revenue_krw": 39858.0, "roas": 0.07, "cpa": 419405}], "psum": [{"product": "BCA/BPD", "clicks": 1940.0, "spend": 1007374.95, "impressions": 87376, "ctr": 2.22, "cpc": 519.0, "purchases": 1.0, "revenue_krw": 20440.0, "roas": 0.03, "cpa": 1007375}, {"product": "GPG", "clicks": 103925.0, "spend": 32333405.34, "impressions": 3831523, "ctr": 2.71, "cpc": 311.0, "purchases": 274.0, "revenue_krw": 5526508.0, "roas": 0.26, "cpa": 118005}, {"product": "PCM", "clicks": 4512.0, "spend": 1989334.23, "impressions": 339491, "ctr": 1.33, "cpc": 441.0, "purchases": 2.0, "revenue_krw": 44968.0, "roas": 0.03, "cpa": 994667}, {"product": "PCO", "clicks": 15548.0, "spend": 6278087.85, "impressions": 762486, "ctr": 2.04, "cpc": 404.0, "purchases": 17.0, "revenue_krw": 435226.0, "roas": 0.1, "cpa": 369299}]}, "2026-02": {"ps": [{"person": "Lina", "clicks": 41034.0, "spend": 17072683.56, "impressions": 1896964, "ctr": 2.16, "cpc": 416.0, "purchases": 55.0, "revenue_krw": 1153692.0, "roas": 0.1}, {"person": "Phoebe", "clicks": 27029.0, "spend": 13380774.72, "impressions": 1787451, "ctr": 1.51, "cpc": 495.0, "purchases": 17.0, "revenue_krw": 309228.0, "roas": 0.03}, {"person": "Sarah", "clicks": 19509.0, "spend": 7855414.5, "impressions": 910268, "ctr": 2.14, "cpc": 403.0, "purchases": 14.0, "revenue_krw": 277984.0, "roas": 0.05}], "pm": [{"person": "Lina", "media": "img", "clicks": 16778.0, "spend": 7618832.43, "impressions": 1145953, "ctr": 1.46, "cpc": 454.0}, {"person": "Lina", "media": "vdo", "clicks": 18862.0, "spend": 7425611.4, "impressions": 575108, "ctr": 3.28, "cpc": 394.0}, {"person": "Phoebe", "media": "img", "clicks": 16556.0, "spend": 7546861.14, "impressions": 1350408, "ctr": 1.23, "cpc": 456.0}, {"person": "Phoebe", "media": "vdo", "clicks": 10473.0, "spend": 5833913.58, "impressions": 437043, "ctr": 2.4, "cpc": 557.0}, {"person": "Sarah", "media": "img", "clicks": 7737.0, "spend": 2219889.0, "impressions": 385657, "ctr": 2.01, "cpc": 287.0}, {"person": "Sarah", "media": "vdo", "clicks": 11772.0, "spend": 5635525.5, "impressions": 524611, "ctr": 2.24, "cpc": 479.0}], "daily": [{"date": "02/01", "p": "Lina", "clicks": 5224.0, "spend": 2223869.46, "impressions": 323295, "ctr": 1.62, "cpc": 426.0}, {"date": "02/01", "p": "Phoebe", "clicks": 3863.0, "spend": 1653885.57, "impressions": 221016, "ctr": 1.75, "cpc": 428.0}, {"date": "02/01", "p": "Sarah", "clicks": 2746.0, "spend": 1049137.59, "impressions": 188661, "ctr": 1.46, "cpc": 382.0}, {"date": "02/02", "p": "Lina", "clicks": 1702.0, "spend": 568961.58, "impressions": 86067, "ctr": 1.98, "cpc": 334.0}, {"date": "02/02", "p": "Phoebe", "clicks": 661.0, "spend": 267838.56, "impressions": 43892, "ctr": 1.51, "cpc": 405.0}, {"date": "02/02", "p": "Sarah", "clicks": 1429.0, "spend": 427988.25, "impressions": 66296, "ctr": 2.16, "cpc": 300.0}, {"date": "02/03", "p": "Lina", "clicks": 1675.0, "spend": 550628.82, "impressions": 87286, "ctr": 1.92, "cpc": 329.0}, {"date": "02/03", "p": "Phoebe", "clicks": 601.0, "spend": 248211.54, "impressions": 39494, "ctr": 1.52, "cpc": 413.0}, {"date": "02/03", "p": "Sarah", "clicks": 1591.0, "spend": 425526.27, "impressions": 61534, "ctr": 2.59, "cpc": 267.0}, {"date": "02/04", "p": "Lina", "clicks": 1691.0, "spend": 580615.47, "impressions": 93385, "ctr": 1.81, "cpc": 343.0}, {"date": "02/04", "p": "Phoebe", "clicks": 662.0, "spend": 281035.35, "impressions": 43555, "ctr": 1.52, "cpc": 425.0}, {"date": "02/04", "p": "Sarah", "clicks": 1550.0, "spend": 424971.27, "impressions": 62290, "ctr": 2.49, "cpc": 274.0}, {"date": "02/05", "p": "Lina", "clicks": 1524.0, "spend": 685821.27, "impressions": 95612, "ctr": 1.59, "cpc": 450.0}, {"date": "02/05", "p": "Phoebe", "clicks": 465.0, "spend": 231067.59, "impressions": 39308, "ctr": 1.18, "cpc": 497.0}, {"date": "02/05", "p": "Sarah", "clicks": 254.0, "spend": 145303.44, "impressions": 21475, "ctr": 1.18, "cpc": 572.0}, {"date": "02/06", "p": "Lina", "clicks": 858.0, "spend": 370002.96, "impressions": 49507, "ctr": 1.73, "cpc": 431.0}, {"date": "02/06", "p": "Phoebe", "clicks": 310.0, "spend": 145942.8, "impressions": 28432, "ctr": 1.09, "cpc": 471.0}, {"date": "02/06", "p": "Sarah", "clicks": 129.0, "spend": 70108.71, "impressions": 14650, "ctr": 0.88, "cpc": 543.0}, {"date": "02/07", "p": "Lina", "clicks": 982.0, "spend": 377635.32, "impressions": 71915, "ctr": 1.37, "cpc": 385.0}, {"date": "02/07", "p": "Phoebe", "clicks": 472.0, "spend": 200392.74, "impressions": 56764, "ctr": 0.83, "cpc": 425.0}, {"date": "02/07", "p": "Sarah", "clicks": 150.0, "spend": 89603.64, "impressions": 10734, "ctr": 1.4, "cpc": 597.0}, {"date": "02/08", "p": "Lina", "clicks": 1272.0, "spend": 566885.88, "impressions": 47814, "ctr": 2.66, "cpc": 446.0}, {"date": "02/08", "p": "Phoebe", "clicks": 448.0, "spend": 235417.68, "impressions": 14114, "ctr": 3.17, "cpc": 525.0}, {"date": "02/08", "p": "Sarah", "clicks": 192.0, "spend": 107874.24, "impressions": 7789, "ctr": 2.47, "cpc": 562.0}, {"date": "02/09", "p": "Lina", "clicks": 2259.0, "spend": 906378.27, "impressions": 81512, "ctr": 2.77, "cpc": 401.0}, {"date": "02/09", "p": "Phoebe", "clicks": 1316.0, "spend": 684588.06, "impressions": 62155, "ctr": 2.12, "cpc": 520.0}, {"date": "02/09", "p": "Sarah", "clicks": 733.0, "spend": 395656.17, "impressions": 29671, "ctr": 2.47, "cpc": 540.0}, {"date": "02/10", "p": "Lina", "clicks": 2073.0, "spend": 889020.09, "impressions": 82871, "ctr": 2.5, "cpc": 429.0}, {"date": "02/10", "p": "Phoebe", "clicks": 1334.0, "spend": 678869.34, "impressions": 71426, "ctr": 1.87, "cpc": 509.0}, {"date": "02/10", "p": "Sarah", "clicks": 892.0, "spend": 446383.17, "impressions": 36178, "ctr": 2.47, "cpc": 500.0}, {"date": "02/11", "p": "Lina", "clicks": 2892.0, "spend": 1303892.58, "impressions": 121806, "ctr": 2.37, "cpc": 451.0}, {"date": "02/11", "p": "Phoebe", "clicks": 2821.0, "spend": 1525416.39, "impressions": 124947, "ctr": 2.26, "cpc": 541.0}, {"date": "02/11", "p": "Sarah", "clicks": 1535.0, "spend": 894623.37, "impressions": 60159, "ctr": 2.55, "cpc": 583.0}, {"date": "02/12", "p": "Lina", "clicks": 1858.0, "spend": 897592.62, "impressions": 72870, "ctr": 2.55, "cpc": 483.0}, {"date": "02/12", "p": "Phoebe", "clicks": 1842.0, "spend": 1039346.28, "impressions": 93504, "ctr": 1.97, "cpc": 564.0}, {"date": "02/12", "p": "Sarah", "clicks": 1314.0, "spend": 711380.13, "impressions": 45070, "ctr": 2.92, "cpc": 541.0}, {"date": "02/13", "p": "Lina", "clicks": 1044.0, "spend": 444590.52, "impressions": 35593, "ctr": 2.93, "cpc": 426.0}, {"date": "02/13", "p": "Phoebe", "clicks": 730.0, "spend": 381263.91, "impressions": 55189, "ctr": 1.32, "cpc": 522.0}, {"date": "02/13", "p": "Sarah", "clicks": 576.0, "spend": 233498.49, "impressions": 24159, "ctr": 2.38, "cpc": 405.0}, {"date": "02/14", "p": "Lina", "clicks": 1043.0, "spend": 400200.51, "impressions": 41114, "ctr": 2.54, "cpc": 384.0}, {"date": "02/14", "p": "Phoebe", "clicks": 824.0, "spend": 414602.76, "impressions": 109250, "ctr": 0.75, "cpc": 503.0}, {"date": "02/14", "p": "Sarah", "clicks": 519.0, "spend": 198039.54, "impressions": 24539, "ctr": 2.12, "cpc": 382.0}, {"date": "02/15", "p": "Lina", "clicks": 1059.0, "spend": 397285.65, "impressions": 36070, "ctr": 2.94, "cpc": 375.0}, {"date": "02/15", "p": "Phoebe", "clicks": 716.0, "spend": 369140.49, "impressions": 34210, "ctr": 2.09, "cpc": 516.0}, {"date": "02/15", "p": "Sarah", "clicks": 654.0, "spend": 211257.42, "impressions": 18232, "ctr": 3.59, "cpc": 323.0}, {"date": "02/16", "p": "Lina", "clicks": 912.0, "spend": 366838.35, "impressions": 59403, "ctr": 1.54, "cpc": 402.0}, {"date": "02/16", "p": "Phoebe", "clicks": 832.0, "spend": 372397.23, "impressions": 267212, "ctr": 0.31, "cpc": 448.0}, {"date": "02/16", "p": "Sarah", "clicks": 552.0, "spend": 192275.31, "impressions": 47938, "ctr": 1.15, "cpc": 348.0}, {"date": "02/17", "p": "Lina", "clicks": 936.0, "spend": 345872.67, "impressions": 33455, "ctr": 2.8, "cpc": 370.0}, {"date": "02/17", "p": "Phoebe", "clicks": 763.0, "spend": 364972.44, "impressions": 48564, "ctr": 1.57, "cpc": 478.0}, {"date": "02/17", "p": "Sarah", "clicks": 539.0, "spend": 179884.38, "impressions": 19461, "ctr": 2.77, "cpc": 334.0}, {"date": "02/18", "p": "Lina", "clicks": 1016.0, "spend": 368083.77, "impressions": 31597, "ctr": 3.22, "cpc": 362.0}, {"date": "02/18", "p": "Phoebe", "clicks": 763.0, "spend": 359776.53, "impressions": 39219, "ctr": 1.95, "cpc": 472.0}, {"date": "02/18", "p": "Sarah", "clicks": 570.0, "spend": 187421.28, "impressions": 16699, "ctr": 3.41, "cpc": 329.0}, {"date": "02/19", "p": "Lina", "clicks": 2059.0, "spend": 870132.33, "impressions": 84760, "ctr": 2.43, "cpc": 423.0}, {"date": "02/19", "p": "Phoebe", "clicks": 942.0, "spend": 417527.61, "impressions": 50946, "ctr": 1.85, "cpc": 443.0}, {"date": "02/19", "p": "Sarah", "clicks": 900.0, "spend": 358222.53, "impressions": 34413, "ctr": 2.62, "cpc": 398.0}, {"date": "02/20", "p": "Lina", "clicks": 1977.0, "spend": 878378.52, "impressions": 80969, "ctr": 2.44, "cpc": 444.0}, {"date": "02/20", "p": "Phoebe", "clicks": 1274.0, "spend": 618314.4, "impressions": 71238, "ctr": 1.79, "cpc": 485.0}, {"date": "02/20", "p": "Sarah", "clicks": 939.0, "spend": 380973.09, "impressions": 38238, "ctr": 2.46, "cpc": 406.0}, {"date": "02/21", "p": "Lina", "clicks": 1968.0, "spend": 913333.53, "impressions": 94284, "ctr": 2.09, "cpc": 464.0}, {"date": "02/21", "p": "Phoebe", "clicks": 1523.0, "spend": 707401.89, "impressions": 122659, "ctr": 1.24, "cpc": 464.0}, {"date": "02/21", "p": "Sarah", "clicks": 877.0, "spend": 403836.87, "impressions": 50675, "ctr": 1.73, "cpc": 460.0}, {"date": "02/22", "p": "Lina", "clicks": 1687.0, "spend": 714966.54, "impressions": 63374, "ctr": 2.66, "cpc": 424.0}, {"date": "02/22", "p": "Phoebe", "clicks": 1147.0, "spend": 562822.17, "impressions": 43857, "ctr": 2.62, "cpc": 491.0}, {"date": "02/22", "p": "Sarah", "clicks": 868.0, "spend": 321449.34, "impressions": 31407, "ctr": 2.76, "cpc": 370.0}, {"date": "02/23", "p": "Lina", "clicks": 587.0, "spend": 251541.54, "impressions": 27641, "ctr": 2.12, "cpc": 429.0}, {"date": "02/23", "p": "Phoebe", "clicks": 550.0, "spend": 317512.17, "impressions": 22805, "ctr": 2.41, "cpc": 577.0}, {"date": "02/24", "p": "Lina", "clicks": 545.0, "spend": 231093.12, "impressions": 23794, "ctr": 2.29, "cpc": 424.0}, {"date": "02/24", "p": "Phoebe", "clicks": 576.0, "spend": 303689.34, "impressions": 29781, "ctr": 1.93, "cpc": 527.0}, {"date": "02/25", "p": "Lina", "clicks": 592.0, "spend": 249886.53, "impressions": 18420, "ctr": 3.21, "cpc": 422.0}, {"date": "02/25", "p": "Phoebe", "clicks": 498.0, "spend": 279343.71, "impressions": 18717, "ctr": 2.66, "cpc": 561.0}, {"date": "02/26", "p": "Lina", "clicks": 508.0, "spend": 234851.58, "impressions": 17950, "ctr": 2.83, "cpc": 462.0}, {"date": "02/26", "p": "Phoebe", "clicks": 349.0, "spend": 230007.54, "impressions": 10465, "ctr": 3.33, "cpc": 659.0}, {"date": "02/27", "p": "Lina", "clicks": 556.0, "spend": 244420.89, "impressions": 15557, "ctr": 3.57, "cpc": 440.0}, {"date": "02/27", "p": "Phoebe", "clicks": 328.0, "spend": 211765.8, "impressions": 9216, "ctr": 3.56, "cpc": 646.0}, {"date": "02/28", "p": "Lina", "clicks": 535.0, "spend": 239903.19, "impressions": 19043, "ctr": 2.81, "cpc": 448.0}, {"date": "02/28", "p": "Phoebe", "clicks": 419.0, "spend": 278224.83, "impressions": 15516, "ctr": 2.7, "cpc": 664.0}], "pp": [{"product": "BCA/BPD", "person": "Phoebe", "clicks": 3131.0, "spend": 1974274.86, "impressions": 114437, "ctr": 2.74, "cpc": 631.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "GPG", "person": "Lina", "clicks": 28051.0, "spend": 10863763.14, "impressions": 1256445, "ctr": 2.23, "cpc": 387.0, "purchases": 45.0, "revenue_krw": 976594.0, "roas": 0.13, "cpa": 241417}, {"product": "GPG", "person": "Phoebe", "clicks": 4408.0, "spend": 1956012.03, "impressions": 252026, "ctr": 1.75, "cpc": 444.0, "purchases": 10.0, "revenue_krw": 143080.0, "roas": 0.11, "cpa": 195601}, {"product": "GPG", "person": "Sarah", "clicks": 13751.0, "spend": 4483101.3, "impressions": 571658, "ctr": 2.41, "cpc": 326.0, "purchases": 14.0, "revenue_krw": 277984.0, "roas": 0.09, "cpa": 320222}, {"product": "PCM", "person": "Lina", "clicks": 5124.0, "spend": 2429089.59, "impressions": 308488, "ctr": 1.66, "cpc": 474.0, "purchases": 9.0, "revenue_krw": 151548.0, "roas": 0.09, "cpa": 269899}, {"product": "PCM", "person": "Phoebe", "clicks": 4583.0, "spend": 2597396.67, "impressions": 196109, "ctr": 2.34, "cpc": 567.0, "purchases": 6.0, "revenue_krw": 140598.0, "roas": 0.08, "cpa": 432899}, {"product": "PCM", "person": "Sarah", "clicks": 2228.0, "spend": 1500421.41, "impressions": 81630, "ctr": 2.73, "cpc": 673.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "PCO", "person": "Lina", "clicks": 7859.0, "spend": 3779830.83, "impressions": 332031, "ctr": 2.37, "cpc": 481.0, "purchases": 1.0, "revenue_krw": 25550.0, "roas": 0.01, "cpa": 3779831}, {"product": "PCO", "person": "Phoebe", "clicks": 14907.0, "spend": 6853091.16, "impressions": 1224879, "ctr": 1.22, "cpc": 460.0, "purchases": 1.0, "revenue_krw": 25550.0, "roas": 0.01, "cpa": 6853091}, {"product": "PCO", "person": "Sarah", "clicks": 3530.0, "spend": 1871891.79, "impressions": 256980, "ctr": 1.37, "cpc": 530.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}], "psum": [{"product": "BCA/BPD", "clicks": 3131.0, "spend": 1974274.86, "impressions": 114437, "ctr": 2.74, "cpc": 631.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "GPG", "clicks": 46210.0, "spend": 17302876.47, "impressions": 2080129, "ctr": 2.22, "cpc": 374.0, "purchases": 69.0, "revenue_krw": 1397658.0, "roas": 0.12, "cpa": 250766}, {"product": "PCM", "clicks": 11935.0, "spend": 6526907.67, "impressions": 586227, "ctr": 2.04, "cpc": 547.0, "purchases": 15.0, "revenue_krw": 292146.0, "roas": 0.07, "cpa": 435127}, {"product": "PCO", "clicks": 26296.0, "spend": 12504813.78, "impressions": 1813890, "ctr": 1.45, "cpc": 476.0, "purchases": 2.0, "revenue_krw": 51100.0, "roas": 0.01, "cpa": 6252407}]}, "2026-03": {"ps": [{"person": "Lina", "clicks": 19886.0, "spend": 7193238.0, "impressions": 740969, "ctr": 2.68, "cpc": 362.0, "purchases": 21.0, "revenue_krw": 453330.0, "roas": 0.09}, {"person": "Phoebe", "clicks": 24275.0, "spend": 10724949.0, "impressions": 1154486, "ctr": 2.1, "cpc": 442.0, "purchases": 5.0, "revenue_krw": 82490.0, "roas": 0.01}, {"person": "Sarah", "clicks": 76970.0, "spend": 17595526.0, "impressions": 1906920, "ctr": 4.04, "cpc": 229.0, "purchases": 33.0, "revenue_krw": 787232.0, "roas": 0.07}], "pm": [{"person": "Lina", "media": "img", "clicks": 1618.0, "spend": 672156.0, "impressions": 141164, "ctr": 1.15, "cpc": 415.0}, {"person": "Lina", "media": "vdo", "clicks": 18268.0, "spend": 6521082.0, "impressions": 599805, "ctr": 3.05, "cpc": 357.0}, {"person": "Phoebe", "media": "img", "clicks": 4528.0, "spend": 2199522.0, "impressions": 432867, "ctr": 1.05, "cpc": 486.0}, {"person": "Phoebe", "media": "vdo", "clicks": 19747.0, "spend": 8525427.0, "impressions": 721619, "ctr": 2.74, "cpc": 432.0}, {"person": "Sarah", "media": "img", "clicks": 15934.0, "spend": 5210082.0, "impressions": 793344, "ctr": 2.01, "cpc": 327.0}, {"person": "Sarah", "media": "vdo", "clicks": 61036.0, "spend": 12385444.0, "impressions": 1113576, "ctr": 5.48, "cpc": 203.0}], "daily": [{"date": "03/01", "p": "Lina", "clicks": 100.0, "spend": 87989.0, "impressions": 5857, "ctr": 1.71, "cpc": 880.0}, {"date": "03/01", "p": "Phoebe", "clicks": 351.0, "spend": 395341.0, "impressions": 29837, "ctr": 1.18, "cpc": 1126.0}, {"date": "03/01", "p": "Sarah", "clicks": 20.0, "spend": 9098.0, "impressions": 1402, "ctr": 1.43, "cpc": 455.0}, {"date": "03/02", "p": "Lina", "clicks": 305.0, "spend": 181135.0, "impressions": 16289, "ctr": 1.87, "cpc": 594.0}, {"date": "03/02", "p": "Phoebe", "clicks": 538.0, "spend": 471788.0, "impressions": 37263, "ctr": 1.44, "cpc": 877.0}, {"date": "03/02", "p": "Sarah", "clicks": 39.0, "spend": 17263.0, "impressions": 3309, "ctr": 1.18, "cpc": 443.0}, {"date": "03/03", "p": "Lina", "clicks": 989.0, "spend": 291781.0, "impressions": 26710, "ctr": 3.7, "cpc": 295.0}, {"date": "03/03", "p": "Phoebe", "clicks": 781.0, "spend": 369377.0, "impressions": 26023, "ctr": 3.0, "cpc": 473.0}, {"date": "03/03", "p": "Sarah", "clicks": 12.0, "spend": 4549.0, "impressions": 796, "ctr": 1.51, "cpc": 379.0}, {"date": "03/04", "p": "Phoebe", "clicks": 304.0, "spend": 136438.0, "impressions": 9387, "ctr": 3.24, "cpc": 449.0}, {"date": "03/05", "p": "Lina", "clicks": 475.0, "spend": 123970.0, "impressions": 11678, "ctr": 4.07, "cpc": 261.0}, {"date": "03/05", "p": "Phoebe", "clicks": 400.0, "spend": 145214.0, "impressions": 10814, "ctr": 3.7, "cpc": 363.0}, {"date": "03/05", "p": "Sarah", "clicks": 2914.0, "spend": 365414.0, "impressions": 31235, "ctr": 9.33, "cpc": 125.0}, {"date": "03/06", "p": "Lina", "clicks": 533.0, "spend": 139093.0, "impressions": 13548, "ctr": 3.93, "cpc": 261.0}, {"date": "03/06", "p": "Phoebe", "clicks": 289.0, "spend": 139638.0, "impressions": 8336, "ctr": 3.47, "cpc": 483.0}, {"date": "03/06", "p": "Sarah", "clicks": 2954.0, "spend": 404554.0, "impressions": 34356, "ctr": 8.6, "cpc": 137.0}, {"date": "03/07", "p": "Lina", "clicks": 595.0, "spend": 171729.0, "impressions": 18823, "ctr": 3.16, "cpc": 289.0}, {"date": "03/07", "p": "Phoebe", "clicks": 500.0, "spend": 247629.0, "impressions": 17661, "ctr": 2.83, "cpc": 495.0}, {"date": "03/07", "p": "Sarah", "clicks": 3053.0, "spend": 496320.0, "impressions": 39676, "ctr": 7.69, "cpc": 163.0}, {"date": "03/08", "p": "Lina", "clicks": 741.0, "spend": 210636.0, "impressions": 20076, "ctr": 3.69, "cpc": 284.0}, {"date": "03/08", "p": "Phoebe", "clicks": 477.0, "spend": 245930.0, "impressions": 14452, "ctr": 3.3, "cpc": 516.0}, {"date": "03/08", "p": "Sarah", "clicks": 3098.0, "spend": 522752.0, "impressions": 39843, "ctr": 7.78, "cpc": 169.0}, {"date": "03/09", "p": "Lina", "clicks": 683.0, "spend": 187397.0, "impressions": 18492, "ctr": 3.69, "cpc": 274.0}, {"date": "03/09", "p": "Phoebe", "clicks": 443.0, "spend": 244178.0, "impressions": 14761, "ctr": 3.0, "cpc": 551.0}, {"date": "03/09", "p": "Sarah", "clicks": 3390.0, "spend": 573079.0, "impressions": 42750, "ctr": 7.93, "cpc": 169.0}, {"date": "03/10", "p": "Lina", "clicks": 667.0, "spend": 192199.0, "impressions": 19396, "ctr": 3.44, "cpc": 288.0}, {"date": "03/10", "p": "Phoebe", "clicks": 481.0, "spend": 242045.0, "impressions": 13769, "ctr": 3.49, "cpc": 503.0}, {"date": "03/10", "p": "Sarah", "clicks": 3980.0, "spend": 776889.0, "impressions": 60703, "ctr": 6.56, "cpc": 195.0}, {"date": "03/11", "p": "Lina", "clicks": 297.0, "spend": 112474.0, "impressions": 10402, "ctr": 2.86, "cpc": 379.0}, {"date": "03/11", "p": "Phoebe", "clicks": 4232.0, "spend": 1114003.0, "impressions": 109889, "ctr": 3.85, "cpc": 263.0}, {"date": "03/11", "p": "Sarah", "clicks": 1345.0, "spend": 367822.0, "impressions": 30110, "ctr": 4.47, "cpc": 273.0}, {"date": "03/12", "p": "Lina", "clicks": 325.0, "spend": 149325.0, "impressions": 13053, "ctr": 2.49, "cpc": 459.0}, {"date": "03/12", "p": "Phoebe", "clicks": 2340.0, "spend": 654621.0, "impressions": 59022, "ctr": 3.96, "cpc": 280.0}, {"date": "03/12", "p": "Sarah", "clicks": 1058.0, "spend": 299917.0, "impressions": 26899, "ctr": 3.93, "cpc": 283.0}, {"date": "03/13", "p": "Lina", "clicks": 734.0, "spend": 314885.0, "impressions": 27234, "ctr": 2.7, "cpc": 429.0}, {"date": "03/13", "p": "Phoebe", "clicks": 973.0, "spend": 474878.0, "impressions": 36120, "ctr": 2.69, "cpc": 488.0}, {"date": "03/13", "p": "Sarah", "clicks": 1053.0, "spend": 299984.0, "impressions": 48576, "ctr": 2.17, "cpc": 285.0}, {"date": "03/14", "p": "Lina", "clicks": 735.0, "spend": 310938.0, "impressions": 30820, "ctr": 2.38, "cpc": 423.0}, {"date": "03/14", "p": "Phoebe", "clicks": 952.0, "spend": 489988.0, "impressions": 38525, "ctr": 2.47, "cpc": 515.0}, {"date": "03/14", "p": "Sarah", "clicks": 994.0, "spend": 305772.0, "impressions": 38345, "ctr": 2.59, "cpc": 308.0}, {"date": "03/15", "p": "Lina", "clicks": 733.0, "spend": 319936.0, "impressions": 30250, "ctr": 2.42, "cpc": 436.0}, {"date": "03/15", "p": "Phoebe", "clicks": 1082.0, "spend": 508728.0, "impressions": 43830, "ctr": 2.47, "cpc": 470.0}, {"date": "03/15", "p": "Sarah", "clicks": 1135.0, "spend": 285583.0, "impressions": 35998, "ctr": 3.15, "cpc": 252.0}, {"date": "03/16", "p": "Lina", "clicks": 850.0, "spend": 352667.0, "impressions": 51778, "ctr": 1.64, "cpc": 415.0}, {"date": "03/16", "p": "Phoebe", "clicks": 1509.0, "spend": 655849.0, "impressions": 98116, "ctr": 1.54, "cpc": 435.0}, {"date": "03/16", "p": "Sarah", "clicks": 1728.0, "spend": 419888.0, "impressions": 49971, "ctr": 3.46, "cpc": 243.0}, {"date": "03/17", "p": "Lina", "clicks": 1272.0, "spend": 455528.0, "impressions": 55630, "ctr": 2.29, "cpc": 358.0}, {"date": "03/17", "p": "Phoebe", "clicks": 1526.0, "spend": 649534.0, "impressions": 77662, "ctr": 1.96, "cpc": 426.0}, {"date": "03/17", "p": "Sarah", "clicks": 2446.0, "spend": 725488.0, "impressions": 139546, "ctr": 1.75, "cpc": 297.0}, {"date": "03/18", "p": "Lina", "clicks": 3144.0, "spend": 1153972.0, "impressions": 110037, "ctr": 2.86, "cpc": 367.0}, {"date": "03/18", "p": "Phoebe", "clicks": 2610.0, "spend": 1235411.0, "impressions": 135316, "ctr": 1.93, "cpc": 473.0}, {"date": "03/18", "p": "Sarah", "clicks": 13977.0, "spend": 2870745.0, "impressions": 288316, "ctr": 4.85, "cpc": 205.0}, {"date": "03/19", "p": "Lina", "clicks": 1481.0, "spend": 530778.0, "impressions": 53347, "ctr": 2.78, "cpc": 358.0}, {"date": "03/19", "p": "Phoebe", "clicks": 1000.0, "spend": 472550.0, "impressions": 55324, "ctr": 1.81, "cpc": 473.0}, {"date": "03/19", "p": "Sarah", "clicks": 7123.0, "spend": 1605168.0, "impressions": 187154, "ctr": 3.81, "cpc": 225.0}, {"date": "03/20", "p": "Lina", "clicks": 1223.0, "spend": 446777.0, "impressions": 42650, "ctr": 2.87, "cpc": 365.0}, {"date": "03/20", "p": "Phoebe", "clicks": 698.0, "spend": 381218.0, "impressions": 35914, "ctr": 1.94, "cpc": 546.0}, {"date": "03/20", "p": "Sarah", "clicks": 6232.0, "spend": 1584207.0, "impressions": 169557, "ctr": 3.68, "cpc": 254.0}, {"date": "03/21", "p": "Lina", "clicks": 1359.0, "spend": 510457.0, "impressions": 60828, "ctr": 2.23, "cpc": 376.0}, {"date": "03/21", "p": "Phoebe", "clicks": 587.0, "spend": 338319.0, "impressions": 92277, "ctr": 0.64, "cpc": 576.0}, {"date": "03/21", "p": "Sarah", "clicks": 8356.0, "spend": 2083566.0, "impressions": 230758, "ctr": 3.62, "cpc": 249.0}, {"date": "03/22", "p": "Lina", "clicks": 1426.0, "spend": 534565.0, "impressions": 57601, "ctr": 2.48, "cpc": 375.0}, {"date": "03/22", "p": "Phoebe", "clicks": 670.0, "spend": 333669.0, "impressions": 37821, "ctr": 1.77, "cpc": 498.0}, {"date": "03/22", "p": "Sarah", "clicks": 6903.0, "spend": 1762918.0, "impressions": 191283, "ctr": 3.61, "cpc": 255.0}, {"date": "03/23", "p": "Lina", "clicks": 1219.0, "spend": 415007.0, "impressions": 46470, "ctr": 2.62, "cpc": 340.0}, {"date": "03/23", "p": "Phoebe", "clicks": 1532.0, "spend": 778603.0, "impressions": 152367, "ctr": 1.01, "cpc": 508.0}, {"date": "03/23", "p": "Sarah", "clicks": 5160.0, "spend": 1814550.0, "impressions": 216337, "ctr": 2.39, "cpc": 352.0}], "pp": [{"product": "BCA/BPD", "person": "Lina", "clicks": 2120.0, "spend": 1119759.0, "impressions": 141615, "ctr": 1.5, "cpc": 528.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "BCA/BPD", "person": "Phoebe", "clicks": 12663.0, "spend": 6687926.0, "impressions": 592287, "ctr": 2.14, "cpc": 528.0, "purchases": 3.0, "revenue_krw": 82490.0, "roas": 0.02, "cpa": 2229309}, {"product": "BCA/BPD", "person": "Sarah", "clicks": 2149.0, "spend": 873003.0, "impressions": 136799, "ctr": 1.57, "cpc": 406.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "GPG", "person": "Lina", "clicks": 17562.0, "spend": 5997992.0, "impressions": 585492, "ctr": 3.0, "cpc": 342.0, "purchases": 21.0, "revenue_krw": 453330.0, "roas": 0.11, "cpa": 285619}, {"product": "GPG", "person": "Phoebe", "clicks": 1727.0, "spend": 939738.0, "impressions": 170571, "ctr": 1.01, "cpc": 544.0, "purchases": 2.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 469869}, {"product": "GPG", "person": "Sarah", "clicks": 3154.0, "spend": 1219932.0, "impressions": 178848, "ctr": 1.76, "cpc": 387.0, "purchases": 4.0, "revenue_krw": 102200.0, "roas": 0.13, "cpa": 304983}, {"product": "PCM", "person": "Phoebe", "clicks": 150.0, "spend": 91382.0, "impressions": 22222, "ctr": 0.68, "cpc": 609.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "PCM", "person": "Sarah", "clicks": 2700.0, "spend": 1552880.0, "impressions": 123696, "ctr": 2.18, "cpc": 575.0, "purchases": 1.0, "revenue_krw": 27594.0, "roas": 0.03, "cpa": 1552880}, {"product": "PCO", "person": "Lina", "clicks": 204.0, "spend": 75487.0, "impressions": 13862, "ctr": 1.47, "cpc": 370.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "PCO", "person": "Phoebe", "clicks": 9735.0, "spend": 3005903.0, "impressions": 369406, "ctr": 2.64, "cpc": 309.0, "purchases": 0.0, "revenue_krw": 0.0, "roas": 0.0, "cpa": 0}, {"product": "PCO", "person": "Sarah", "clicks": 68967.0, "spend": 13949711.0, "impressions": 1467577, "ctr": 4.7, "cpc": 202.0, "purchases": 28.0, "revenue_krw": 657438.0, "roas": 0.07, "cpa": 498204}], "psum": [{"product": "BCA/BPD", "clicks": 16932.0, "spend": 8680688.0, "impressions": 870701, "ctr": 1.94, "cpc": 513.0, "purchases": 3.0, "revenue_krw": 82490.0, "roas": 0.01, "cpa": 2893563}, {"product": "GPG", "clicks": 22443.0, "spend": 8157662.0, "impressions": 934911, "ctr": 2.4, "cpc": 363.0, "purchases": 27.0, "revenue_krw": 555530.0, "roas": 0.1, "cpa": 302136}, {"product": "PCM", "clicks": 2850.0, "spend": 1644262.0, "impressions": 145918, "ctr": 1.95, "cpc": 577.0, "purchases": 1.0, "revenue_krw": 27594.0, "roas": 0.03, "cpa": 1644262}, {"product": "PCO", "clicks": 78906.0, "spend": 17031101.0, "impressions": 1850845, "ctr": 4.26, "cpc": 216.0, "purchases": 28.0, "revenue_krw": 657438.0, "roas": 0.06, "cpa": 608254}]}};
 
-const D={
-  ps:[
-    {person:'Lina',  clicks:17499, spend:5733209, ctr:2.31,cpc:334.65,impressions:576070, purchases:21,revenue_krw:453330, roas:0.1186,cpa:273010},
-    {person:'Phoebe',clicks:23830, spend:9274358, ctr:2.59,cpc:390.46,impressions:872021, purchases:5, revenue_krw:82490,  roas:0.0133,cpa:1854872},
-    {person:'Sarah', clicks:64202, spend:11934492,ctr:4.33,cpc:286.22,impressions:1268542,purchases:33,revenue_krw:787232, roas:0.0989,cpa:361651}
-  ],
-  pm:[
-    {person:'Lina',  media:'img',clicks:1344, spend:579322, ctr:1.33,cpc:406.58},
-    {person:'Lina',  media:'vdo',clicks:16155,spend:5153887,ctr:2.55,cpc:317.31},
-    {person:'Phoebe',media:'img',clicks:3294, spend:1495852,ctr:1.39,cpc:416.28},
-    {person:'Phoebe',media:'vdo',clicks:20536,spend:7778506,ctr:3.04,cpc:380.8},
-    {person:'Sarah', media:'img',clicks:9342, spend:3028443,ctr:3.99,cpc:314.31},
-    {person:'Sarah', media:'vdo',clicks:54860,spend:8906049,ctr:4.51,cpc:271.45}
-  ],
-  daily:[
-    {d:'03/01',p:'Lina',clicks:108,ctr:1.7,cpc:1042.01},{d:'03/01',p:'Phoebe',clicks:375,ctr:1.31,cpc:1116.09},{d:'03/01',p:'Sarah',clicks:21,ctr:1.56,cpc:438.54},
-    {d:'03/02',p:'Lina',clicks:359,ctr:1.24,cpc:668.35},{d:'03/02',p:'Phoebe',clicks:623,ctr:1.8,cpc:688.28},{d:'03/02',p:'Sarah',clicks:42,ctr:1.14,cpc:474.84},
-    {d:'03/03',p:'Lina',clicks:1069,ctr:2.63,cpc:423.83},{d:'03/03',p:'Phoebe',clicks:916,ctr:1.81,cpc:383.36},{d:'03/03',p:'Sarah',clicks:12,ctr:1.5,cpc:383.18},
-    {d:'03/04',p:'Phoebe',clicks:338,ctr:3.66,cpc:398.42},
-    {d:'03/05',p:'Lina',clicks:531,ctr:5.48,cpc:54.24},{d:'03/05',p:'Phoebe',clicks:469,ctr:2.1,cpc:136.63},{d:'03/05',p:'Sarah',clicks:3385,ctr:3.22,cpc:36.32},
-    {d:'03/06',p:'Lina',clicks:575,ctr:2.14,cpc:68.4},{d:'03/06',p:'Phoebe',clicks:341,ctr:3.63,cpc:250.28},{d:'03/06',p:'Sarah',clicks:3433,ctr:5.0,cpc:58.94},
-    {d:'03/07',p:'Lina',clicks:650,ctr:1.38,cpc:112.92},{d:'03/07',p:'Phoebe',clicks:528,ctr:3.26,cpc:188.33},{d:'03/07',p:'Sarah',clicks:3586,ctr:5.31,cpc:318.4},
-    {d:'03/08',p:'Lina',clicks:810,ctr:2.71,cpc:177.21},{d:'03/08',p:'Phoebe',clicks:581,ctr:2.85,cpc:229.18},{d:'03/08',p:'Sarah',clicks:3578,ctr:10.63,cpc:360.86},
-    {d:'03/09',p:'Lina',clicks:732,ctr:1.59,cpc:104.07},{d:'03/09',p:'Phoebe',clicks:480,ctr:2.28,cpc:212.48},{d:'03/09',p:'Sarah',clicks:4025,ctr:18.09,cpc:97.9},
-    {d:'03/10',p:'Lina',clicks:719,ctr:1.85,cpc:134.54},{d:'03/10',p:'Phoebe',clicks:537,ctr:2.06,cpc:192.78},{d:'03/10',p:'Sarah',clicks:4632,ctr:3.8,cpc:188.53},
-    {d:'03/11',p:'Lina',clicks:352,ctr:2.67,cpc:247.24},{d:'03/11',p:'Phoebe',clicks:4801,ctr:3.49,cpc:335.1},{d:'03/11',p:'Sarah',clicks:1596,ctr:4.27,cpc:329.88},
-    {d:'03/12',p:'Lina',clicks:426,ctr:2.54,cpc:269.47},{d:'03/12',p:'Phoebe',clicks:2639,ctr:3.05,cpc:204.58},{d:'03/12',p:'Sarah',clicks:1273,ctr:3.87,cpc:139.24},
-    {d:'03/13',p:'Lina',clicks:851,ctr:4.11,cpc:287.94},{d:'03/13',p:'Phoebe',clicks:1072,ctr:2.9,cpc:320.0},{d:'03/13',p:'Sarah',clicks:1118,ctr:4.11,cpc:313.7},
-    {d:'03/14',p:'Lina',clicks:855,ctr:1.94,cpc:230.1},{d:'03/14',p:'Phoebe',clicks:1024,ctr:2.58,cpc:340.74},{d:'03/14',p:'Sarah',clicks:1011,ctr:3.34,cpc:248.76},
-    {d:'03/15',p:'Lina',clicks:861,ctr:1.81,cpc:218.15},{d:'03/15',p:'Phoebe',clicks:1183,ctr:8.97,cpc:348.93},{d:'03/15',p:'Sarah',clicks:1211,ctr:3.01,cpc:362.01},
-    {d:'03/16',p:'Lina',clicks:945,ctr:3.1,cpc:397.4},{d:'03/16',p:'Phoebe',clicks:1638,ctr:2.5,cpc:425.97},{d:'03/16',p:'Sarah',clicks:1884,ctr:4.4,cpc:326.09},
-    {d:'03/17',p:'Lina',clicks:1444,ctr:2.82,cpc:307.18},{d:'03/17',p:'Phoebe',clicks:1597,ctr:2.29,cpc:546.88},{d:'03/17',p:'Sarah',clicks:2568,ctr:4.02,cpc:263.78},
-    {d:'03/18',p:'Lina',clicks:3397,ctr:1.87,cpc:415.89},{d:'03/18',p:'Phoebe',clicks:2812,ctr:1.76,cpc:394.4},{d:'03/18',p:'Sarah',clicks:15925,ctr:2.58,cpc:299.98},
-    {d:'03/19',p:'Lina',clicks:1549,ctr:1.61,cpc:383.52},{d:'03/19',p:'Phoebe',clicks:1101,ctr:1.54,cpc:384.95},{d:'03/19',p:'Sarah',clicks:7957,ctr:2.4,cpc:390.21},
-    {d:'03/20',p:'Lina',clicks:1266,ctr:1.52,cpc:302.98},{d:'03/20',p:'Phoebe',clicks:775,ctr:1.37,cpc:334.48},{d:'03/20',p:'Sarah',clicks:6945,ctr:2.27,cpc:468.5}
-  ],
-  ad:[
-    {n:'before1',       person:'Sarah', prod:'PCO',    m:'vdo',clicks:48879,spend:6666503,ctr:10.40,cpc:123.69,purchases:22,revenue_krw:512898, roas:0.1154,cpa:303023},
-    {n:'milkydewASMR',  person:'Lina',  prod:'GPG',    m:'vdo',clicks:11780,spend:3274465,ctr:4.01, cpc:297.15,purchases:11,revenue_krw:239732, roas:0.1098,cpa:297679},
-    {n:'moveyourThumb', person:'Phoebe',prod:'PCO',    m:'vdo',clicks:7741, spend:1381702,ctr:5.30, cpc:160.77,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'KimHyunjiASMR', person:'Phoebe',prod:'BCA/BPD',m:'vdo',clicks:6383, spend:3040870,ctr:3.33, cpc:526.79,purchases:1, revenue_krw:28470,   roas:0.014,cpa:3040870},
-    {n:'real(PCO)',      person:'Sarah', prod:'PCO',    m:'img',clicks:5774, spend:1471620,ctr:2.69, cpc:255.38,purchases:5, revenue_krw:118990,  roas:0.1213,cpa:294324},
-    {n:'KimMissokASMR', person:'Phoebe',prod:'BCA/BPD',m:'vdo',clicks:4352, spend:2129811,ctr:3.14, cpc:433.90,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'Daily',         person:'Sarah', prod:'PCM',    m:'vdo',clicks:2111, spend:835456, ctr:4.67, cpc:417.95,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'ai01',          person:'Sarah', prod:'PCO',    m:'vdo',clicks:2083, spend:577270, ctr:2.20, cpc:308.23,purchases:1, revenue_krw:25550,   roas:0.0664,cpa:577270},
-    {n:'FastASMR',      person:'Lina',  prod:'GPG',    m:'vdo',clicks:1885, spend:705741, ctr:1.49, cpc:326.84,purchases:9, revenue_krw:174762,  roas:0.3714,cpa:78416},
-    {n:'real(GPG)',     person:'Sarah', prod:'GPG',    m:'img',clicks:1509, spend:546948, ctr:1.95, cpc:359.78,purchases:4, revenue_krw:102200,  roas:0.2803,cpa:136737},
-    {n:'waterVsOil',    person:'Sarah', prod:'PCO',    m:'vdo',clicks:1379, spend:641285, ctr:1.18, cpc:382.37,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'Game',          person:'Lina',  prod:'GPG',    m:'vdo',clicks:1188, spend:533180, ctr:3.18, cpc:385.75,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'no1hashtag',    person:'Phoebe',prod:'PCO',    m:'img',clicks:1086, spend:478363, ctr:1.32, cpc:394.10,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'Reviews',       person:'Lina',  prod:'BCA/BPD',m:'vdo',clicks:958,  spend:502584, ctr:2.37, cpc:565.25,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'allureWinner',  person:'Phoebe',prod:'PCO',    m:'img',clicks:910,  spend:490429, ctr:1.49, cpc:571.08,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'real(BCA/BPD)', person:'Sarah', prod:'BCA/BPD',m:'img',clicks:904,  spend:361949, ctr:1.44, cpc:428.52,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'LaurenZero',    person:'Lina',  prod:'GPG',    m:'img',clicks:879,  spend:369246, ctr:1.51, cpc:364.83,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'justOneUse',    person:'Phoebe',prod:'GPG',    m:'vdo',clicks:800,  spend:390920, ctr:1.36, cpc:406.58,purchases:2, revenue_krw:0,       roas:0,    cpa:195460},
-    {n:'news02',        person:'Sarah', prod:'PCO',    m:'img',clicks:729,  spend:474685, ctr:1.58, cpc:505.45,purchases:0, revenue_krw:0,       roas:0,    cpa:0},
-    {n:'99percent',     person:'Phoebe',prod:'PCO',    m:'vdo',clicks:537,  spend:422264, ctr:0.81, cpc:334.27,purchases:0, revenue_krw:0,       roas:0,    cpa:0}
-  ],
-  pp:[
-    {prod:'BCA/BPD',person:'Lina',  clicks:1206, spend:621280, ctr:1.64,cpc:535.21,purchases:0, revenue_krw:0,      roas:0,     cpa:0},
-    {prod:'BCA/BPD',person:'Phoebe',clicks:11647,spend:5568748,ctr:2.90,cpc:482.27,purchases:3, revenue_krw:82490,  roas:0.0222,cpa:1856249},
-    {prod:'BCA/BPD',person:'Sarah', clicks:904,  spend:361949, ctr:1.44,cpc:428.52,purchases:0, revenue_krw:0,      roas:0,     cpa:0},
-    {prod:'GPG',    person:'Lina',  clicks:16073,spend:5037474,ctr:2.67,cpc:332.88,purchases:21,revenue_krw:453330, roas:0.135, cpa:239880},
-    {prod:'GPG',    person:'Phoebe',clicks:1753, spend:884118, ctr:2.51,cpc:386.24,purchases:2, revenue_krw:0,      roas:0,     cpa:442059},
-    {prod:'GPG',    person:'Sarah', clicks:1904, spend:706428, ctr:1.52,cpc:336.41,purchases:4, revenue_krw:102200, roas:0.217, cpa:176607},
-    {prod:'PCM',    person:'Sarah', clicks:2515, spend:1020642,ctr:2.62,cpc:362.36,purchases:1, revenue_krw:27594,  roas:0.0406,cpa:1020642},
-    {prod:'PCO',    person:'Lina',  clicks:220,  spend:74455,  ctr:0.69,cpc:233.80,purchases:0, revenue_krw:0,      roas:0,     cpa:0},
-    {prod:'PCO',    person:'Phoebe',clicks:10430,spend:2821492,ctr:2.34,cpc:297.17,purchases:0, revenue_krw:0,      roas:0,     cpa:0},
-    {prod:'PCO',    person:'Sarah', clicks:58879,spend:9845473,ctr:5.77,cpc:240.35,purchases:28,revenue_krw:657438, roas:0.1002,cpa:351624}
-  ],
-  psum:[
-    {prod:'BCA/BPD',clicks:13757,spend:6551977, ctr:2.70,cpc:487.21,purchases:3, revenue_krw:82490,  roas:0.0189,cpa:2183992},
-    {prod:'GPG',    clicks:19730,spend:6628020, ctr:2.49,cpc:350.92,purchases:27,revenue_krw:555530, roas:0.1257,cpa:245482},
-    {prod:'PCM',    clicks:2515, spend:1020642, ctr:2.62,cpc:362.36,purchases:1, revenue_krw:27594,  roas:0.0406,cpa:1020642},
-    {prod:'PCO',    clicks:69529,spend:12741420,ctr:3.84,cpc:262.16,purchases:28,revenue_krw:657438, roas:0.0774,cpa:455051}
-  ]
-};
-
-let cM='clicks',cF='All',cPM='clicks';
+let curMonth='2026-03',curPage='creator',cM='clicks',cPM='clicks';
 let tC,mC,pC;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
 const fRoas=r=>r>0?(r*100).toFixed(1)+'%':'—';
-function rcol(r){return r>=0.3?'#0F6E56':r>=0.1?'#3B6D11':r>0?'#BA7517':'var(--muted)';}
-function rbg(r){return r>=0.3?'#E1F5EE':r>=0.1?'#EAF3DE':r>0?'#FAEEDA':'var(--surface2)';}
+function rcol(r){return r>=0.5?'#0F6E56':r>=0.1?'#3B6D11':r>0?'#BA7517':'var(--muted)';}
+function rbg(r){return r>=0.5?'#E1F5EE':r>=0.1?'#EAF3DE':r>0?'#FAEEDA':'var(--surface2)';}
+function D(){return ALL_DATA[curMonth];}
+
+function updateMeta(){
+  const ml=MONTH_LABELS[curMonth],noAmz=curMonth==='2025-11';
+  document.getElementById('creatorMeta').textContent=ml+' · Meta'+(noAmz?' only':' + Amazon');
+  document.getElementById('productMeta').textContent=ml+' · Meta'+(noAmz?' only':' + Amazon');
+  document.getElementById('novNotice').style.display=noAmz?'block':'none';
+}
+
+function switchMonth(m,btn){
+  curMonth=m;
+  document.querySelectorAll('.mpill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateMeta();
+  if(curPage==='creator'){renderPCards();renderTrend();renderMedia();}
+  else renderProdPage();
+}
 
 function goPage(pg,btn){
+  curPage=pg;
   document.querySelectorAll('.pg').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
   document.getElementById('pg-'+pg).classList.add('active');
@@ -306,23 +228,23 @@ function goPage(pg,btn){
 }
 
 function renderPCards(){
+  const ps=D().ps||[];
   const sorted={
-    clicks:[...D.ps].sort((a,b)=>b.clicks-a.clicks).map(x=>x.person),
-    ctr:[...D.ps].sort((a,b)=>b.ctr-a.ctr).map(x=>x.person),
-    cpc:[...D.ps].sort((a,b)=>a.cpc-b.cpc).map(x=>x.person)
+    clicks:[...ps].sort((a,b)=>b.clicks-a.clicks).map(x=>x.person),
+    ctr:[...ps].sort((a,b)=>b.ctr-a.ctr).map(x=>x.person),
+    cpc:[...ps].sort((a,b)=>a.cpc-b.cpc).map(x=>x.person)
   };
   const rl={clicks:'clicks',ctr:'CTR',cpc:'CPC (lower=better)'};
-  const maxR=Math.max(...D.ps.map(x=>x.roas));
-  document.getElementById('pcards').innerHTML=D.ps.map(p=>{
+  const noAmz=curMonth==='2025-11';
+  document.getElementById('pcards').innerHTML=ps.map(p=>{
     const rank=sorted[cM].indexOf(p.person)+1;
-    const vdo=D.pm.find(m=>m.person===p.person&&m.media==='vdo');
-    const img=D.pm.find(m=>m.person===p.person&&m.media==='img');
+    const pm=D().pm||[];
+    const vdo=pm.find(m=>m.person===p.person&&m.media==='vdo');
+    const img=pm.find(m=>m.person===p.person&&m.media==='img');
     const tc=(vdo?.clicks||0)+(img?.clicks||0);
     const vp=tc>0?Math.round((vdo?.clicks||0)/tc*100):0;
-    const rp=maxR>0?Math.round(p.roas/maxR*100):0;
     return`<div class="pcard">
-      <div class="ph">
-        <div class="av" style="background:${CB[p.person]};color:${CT[p.person]}">${p.person[0]}</div>
+      <div class="ph"><div class="av" style="background:${CB[p.person]};color:${CT[p.person]}">${p.person[0]}</div>
         <div><div class="pname">${p.person}</div><div class="prank">Rank #${rank} by ${rl[cM]}</div></div>
       </div>
       <div class="srow">
@@ -332,8 +254,8 @@ function renderPCards(){
       </div>
       <div class="srow">
         <div class="st"><div class="stl">Spend</div><div class="stv sm">₩${f(p.spend)}</div></div>
-        <div class="st"><div class="stl">Purchases</div><div class="stv ${p.purchases>0?'good':''}">${p.purchases}</div></div>
-        <div class="st"><div class="stl">Revenue</div><div class="stv sm">${p.revenue_krw>0?'₩'+f(p.revenue_krw):'—'}</div></div>
+        <div class="st"><div class="stl">Purchases</div><div class="stv ${p.purchases>0?'good':''}">${noAmz?'—':p.purchases}</div></div>
+        <div class="st"><div class="stl">Revenue</div><div class="stv sm">${(!noAmz&&p.revenue_krw>0)?'₩'+f(p.revenue_krw):'—'}</div></div>
       </div>
       <div class="mlabels"><span>Video ${vp}%</span><span>Image ${100-vp}%</span></div>
       <div class="btrack"><div class="bfill" style="width:${vp}%;background:${C[p.person]}"></div></div>
@@ -342,23 +264,26 @@ function renderPCards(){
 }
 
 function renderTrend(){
+  const d=D().daily||[];
   document.getElementById('trendT').textContent={clicks:'Daily clicks',ctr:'Daily CTR (%)',cpc:'Daily CPC (₩)'}[cM]+' by creator';
-  const dates=[...new Set(D.daily.map(r=>r.d))].sort();
+  const dates=[...new Set(d.map(r=>r.date))].sort();
+  const persons=['Lina','Phoebe','Sarah'];
   const ds=person=>({label:person,
-    data:dates.map(dt=>{const r=D.daily.find(x=>x.d===dt&&x.p===person);return r?r[cM]:null;}),
+    data:dates.map(dt=>{const r=d.find(x=>x.date===dt&&x.p===person);return r?r[cM]:null;}),
     borderColor:C[person],backgroundColor:C[person]+'22',
-    borderWidth:2,pointRadius:3,pointHoverRadius:5,spanGaps:true,tension:0.3,fill:false});
+    borderWidth:2,pointRadius:2,pointHoverRadius:5,spanGaps:true,tension:0.3,fill:false});
   const ctx=document.getElementById('trendC').getContext('2d');
   if(tC)tC.destroy();
-  tC=new Chart(ctx,{type:'line',data:{labels:dates,datasets:['Lina','Phoebe','Sarah'].map(ds)},
+  tC=new Chart(ctx,{type:'line',data:{labels:dates,datasets:persons.map(ds)},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{font:{size:11},color:'#888',maxRotation:45,autoSkip:true,maxTicksLimit:12},grid:{display:false}},
+      scales:{x:{ticks:{font:{size:11},color:'#888',maxRotation:45,autoSkip:true,maxTicksLimit:15},grid:{display:false}},
               y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,0.1)'}}}}});
 }
 
 function renderMedia(){
+  const pm=D().pm||[];
   const pp=['Lina','Phoebe','Sarah'];
-  const gv=(p,m)=>{const r=D.pm.find(x=>x.person===p&&x.media===m);return r?r[cM]:0;};
+  const gv=(p,m)=>{const r=pm.find(x=>x.person===p&&x.media===m);return r?r[cM]:0;};
   document.getElementById('mediaT').textContent=`Video vs image — ${{clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)'}[cM]} by creator`;
   const ctx=document.getElementById('mediaC').getContext('2d');
   if(mC)mC.destroy();
@@ -370,44 +295,20 @@ function renderMedia(){
             y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,0.1)'}}}}});
 }
 
-function renderAdTable(){
-  let rows=[...D.ad];
-  if(cF!=='All')rows=rows.filter(r=>r.person===cF);
-  rows.sort((a,b)=>cM==='cpc'?a.cpc-b.cpc:b[cM]-a[cM]);
-  const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
-  document.getElementById('adTbody').innerHTML=rows.map((r,i)=>`<tr>
-    <td><span class="rd" style="background:${i<3?rb[i]:'var(--surface2)'};color:${i<3?rt[i]:'var(--muted)'}">${i+1}</span></td>
-    <td style="font-weight:600">${r.n}</td>
-    <td><span class="pp" style="background:${CB[r.person]};color:${CT[r.person]}">${r.person}</span></td>
-    <td><span class="bdg ${r.m==='vdo'?'bvdo':'bimg'}">${r.m==='vdo'?'Video':'Image'}</span></td>
-    <td><span class="bdg" style="background:${PB[r.prod]};color:${PT[r.prod]}">${r.prod}</span></td>
-    <td style="text-align:right">${f(r.clicks)}</td>
-    <td style="text-align:right">₩${f(r.spend)}</td>
-    <td style="text-align:right">${fd(r.ctr)}%</td>
-    <td style="text-align:right">₩${fd(r.cpc)}</td>
-    <td style="text-align:right;font-weight:600;color:${r.purchases>0?'#0F6E56':'var(--muted)'}">
-      ${r.purchases>0?r.purchases:'—'}</td>
-    <td style="text-align:right">${r.revenue_krw>0?'₩'+f(r.revenue_krw):'—'}</td>
-  </tr>`).join('');
-}
-
 function switchM(m,btn){
   cM=m;document.querySelectorAll('#mtabs .tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-  renderPCards();renderTrend();renderMedia();renderAdTable();
-}
-function fPerson(p,btn){
-  cF=p;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-  renderAdTable();
+  renderPCards();renderTrend();renderMedia();
 }
 
 function renderProdPage(){renderPSum();renderProdChart();renderPDGrid();renderProdTable();}
 
 function renderPSum(){
-  document.getElementById('psgrid').innerHTML=D.psum.map(p=>`<div class="pscard">
-    <div class="psname" style="color:${PC[p.prod]}">${p.prod}</div>
+  const ps=D().psum||[];
+  document.getElementById('psgrid').innerHTML=ps.map(p=>`<div class="pscard">
+    <div class="psname" style="color:${PC[p.product]||'var(--text)'}">${p.product}</div>
     <div class="pml">Clicks</div><div class="pmv">${f(p.clicks)}</div>
     <div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩${f(p.spend)}</div>
-    <div class="pml">Purchases</div><div class="pmv" style="color:${p.purchases>0?'#0F6E56':'var(--muted)'}">${p.purchases}</div>
+    <div class="pml">Purchases</div><div class="pmv" style="color:${p.purchases>0?'#0F6E56':'var(--muted)'}">${p.purchases||'—'}</div>
     <div class="roas-pill" style="background:${rbg(p.roas)};color:${rcol(p.roas)}">ROAS ${fRoas(p.roas)}</div>
   </div>`).join('');
 }
@@ -416,13 +317,15 @@ function renderProdChart(){
   const m=cPM;
   const lbl={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',roas:'ROAS',cpa:'CPA (₩)'}[m];
   document.getElementById('prodChartT').textContent=`${lbl} by product & creator`;
+  const pp=D().pp||[];
+  const prods=[...new Set(pp.map(r=>r.product))];
   const persons=['Lina','Phoebe','Sarah'];
   const ctx=document.getElementById('prodC').getContext('2d');
   if(pC)pC.destroy();
   pC=new Chart(ctx,{type:'bar',
-    data:{labels:PRODS,datasets:persons.map(person=>({
+    data:{labels:prods,datasets:persons.map(person=>({
       label:person,
-      data:PRODS.map(prod=>{const r=D.pp.find(x=>x.prod===prod&&x.person===person);return r?r[m]||0:0;}),
+      data:prods.map(prod=>{const r=pp.find(x=>x.product===prod&&x.person===person);return r?r[m]||0:0;}),
       backgroundColor:C[person],borderRadius:4,barPercentage:0.7
     }))},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
@@ -435,40 +338,39 @@ function renderProdChart(){
 
 function renderPDGrid(){
   const m=cPM;
-  document.getElementById('pdgrid').innerHTML=PRODS.map(prod=>{
-    const rows=D.pp.filter(r=>r.prod===prod);
-    if(!rows.length)return'';
+  const pp=D().pp||[];
+  const prods=[...new Set(pp.map(r=>r.product))];
+  document.getElementById('pdgrid').innerHTML=prods.map(prod=>{
+    const rows=pp.filter(r=>r.product===prod);
     const vals=rows.map(r=>r[m]).filter(v=>v>0);
     const mx=vals.length?Math.max(...vals):1;
     return`<div class="pdcard">
-      <div class="pdname"><span style="color:${PC[prod]}">${prod}</span>
+      <div class="pdname"><span style="color:${PC[prod]||'var(--text)'}">${prod}</span>
         <span class="ptag">${{clicks:'CLICKS',ctr:'CTR',cpc:'CPC',purchases:'PURCHASES',roas:'ROAS',cpa:'CPA'}[m]}</span>
       </div>
-      ${['Lina','Phoebe','Sarah'].map(person=>{
-        const r=rows.find(x=>x.person===person);if(!r)return'';
-        const val=r[m];const pct=mx>0&&val>0?Math.round(val/mx*100):0;
+      ${rows.sort((a,b)=>b[m]-a[m]).map(r=>{
+        const val=r[m]||0;const pct=mx>0&&val>0?Math.round(val/mx*100):0;
         let dv=m==='clicks'?f(val):m==='ctr'?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):m==='roas'?fRoas(val):(val>0?'₩'+f(val):'—');
         return`<div class="crow">
-          <div class="clabel"><span class="cdot" style="background:${C[person]}"></span><span class="cname">${person}</span></div>
-          <div class="cbw"><div class="cbt"><div class="cbf" style="width:${pct}%;background:${C[person]}"></div></div></div>
+          <div class="clabel"><span class="cdot" style="background:${C[r.person]||'#888'}"></span><span class="cname">${r.person}</span></div>
+          <div class="cbw"><div class="cbt"><div class="cbf" style="width:${pct}%;background:${C[r.person]||'#888'}"></div></div></div>
           <div class="cval" style="color:${m==='roas'?rcol(val):'var(--text)'}">${dv}</div>
         </div>`;
       }).join('')}
     </div>`;
-  }).filter(Boolean).join('');
+  }).join('');
 }
 
 function renderProdTable(){
-  const rows=[...D.pp].sort((a,b)=>a.prod.localeCompare(b.prod)||a.person.localeCompare(b.person));
-  document.getElementById('prodTbody').innerHTML=rows.map(r=>`<tr>
-    <td><span class="bdg" style="background:${PB[r.prod]};color:${PT[r.prod]}">${r.prod}</span></td>
+  const pp=[...D().pp||[]].sort((a,b)=>a.product.localeCompare(b.product)||a.person.localeCompare(b.person));
+  document.getElementById('prodTbody').innerHTML=pp.map(r=>`<tr>
+    <td><span class="bdg" style="background:${PB[r.product]||'var(--surface2)'};color:${PT[r.product]||'var(--muted)'}">${r.product}</span></td>
     <td><span class="pp" style="background:${CB[r.person]};color:${CT[r.person]}">${r.person}</span></td>
     <td style="text-align:right">${f(r.clicks)}</td>
     <td style="text-align:right">₩${f(r.spend)}</td>
     <td style="text-align:right">${fd(r.ctr)}%</td>
     <td style="text-align:right">₩${fd(r.cpc)}</td>
-    <td style="text-align:right;font-weight:600;color:${r.purchases>0?'#0F6E56':'var(--muted)'}">
-      ${r.purchases>0?r.purchases:'—'}</td>
+    <td style="text-align:right;font-weight:600;color:${r.purchases>0?'#0F6E56':'var(--muted)'}">${r.purchases>0?r.purchases:'—'}</td>
     <td style="text-align:right">${r.revenue_krw>0?'₩'+f(r.revenue_krw):'—'}</td>
     <td style="text-align:right;font-weight:600;color:${rcol(r.roas)}">${fRoas(r.roas)}</td>
     <td style="text-align:right">${r.purchases>0?'₩'+f(r.cpa):'—'}</td>
@@ -480,7 +382,7 @@ function switchPM(m,btn){
   renderProdChart();renderPDGrid();
 }
 
-renderPCards();renderTrend();renderMedia();renderAdTable();
+updateMeta();renderPCards();renderTrend();renderMedia();
 </script>
 </body>
 </html>
