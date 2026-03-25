@@ -346,9 +346,9 @@ function computeFromRaw(from, to){
   function grp(arr, keys, vals){
     const map={};
     for(const r of arr){
-      const k=keys.map(k=>r[k]).join('|||');
-      if(!map[k]){map[k]={};keys.forEach(k=>map[k][k]=r[k]);vals.forEach(v=>map[k][v]=0);}
-      vals.forEach(v=>map[k][v]+=(r[v]||0));
+      const ck=keys.map(key=>r[key]).join('|||');
+      if(!map[ck]){map[ck]={};keys.forEach(key=>map[ck][key]=r[key]);vals.forEach(v=>map[ck][v]=0);}
+      vals.forEach(v=>map[ck][v]+=(r[v]||0));
     }
     return Object.values(map);
   }
