@@ -106,6 +106,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .prod-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;}
 .prod-pill{padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:.5px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;transition:all .15s;}
 
+.ad-thumb{width:48px;height:48px;object-fit:cover;border-radius:6px;background:var(--surface2);display:block;}
+.ad-thumb-cell{width:58px;padding:6px 4px 6px 10px!important;}
 .ad-table-wrap{overflow-x:auto;}
 .ad-tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .ad-tbl th{text-align:left;padding:6px 10px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:.5px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
@@ -281,6 +283,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
         <thead><tr>
           <th style="width:36px;padding-left:14px">#</th>
           <th onclick="setCS('ad_name',null)">Ad name <span class="sort-arrow">↕</span></th>
+          <th class="ad-thumb-cell"></th>
           <th>Creator</th>
           <th>Media</th>
           <th onclick="setCS('clicks',null)" class="sorted">Clicks <span class="sort-arrow">↓</span></th>
@@ -299,6 +302,8 @@ const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('아마존 raw');
 const META_URL=API_URL+'?sheet='+encodeURIComponent('메타 소재별_raw');
 const HIST_META_SHEETS=['메타_2025-12','메타_2026-01','메타_2026-02'];
 const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-02'];
+const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
+let AD_IMAGES={};
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
 const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
@@ -392,11 +397,29 @@ async function loadData(){
     // Fetch current + historical sheets in parallel
     const histMetaFetches=HIST_META_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL]',s,e.message);return'[]';}));
     const histAmzFetches=HIST_AMZ_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL]',s,e.message);return'[]';}));
-    const [mr,ar,...histResults]=await Promise.all([
-      fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),
+    const adsListFetch=fetch(ADS_LIST_URL,fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL] meta-ads-list',e.message);return'[]';});
+    const [mr,ar,adsListText,...histResults]=await Promise.all([
+      fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),adsListFetch,
       ...histMetaFetches,...histAmzFetches
     ]);
     const [mt,at]=await Promise.all([mr.text(),ar.text()]);
+
+    // Build ad_name → image URL map
+    try{
+      const adsListRows=arrToObjs(adsListText);
+      adsListRows.forEach(r=>{
+        const keys=Object.keys(r);
+        const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name'))||keys[2]||'';
+        const imgKey=keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[3]||'';
+        const name=String(r[nameKey]||'').trim();
+        const url=String(r[imgKey]||'').trim();
+        if(name&&url){
+          const parsed=parseAdName(name);
+          if(parsed)AD_IMAGES[parsed]=url;
+        }
+      });
+      console.log('[ADS LIST] Loaded',Object.keys(AD_IMAGES).length,'image mappings');
+    }catch(e){console.warn('[ADS LIST ERROR]',e);}
     const histMetaTexts=histResults.slice(0,HIST_META_SHEETS.length);
     const histAmzTexts=histResults.slice(HIST_META_SHEETS.length);
 
@@ -824,7 +847,7 @@ function renderCreativeTable(){
     return cSortDir*(av-bv);
   });
   if(!ads.length){
-    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="7" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
+    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="8" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
     return;
   }
   const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
@@ -832,6 +855,7 @@ function renderCreativeTable(){
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
       '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+(a.ad_name||'')+'">'+(a.ad_name||'—')+'</td>'+
+      '<td class="ad-thumb-cell">'+(AD_IMAGES[a.ad_name]?'<img class="ad-thumb" src="'+AD_IMAGES[a.ad_name]+'" loading="lazy" onerror="this.style.display=\'none\'">':'')+'</td>'+
       '<td><span class="pp" style="background:'+(CB[a.person]||'var(--surface2)')+';color:'+(CT[a.person]||'var(--muted)')+'">'+a.person+'</span></td>'+
       '<td><span class="bdg '+(a.media==='vdo'?'bvdo':'bimg')+'">'+(a.media==='vdo'?'Video':'Image')+'</span></td>'+
       '<td style="font-weight:600">'+f(a.clicks)+'</td>'+
