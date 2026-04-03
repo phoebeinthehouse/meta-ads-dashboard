@@ -306,7 +306,8 @@ const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','G
 const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9'};
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A'};
 const PEOPLE=['Lina','Sarah','Phoebe'];
-const MONTH_LABELS={'2025-11':'Nov 2025','2025-12':'Dec 2025','2026-01':'Jan 2026','2026-02':'Feb 2026','2026-03':'Mar 2026'};
+const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
 let RAW={meta:[],amz:[]};
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
@@ -491,7 +492,7 @@ function showLoading(show){
 function renderMonthPills(months){
   const container=document.getElementById('monthly-pills');
   container.innerHTML=months.map(m=>{
-    const lbl=MONTH_LABELS[m]||m;
+    const lbl=monthLabel(m);
     const active=m===curMonth?' active':'';
     return '<button class="mpill'+active+'" onclick="switchMonth(\'' + m + '\',this)">'+lbl+'</button>';
   }).join('');
@@ -555,7 +556,7 @@ function getDateRange(){
   return{from:customFrom,to:customTo};
 }
 function D(){const{from,to}=getDateRange();return computeData(from,to);}
-function getDateLabel(){return dateMode==='monthly'?(MONTH_LABELS[curMonth]||curMonth):customFrom+' ~ '+customTo;}
+function getDateLabel(){return dateMode==='monthly'?monthLabel(curMonth):customFrom+' ~ '+customTo;}
 function isNoAmz(){const{to}=getDateRange();return to<'2025-12-01';}
 
 function updateMeta(){
