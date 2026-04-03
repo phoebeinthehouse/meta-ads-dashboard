@@ -381,7 +381,7 @@ async function loadData(){
       // Find header row (first row with 소재명 or 일자)
       let hIdx=0;
       for(let i=0;i<Math.min(5,rows.length);i++){
-        if(rows[i]&&rows[i].some(c=>String(c).includes('소재명')||String(c).includes('일자'))){hIdx=i;break;}
+        if(rows[i]&&rows[i].some(c=>{const s=String(c);return s.includes('소재명')||s.includes('일자')||s==='ad_name';})){hIdx=i;break;}
       }
       if(!rows[hIdx])return[];
       const headers=rows[hIdx].map(h=>String(h).trim());
