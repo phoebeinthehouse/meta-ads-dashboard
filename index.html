@@ -302,9 +302,9 @@ const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-0
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
 const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
-const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517'};
-const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA'};
-const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806'};
+const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','GS':'#D9A006','GSP':'#5B8AD9'};
+const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9'};
+const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A'};
 const PEOPLE=['Lina','Sarah','Phoebe'];
 const MONTH_LABELS={'2025-11':'Nov 2025','2025-12':'Dec 2025','2026-01':'Jan 2026','2026-02':'Feb 2026','2026-03':'Mar 2026'};
 let RAW={meta:[],amz:[]};
@@ -345,10 +345,10 @@ function parsePerson(name){
 function parseProduct(name){
   if(!name)return null;
   const parts=name.split('_');
-  for(const p of ['GPG','PCO','BCA','PCM','BPD','PCF']){
+  for(const p of ['GPG','PCO','BCA','PCM','BPD','PCF','GSP','GS']){
     if(parts.includes(p))return['BCA','BPD','PCF'].includes(p)?'BCA/BPD':p;
   }
-  if(['GPG','PCO','BCA','PCM','BPD'].includes(parts[0]))return parts[0];
+  if(['GPG','PCO','BCA','PCM','BPD','GS','GSP'].includes(parts[0]))return parts[0];
   return null;
 }
 function parseMedia(name){
