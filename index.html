@@ -442,13 +442,26 @@ async function loadData(){
     RAW.amz=parseAmzRows(at);
 
     // Merge historical Meta sheets
-    for(const ht of histMetaTexts){
-      try{RAW.meta.push(...parseMetaRows(ht));}catch(e){console.warn('Historical meta parse error:',e);}
-    }
+    HIST_META_SHEETS.forEach((name,i)=>{
+      try{
+        const parsed=parseMetaRows(histMetaTexts[i]);
+        console.log('[HIST META]',name,'→',parsed.length,'rows. raw length:',histMetaTexts[i].length);
+        if(!parsed.length&&histMetaTexts[i].length>10){
+          const sample=arrToObjs(histMetaTexts[i]);
+          console.log('[HIST META]',name,'total raw rows:',sample.length,'sample:',sample[0]);
+          if(sample[0]){const k=Object.keys(sample[0]);const n=String(sample[0][k.find(x=>x.includes('소재명'))||'']||'');console.log('[HIST META]',name,'소재명:',n,'person:',parsePerson(n),'date:',sample[0][k.find(x=>x.includes('일자'))||k[0]]);}
+        }
+        RAW.meta.push(...parsed);
+      }catch(e){console.warn('[HIST META ERROR]',name,e);}
+    });
     // Merge historical Amazon sheets
-    for(const ht of histAmzTexts){
-      try{RAW.amz.push(...parseAmzRows(ht));}catch(e){console.warn('Historical amz parse error:',e);}
-    }
+    HIST_AMZ_SHEETS.forEach((name,i)=>{
+      try{
+        const parsed=parseAmzRows(histAmzTexts[i]);
+        console.log('[HIST AMZ]',name,'→',parsed.length,'rows. raw length:',histAmzTexts[i].length);
+        RAW.amz.push(...parsed);
+      }catch(e){console.warn('[HIST AMZ ERROR]',name,e);}
+    });
     const allDates=RAW.meta.map(r=>r.date).filter(Boolean).sort();
     if(allDates.length){
       customFrom=allDates[0];customTo=allDates[allDates.length-1];
