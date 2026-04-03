@@ -306,6 +306,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 const API_URL='https://script.google.com/macros/s/AKfycbx_-aj6U_5eLs0vVI8IUHmrUmEPW8kY7zVWKpb8S3bhMphABRnTH91Y2QT9PBWEXgKr/exec';
 const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('아마존 raw');
 const META_URL=API_URL+'?sheet='+encodeURIComponent('메타 소재별_raw');
+const HIST_META_SHEETS=['메타_2025-12','메타_2026-01','메타_2026-02'];
+const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-02'];
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
 const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
@@ -395,47 +397,71 @@ async function loadData(){
     }
 
     const fetchOpts={redirect:'follow'};
-    const [mr,ar]=await Promise.all([fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts)]);
+
+    // Fetch current + historical sheets in parallel
+    const histMetaFetches=HIST_META_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(()=>'[]'));
+    const histAmzFetches=HIST_AMZ_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(()=>'[]'));
+    const [mr,ar,...histResults]=await Promise.all([
+      fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),
+      ...histMetaFetches,...histAmzFetches
+    ]);
     const [mt,at]=await Promise.all([mr.text(),ar.text()]);
+    const histMetaTexts=histResults.slice(0,HIST_META_SHEETS.length);
+    const histAmzTexts=histResults.slice(HIST_META_SHEETS.length);
 
     function parseNum(v){return parseFloat(String(v||'0').replace(/,/g,'').replace(/-/g,'0'))||0;}
 
-    // Parse META
-    const metaRows=arrToObjs(mt);
-    RAW.meta=metaRows.map(r=>{
-      const keys=Object.keys(r);
-      const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
-      const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
-      const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
-      const spendKey=keys.find(k=>k.includes('광고비'))||'';
-      const impKey=keys.find(k=>k.includes('노출'))||'';
-      const date=String(r[dateKey]||'').trim();
-      if(!date.match(/\d{4}-\d{2}-\d{2}/))return null;
-      const name=String(r[nameKey]||'');
-      const person=parsePerson(name);
-      if(!person)return null;
-      return{date,month:date.slice(0,7),person,
-        product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),
-        clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
-    }).filter(Boolean);
+    function parseMetaRows(text){
+      const rows=arrToObjs(text);
+      return rows.map(r=>{
+        const keys=Object.keys(r);
+        const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
+        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
+        const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
+        const spendKey=keys.find(k=>k.includes('광고비'))||'';
+        const impKey=keys.find(k=>k.includes('노출'))||'';
+        const date=String(r[dateKey]||'').trim();
+        if(!date.match(/\d{4}-\d{2}-\d{2}/))return null;
+        const name=String(r[nameKey]||'');
+        const person=parsePerson(name);
+        if(!person)return null;
+        return{date,month:date.slice(0,7),person,
+          product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),
+          clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
+      }).filter(Boolean);
+    }
 
-    // Parse AMZ
-    const amzRows=arrToObjs(at);
-    RAW.amz=amzRows.map(r=>{
-      const keys=Object.keys(r);
-      const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
-      const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
-      const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
-      const revKey=keys.find(k=>k.includes('한화매출'))||'';
-      const date=String(r[dateKey]||'').trim();
-      if(!date.match(/\d{4}-\d{2}-\d{2}/))return null;
-      const name=String(r[nameKey]||'');
-      const person=parsePerson(name);
-      if(!person)return null;
-      return{date,month:date.slice(0,7),person,
-        product:parseProduct(name),ad_name:parseAdName(name),
-        purchases:parseNum(r[purchKey]),revenue_krw:parseNum(r[revKey])};
-    }).filter(Boolean);
+    function parseAmzRows(text){
+      const rows=arrToObjs(text);
+      return rows.map(r=>{
+        const keys=Object.keys(r);
+        const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
+        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
+        const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
+        const revKey=keys.find(k=>k.includes('한화매출'))||'';
+        const date=String(r[dateKey]||'').trim();
+        if(!date.match(/\d{4}-\d{2}-\d{2}/))return null;
+        const name=String(r[nameKey]||'');
+        const person=parsePerson(name);
+        if(!person)return null;
+        return{date,month:date.slice(0,7),person,
+          product:parseProduct(name),ad_name:parseAdName(name),
+          purchases:parseNum(r[purchKey]),revenue_krw:parseNum(r[revKey])};
+      }).filter(Boolean);
+    }
+
+    // Parse current sheets
+    RAW.meta=parseMetaRows(mt);
+    RAW.amz=parseAmzRows(at);
+
+    // Merge historical Meta sheets
+    for(const ht of histMetaTexts){
+      try{RAW.meta.push(...parseMetaRows(ht));}catch(e){console.warn('Historical meta parse error:',e);}
+    }
+    // Merge historical Amazon sheets
+    for(const ht of histAmzTexts){
+      try{RAW.amz.push(...parseAmzRows(ht));}catch(e){console.warn('Historical amz parse error:',e);}
+    }
     const allDates=RAW.meta.map(r=>r.date).filter(Boolean).sort();
     if(allDates.length){
       customFrom=allDates[0];customTo=allDates[allDates.length-1];
