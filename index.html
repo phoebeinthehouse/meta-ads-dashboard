@@ -371,11 +371,13 @@ async function loadData(){
     // Apps Script returns JSON array-of-arrays: [[headers...], [row1...], ...]
     function arrToObjs(json){
       const rows=JSON.parse(json);
+      if(!rows||!rows.length)return[];
       // Find header row (first row with 소재명 or 일자)
       let hIdx=0;
       for(let i=0;i<Math.min(5,rows.length);i++){
-        if(rows[i].some(c=>String(c).includes('소재명')||String(c).includes('일자'))){hIdx=i;break;}
+        if(rows[i]&&rows[i].some(c=>String(c).includes('소재명')||String(c).includes('일자'))){hIdx=i;break;}
       }
+      if(!rows[hIdx])return[];
       const headers=rows[hIdx].map(h=>String(h).trim());
       return rows.slice(hIdx+1).map(row=>{
         const obj={};
@@ -387,8 +389,8 @@ async function loadData(){
     const fetchOpts={redirect:'follow'};
 
     // Fetch current + historical sheets in parallel
-    const histMetaFetches=HIST_META_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(()=>'[]'));
-    const histAmzFetches=HIST_AMZ_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(()=>'[]'));
+    const histMetaFetches=HIST_META_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL]',s,e.message);return'[]';}));
+    const histAmzFetches=HIST_AMZ_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL]',s,e.message);return'[]';}));
     const [mr,ar,...histResults]=await Promise.all([
       fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),
       ...histMetaFetches,...histAmzFetches
