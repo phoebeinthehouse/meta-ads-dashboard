@@ -304,7 +304,8 @@ const HIST_META_SHEETS=['메타_2025-12','메타_2026-01','메타_2026-02'];
 const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-02'];
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
-function getAdImg(adName){if(!adName)return'';const e=AD_IMAGES.find(x=>x.n.includes(adName));return e?e.u:'';}
+function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
+function getAdImg(adName){if(!adName)return'';const e=AD_IMAGES.find(x=>x.n.includes(adName));return e?driveUrl(e.u):'';}
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
 const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
