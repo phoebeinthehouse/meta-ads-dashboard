@@ -106,8 +106,14 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .prod-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;}
 .prod-pill{padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:.5px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;transition:all .15s;}
 
-.ad-thumb{width:72px;height:72px;object-fit:cover;border-radius:6px;background:var(--surface2);display:block;}
-.ad-thumb-cell{width:82px;padding:6px 4px 6px 10px!important;}
+.ad-thumb{width:96px;height:96px;object-fit:cover;border-radius:6px;background:var(--surface2);display:block;}
+.ad-thumb-cell{width:106px;padding:6px 4px 6px 10px!important;}
+.pagination{display:flex;gap:4px;justify-content:center;padding:16px 0;align-items:center;}
+.pg-btn{padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-weight:500;transition:all .15s;}
+.pg-btn:hover{background:var(--surface2);}
+.pg-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.pg-btn:disabled{opacity:.3;cursor:default;}
+.pg-info{font-size:12px;color:var(--muted);margin:0 8px;}
 .ad-table-wrap{overflow-x:auto;}
 .ad-tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .ad-tbl th{text-align:left;padding:6px 10px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:.5px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
@@ -293,6 +299,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
         <tbody id="creativeTbody"></tbody>
       </table>
     </div>
+    <div class="pagination" id="adPagination"></div>
   </div>
 </div>
 
@@ -319,7 +326,8 @@ let RAW={meta:[],amz:[]};
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
 let cFilters={person:'All',media:'All',product:'All'};
-let cSort='clicks',cSortDir=-1;
+let cSort='clicks',cSortDir=-1,adPage=0;
+const ADS_PER_PAGE=30;
 let tC,mC,pC;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
@@ -816,7 +824,7 @@ function renderProdPills(){
   }).join('');
 }
 
-function setProdFilter(p,btn){cFilters.product=p;renderProdPills();renderCreativeTable();}
+function setProdFilter(p,btn){cFilters.product=p;adPage=0;renderProdPills();renderCreativeTable();}
 
 function setCF(key,val,btn){
   cFilters[key]=val;
@@ -827,13 +835,13 @@ function setCF(key,val,btn){
     if(inGroup)b.classList.remove('active');
   });
   btn.classList.add('active');
-  renderCreativeTable();
+  adPage=0;renderCreativeTable();
 }
 
 function setCS(s,btn){
   if(s===cSort)cSortDir*=-1;else{cSort=s;cSortDir=-1;}
   if(btn){document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
-  renderCreativeTable();
+  adPage=0;renderCreativeTable();
 }
 
 function renderCreativeTable(){
@@ -848,10 +856,16 @@ function renderCreativeTable(){
   });
   if(!ads.length){
     document.getElementById('creativeTbody').innerHTML='<tr><td colspan="8" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
+    document.getElementById('adPagination').innerHTML='';
     return;
   }
+  const totalPages=Math.ceil(ads.length/ADS_PER_PAGE);
+  if(adPage>=totalPages)adPage=totalPages-1;
+  const start=adPage*ADS_PER_PAGE,end=start+ADS_PER_PAGE;
+  const pageAds=ads.slice(start,end);
   const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
-  document.getElementById('creativeTbody').innerHTML=ads.map(function(a,i){
+  document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
+    var i=start+idx;
     var thumbUrl=getAdImg(a.ad_name);
     var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;">':'';
     return '<tr>'+
@@ -865,7 +879,19 @@ function renderCreativeTable(){
       '<td style="font-weight:600;color:'+(a.purchases>0?'#0F6E56':'var(--muted)')+'">'+(a.purchases>0?a.purchases+'건':'—')+'</td>'+
       '</tr>';
   }).join('');
+  // Pagination
+  var pgHtml='<button class="pg-btn" onclick="goAdPage(0)"'+(adPage===0?' disabled':'')+'>«</button>';
+  pgHtml+='<button class="pg-btn" onclick="goAdPage('+(adPage-1)+')"'+(adPage===0?' disabled':'')+'>‹</button>';
+  for(var p=0;p<totalPages;p++){
+    pgHtml+='<button class="pg-btn'+(p===adPage?' active':'')+'" onclick="goAdPage('+p+')">'+(p+1)+'</button>';
+  }
+  pgHtml+='<button class="pg-btn" onclick="goAdPage('+(adPage+1)+')"'+(adPage>=totalPages-1?' disabled':'')+'>›</button>';
+  pgHtml+='<button class="pg-btn" onclick="goAdPage('+(totalPages-1)+')"'+(adPage>=totalPages-1?' disabled':'')+'>»</button>';
+  pgHtml+='<span class="pg-info">'+(start+1)+'–'+Math.min(end,ads.length)+' / '+ads.length+'개</span>';
+  document.getElementById('adPagination').innerHTML=pgHtml;
 }
+
+function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
 
 loadData();
 </script>
