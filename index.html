@@ -152,9 +152,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <!-- Custom range -->
     <div id="custom-range" style="display:none;" class="custom-range">
       <span class="date-label">From</span>
-      <input type="date" class="date-input" id="dateFrom" value="2025-11-14" min="2025-11-14" max="2026-03-23">
+      <input type="date" class="date-input" id="dateFrom" value="2025-11-14">
       <span class="date-label">To</span>
-      <input type="date" class="date-input" id="dateTo" value="2026-03-23" min="2025-11-14" max="2026-03-23">
+      <input type="date" class="date-input" id="dateTo" value="2026-03-23">
       <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
     </div>
   </div>
@@ -487,11 +487,12 @@ async function loadData(){
         RAW.amz.push(...parsed);
       }catch(e){console.warn('[HIST AMZ ERROR]',name,e);}
     });
-    const allDates=RAW.meta.map(r=>r.date).filter(Boolean).sort();
+    const allDates=[...RAW.meta.map(r=>r.date),...RAW.amz.map(r=>r.date)].filter(Boolean).sort();
     if(allDates.length){
       customFrom=allDates[0];customTo=allDates[allDates.length-1];
-      document.getElementById('dateFrom').value=customFrom;
-      document.getElementById('dateTo').value=customTo;
+      const df=document.getElementById('dateFrom'),dt=document.getElementById('dateTo');
+      df.min=customFrom;df.max=customTo;df.value=customFrom;
+      dt.min=customFrom;dt.max=customTo;dt.value=customTo;
     }
     const months=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
     curMonth=months[months.length-1]||'2026-03';
