@@ -317,7 +317,7 @@ function getAdImg(adName,product){
   const lc=adName.toLowerCase();
   const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
   const codes=product?(PC[product]||[]):[];
-  if(codes.length){const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&codes.some(c=>x.n.split('_').includes(c)));if(e)return driveUrl(e.u);}
+  if(codes.length){const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&codes.some(c=>x.n.split('_')[4]===c));if(e)return driveUrl(e.u);}
   const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc));
   if(e)return driveUrl(e.u);
   console.log('[IMG NOT FOUND] adName:',adName,'product:',product,'AD_IMAGES count:',AD_IMAGES.length);
