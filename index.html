@@ -314,11 +314,14 @@ let AD_IMAGES=[];
 function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
 function getAdImg(adName,product){
   if(!adName)return'';
+  const lc=adName.toLowerCase();
   const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
   const codes=product?(PC[product]||[]):[];
-  if(codes.length){const e=AD_IMAGES.find(x=>x.n.includes(adName)&&codes.some(c=>x.n.split('_')[4]===c));if(e)return driveUrl(e.u);}
-  const e=AD_IMAGES.find(x=>x.n.includes(adName));
-  return e?driveUrl(e.u):'';
+  if(codes.length){const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&codes.some(c=>x.n.split('_')[4]===c));if(e)return driveUrl(e.u);}
+  const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc));
+  if(e)return driveUrl(e.u);
+  console.log('[IMG NOT FOUND] adName:',adName,'product:',product,'AD_IMAGES count:',AD_IMAGES.length);
+  return'';
 }
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
