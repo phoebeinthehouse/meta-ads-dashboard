@@ -475,18 +475,22 @@ async function loadData(){
       return rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
-        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
+        const normKey=keys.find(k=>k.includes('정규화'))||'';
         const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
         const date=parseDateStr(r[dateKey]);
         if(!date)return null;
-        const name=String(r[nameKey]||'');
-        const person=parsePerson(name);
+        const norm=normKey?String(r[normKey]||'').trim():'';
+        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
+        const rawName=String(r[nameKey]||'');
+        // 정규화 컬럼 우선 사용: GPG_vdo_ZoomChance_Lina (parts[0]=제품, parts[2]=소재명, parts[3]=사람)
+        const parseName=norm||rawName;
+        const person=parsePerson(parseName)||parsePerson(rawName);
         if(!person)return null;
         const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
-        const product=PRODS[name.split('_')[1]]||null;
-        return{date,month:date.slice(0,7),person,
-          product,ad_name:parseAdName(name),
-          purchases:parseNum(r[purchKey])};
+        const normParts=norm.split('_');
+        const product=norm?(PRODS[normParts[0]]||null):(PRODS[rawName.split('_')[1]]||null);
+        const ad_name=norm?parseAdName(norm):parseAdName(rawName);
+        return{date,month:date.slice(0,7),person,product,ad_name,purchases:parseNum(r[purchKey])};
       }).filter(Boolean);
     }
 
