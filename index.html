@@ -484,8 +484,7 @@ async function loadData(){
         const person=parsePerson(name);
         if(!person)return null;
         const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
-        const _p=name.split('_');
-        const product=PRODS[_p[1]]||PRODS[_p[3]]||null;
+        const product=PRODS[name.split('_')[1]]||null;
         return{date,month:date.slice(0,7),person,
           product,ad_name:parseAdName(name),
           purchases:parseNum(r[purchKey])};
