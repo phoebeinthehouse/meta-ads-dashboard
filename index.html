@@ -437,9 +437,11 @@ async function loadData(){
 
     function parseMetaRows(text){
       const rows=arrToObjs(text);
+      let metaLogged=false;
       return rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
+        if(!metaLogged){metaLogged=true;console.log('[META] columns:',keys,'dateKey:',dateKey);}
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
         const spendKey=keys.find(k=>k.includes('광고비'))||'';
@@ -476,6 +478,7 @@ async function loadData(){
     }
 
     RAW.meta=parseMetaRows(mt);
+    {const ds=RAW.meta.map(r=>r.date).sort();console.log('[META] rows:',RAW.meta.length,'dates:',ds[0],'~',ds[ds.length-1]);}
     RAW.amz=parseAmzRows(at);
     {const p=RAW.amz.reduce((s,r)=>s+r.purchases,0);console.log('[AMZ] rows:',RAW.amz.length,'total purchases:',p);}
     const allDates=[...RAW.meta.map(r=>r.date),...RAW.amz.map(r=>r.date)].filter(Boolean).sort();
