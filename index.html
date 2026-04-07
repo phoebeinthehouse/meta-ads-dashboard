@@ -373,7 +373,7 @@ function parseProduct(name){
   if(!name)return null;
   const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
   const parts=name.split('_');
-  return PRODS[parts[3]]||PRODS[parts[4]]||null;
+  return PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||null;
 }
 function parseMedia(name){
   if(!name)return null;
