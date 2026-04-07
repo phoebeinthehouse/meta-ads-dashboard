@@ -361,10 +361,12 @@ function parsePerson(name){
 function parseProduct(name){
   if(!name)return null;
   const parts=name.split('_');
-  for(const p of ['BCA','BPD','PCF','PCO','PCM','GSP','GS','GPG']){
-    if(parts.includes(p))return['BCA','BPD','PCF'].includes(p)?'BCA/BPD':p;
-  }
-  if(['BCA','BPD','PCF','PCO','PCM','GSP','GS','GPG'].includes(parts[0]))return['BCA','BPD','PCF'].includes(parts[0])?'BCA/BPD':parts[0];
+  const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
+  // Product code is at parts[1] if parts[0] is a person name, otherwise parts[0]
+  const idx=PEOPLE.includes(parts[0])?1:0;
+  if(PRODS[parts[idx]])return PRODS[parts[idx]];
+  // Fallback: search remaining parts
+  for(let i=idx+1;i<parts.length;i++){if(PRODS[parts[i]])return PRODS[parts[i]];}
   return null;
 }
 function parseMedia(name){
