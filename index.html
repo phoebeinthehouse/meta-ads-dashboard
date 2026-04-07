@@ -312,7 +312,21 @@ const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-0
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
 function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
-function getAdImg(adName){if(!adName)return'';const e=AD_IMAGES.find(x=>x.n.includes(adName));return e?driveUrl(e.u):'';}
+function getAdImg(adName,product){
+  if(!adName)return'';
+  const lc=adName.toLowerCase();
+  const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
+  const codes=product?(PC[product]||[]):[];
+  if(codes.length){
+    const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&codes.some(c=>x.n.split('_')[4]===c));
+    if(e){console.log('[IMG MATCH]',adName,product,'→',e.n);return driveUrl(e.u);}
+    console.log('[IMG NO PRODUCT MATCH]',adName,product,'codes:',codes,'parts[4] candidates:',AD_IMAGES.filter(x=>x.n.toLowerCase().includes(lc)).map(x=>x.n.split('_')[4]));
+  }
+  const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc));
+  if(e){console.log('[IMG FALLBACK]',adName,product,'→',e.n);return driveUrl(e.u);}
+  return'';
+}
+}
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
 const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
@@ -360,12 +374,9 @@ function parsePerson(name){
 }
 function parseProduct(name){
   if(!name)return null;
-  const parts=name.split('_');
-  for(const p of ['GPG','PCO','BCA','PCM','BPD','PCF','GSP','GS']){
-    if(parts.includes(p))return['BCA','BPD','PCF'].includes(p)?'BCA/BPD':p;
-  }
-  if(['GPG','PCO','BCA','PCM','BPD','GS','GSP'].includes(parts[0]))return parts[0];
-  return null;
+  const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
+  const p=name.split('_')[4];
+  return PRODS[p]||null;
 }
 function parseMedia(name){
   if(!name)return null;
@@ -419,13 +430,14 @@ async function loadData(){
       const adsListRows=arrToObjs(adsListText);
       adsListRows.forEach(r=>{
         const keys=Object.keys(r);
-        const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name'))||keys[2]||'';
-        const imgKey=keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[3]||'';
+        const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name')||k.includes('소재명'))||keys[0]||'';
+        const imgKey=keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[1]||'';
         const name=String(r[nameKey]||'').trim();
         const url=String(r[imgKey]||'').trim();
         if(name&&url)AD_IMAGES.push({n:name,u:url});
       });
       console.log('[ADS LIST] Loaded',AD_IMAGES.length,'image mappings');
+      if(AD_IMAGES.length>0)console.log('[ADS LIST] Sample:',AD_IMAGES[0]);
     }catch(e){console.warn('[ADS LIST ERROR]',e);}
     const histMetaTexts=histResults.slice(0,HIST_META_SHEETS.length);
     const histAmzTexts=histResults.slice(HIST_META_SHEETS.length);
@@ -447,7 +459,7 @@ async function loadData(){
         const person=parsePerson(name);
         if(!person)return null;
         return{date,month:date.slice(0,7),person,
-          product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),
+          product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
           clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
       }).filter(Boolean);
     }
@@ -866,7 +878,7 @@ function renderCreativeTable(){
   const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
   document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
     var i=start+idx;
-    var thumbUrl=getAdImg(a.ad_name);
+    var thumbUrl=getAdImg(a.ad_name,a.product);
     var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
