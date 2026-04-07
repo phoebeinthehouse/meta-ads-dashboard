@@ -473,24 +473,23 @@ async function loadData(){
     function parseAmzRows(text){
       const rows=arrToObjs(text);
       const dropped=[];
+      const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
       const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
-        const normKey=keys.find(k=>k.includes('정규화'))||'';
         const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
         const purch=parseNum(r[purchKey]);
         const date=parseDateStr(r[dateKey]);
         if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
-        const norm=normKey?String(r[normKey]||'').trim():'';
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
-        const rawName=String(r[nameKey]||'');
-        const parseName=norm||rawName;
-        const person=parsePerson(parseName)||parsePerson(rawName);
-        if(!person){if(purch>0)dropped.push({reason:'person_fail',norm,rawName,date,purch});return null;}
-        const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
-        const normParts=norm.split('_');
-        const product=norm?(PRODS[normParts[0]]||null):(PRODS[rawName.split('_')[1]]||null);
-        const ad_name=norm?parseAdName(norm):parseAdName(rawName);
+        const rawName=String(r[nameKey]||'').trim();
+        const person=parsePerson(rawName);
+        if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
+        // Standard: Alwz_GPG_vdo_spa_Phoebe → parts[1]=product
+        // Non-standard: Alwz_F1840_PCM_vdo_gentle_Sarah → parts[1]=code, parts[2]=product
+        const rp=rawName.split('_');
+        const product=PRODS[rp[1]]||PRODS[rp[2]]||null;
+        const ad_name=parseAdName(rawName);
         return{date,month:date.slice(0,7),person,product,ad_name,purchases:purch};
       }).filter(Boolean);
       if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
