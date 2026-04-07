@@ -465,11 +465,13 @@ async function loadData(){
 
     function parseAmzRows(text){
       const rows=arrToObjs(text);
+      let logged=false;
       return rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
+        if(!logged){logged=true;console.log('[AMZ] columns:',keys,'purchKey:',purchKey||'(없음 - 구매 데이터 0)');}
         const date=String(r[dateKey]||'').trim();
         if(!date.match(/\d{4}-\d{2}-\d{2}/))return null;
         const name=String(r[nameKey]||'');
@@ -484,16 +486,18 @@ async function loadData(){
     // Parse current sheets
     RAW.meta=parseMetaRows(mt);
     RAW.amz=parseAmzRows(at);
+    {const p=RAW.amz.reduce((s,r)=>s+r.purchases,0);console.log('[AMZ current] rows:',RAW.amz.length,'total purchases:',p);}
 
     // Merge historical Meta sheets
     HIST_META_SHEETS.forEach((name,i)=>{
       try{
         const parsed=parseMetaRows(histMetaTexts[i]);
-        console.log('[HIST META]',name,'→',parsed.length,'rows. raw length:',histMetaTexts[i].length);
-        if(!parsed.length&&histMetaTexts[i].length>10){
-          const sample=arrToObjs(histMetaTexts[i]);
-          console.log('[HIST META]',name,'total raw rows:',sample.length,'sample:',sample[0]);
-          if(sample[0]){const k=Object.keys(sample[0]);const n=String(sample[0][k.find(x=>x.includes('소재명'))||'']||'');console.log('[HIST META]',name,'소재명:',n,'person:',parsePerson(n),'date:',sample[0][k.find(x=>x.includes('일자'))||k[0]]);}
+        if(parsed.length){
+          const ds=parsed.map(r=>r.date).sort();
+          console.log('[HIST META]',name,'→',parsed.length,'rows, dates:',ds[0],'~',ds[ds.length-1]);
+        } else {
+          console.log('[HIST META]',name,'→ 0 rows (raw length:',histMetaTexts[i].length,')');
+          if(histMetaTexts[i].length>10){const sample=arrToObjs(histMetaTexts[i]);if(sample[0]){const k=Object.keys(sample[0]);console.log('[HIST META]',name,'sample keys:',k,'first row:',sample[0]);}}
         }
         RAW.meta.push(...parsed);
       }catch(e){console.warn('[HIST META ERROR]',name,e);}
@@ -502,7 +506,8 @@ async function loadData(){
     HIST_AMZ_SHEETS.forEach((name,i)=>{
       try{
         const parsed=parseAmzRows(histAmzTexts[i]);
-        console.log('[HIST AMZ]',name,'→',parsed.length,'rows. raw length:',histAmzTexts[i].length);
+        const p=parsed.reduce((s,r)=>s+r.purchases,0);
+        console.log('[HIST AMZ]',name,'→',parsed.length,'rows, total purchases:',p);
         RAW.amz.push(...parsed);
       }catch(e){console.warn('[HIST AMZ ERROR]',name,e);}
     });
