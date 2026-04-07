@@ -360,14 +360,9 @@ function parsePerson(name){
 }
 function parseProduct(name){
   if(!name)return null;
-  const parts=name.split('_');
   const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
-  // Product code is at parts[1] if parts[0] is a person name, otherwise parts[0]
-  const idx=PEOPLE.includes(parts[0])?1:0;
-  if(PRODS[parts[idx]])return PRODS[parts[idx]];
-  // Fallback: search remaining parts
-  for(let i=idx+1;i<parts.length;i++){if(PRODS[parts[i]])return PRODS[parts[i]];}
-  return null;
+  const p=name.split('_')[4];
+  return PRODS[p]||null;
 }
 function parseMedia(name){
   if(!name)return null;
