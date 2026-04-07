@@ -423,13 +423,14 @@ async function loadData(){
       const adsListRows=arrToObjs(adsListText);
       adsListRows.forEach(r=>{
         const keys=Object.keys(r);
-        const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name'))||keys[2]||'';
-        const imgKey=keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[3]||'';
+        const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name')||k.includes('소재명'))||keys[0]||'';
+        const imgKey=keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[1]||'';
         const name=String(r[nameKey]||'').trim();
         const url=String(r[imgKey]||'').trim();
         if(name&&url)AD_IMAGES.push({n:name,u:url});
       });
       console.log('[ADS LIST] Loaded',AD_IMAGES.length,'image mappings');
+      if(AD_IMAGES.length>0)console.log('[ADS LIST] Sample:',AD_IMAGES[0]);
     }catch(e){console.warn('[ADS LIST ERROR]',e);}
     const histMetaTexts=histResults.slice(0,HIST_META_SHEETS.length);
     const histAmzTexts=histResults.slice(HIST_META_SHEETS.length);
