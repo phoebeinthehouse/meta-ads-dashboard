@@ -361,10 +361,10 @@ function parsePerson(name){
 function parseProduct(name){
   if(!name)return null;
   const parts=name.split('_');
-  for(const p of ['GPG','PCO','BCA','PCM','BPD','PCF','GSP','GS']){
+  for(const p of ['BCA','BPD','PCF','PCO','PCM','GSP','GS','GPG']){
     if(parts.includes(p))return['BCA','BPD','PCF'].includes(p)?'BCA/BPD':p;
   }
-  if(['GPG','PCO','BCA','PCM','BPD','GS','GSP'].includes(parts[0]))return parts[0];
+  if(['BCA','BPD','PCF','PCO','PCM','GSP','GS','GPG'].includes(parts[0]))return['BCA','BPD','PCF'].includes(parts[0])?'BCA/BPD':parts[0];
   return null;
 }
 function parseMedia(name){
