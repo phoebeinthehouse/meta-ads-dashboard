@@ -495,6 +495,15 @@ async function loadData(){
     {const ds=RAW.meta.map(r=>r.date).sort();console.log('[META] rows:',RAW.meta.length,'dates:',ds[0],'~',ds[ds.length-1]);}
     RAW.amz=parseAmzRows(at);
     {const p=RAW.amz.reduce((s,r)=>s+r.purchases,0);console.log('[AMZ] rows:',RAW.amz.length,'total purchases:',p);}
+    {
+      // 구매 있는 AMZ 행들이 Meta에 매칭되는지 전체 체크
+      const withPurch=RAW.amz.filter(r=>r.purchases>0);
+      const metaAdKeys=new Set(RAW.meta.filter(r=>r.product).map(r=>r.ad_name+'|||'+r.person+'|||'+r.product));
+      const matched=withPurch.filter(r=>metaAdKeys.has(r.ad_name+'|||'+r.person+'|||'+r.product));
+      const unmatched=withPurch.filter(r=>!metaAdKeys.has(r.ad_name+'|||'+r.person+'|||'+r.product));
+      console.log('[PURCHASE CHECK] 구매 있는 AMZ행:',withPurch.length,'개 / Meta 매칭:',matched.length,'개 / 미매칭:',unmatched.length,'개');
+      if(unmatched.length)console.log('[PURCHASE CHECK] 미매칭 샘플(최대10):',unmatched.slice(0,10).map(r=>({ad_name:r.ad_name,person:r.person,product:r.product,purchases:r.purchases})));
+    }
     const allDates=[...RAW.meta.map(r=>r.date),...RAW.amz.map(r=>r.date)].filter(Boolean).sort();
     if(allDates.length){
       customFrom=allDates[0];customTo=allDates[allDates.length-1];
