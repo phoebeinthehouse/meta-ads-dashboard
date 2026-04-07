@@ -319,11 +319,11 @@ function getAdImg(adName,product){
   const codes=product?(PC[product]||[]):[];
   if(codes.length){
     const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&codes.some(c=>x.n.split('_')[4]===c));
-    if(e){if(adName==='real')console.log('[IMG MATCH]',adName,product,'→',e.n);return driveUrl(e.u);}
-    if(adName==='real')console.log('[IMG NO PRODUCT MATCH]',adName,product,'codes:',codes,'sample x.n:',AD_IMAGES.filter(x=>x.n.toLowerCase().includes(lc)).map(x=>x.n.split('_')[4]));
+    if(e){console.log('[IMG MATCH]',adName,product,'→',e.n);return driveUrl(e.u);}
+    console.log('[IMG NO PRODUCT MATCH]',adName,product,'codes:',codes,'parts[4] candidates:',AD_IMAGES.filter(x=>x.n.toLowerCase().includes(lc)).map(x=>x.n.split('_')[4]));
   }
   const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc));
-  if(e){if(adName==='real')console.log('[IMG FALLBACK]',adName,product,'→',e.n);return driveUrl(e.u);}
+  if(e){console.log('[IMG FALLBACK]',adName,product,'→',e.n);return driveUrl(e.u);}
   return'';
 }
 }
