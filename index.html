@@ -493,6 +493,14 @@ async function loadData(){
         return{date,month:date.slice(0,7),person,product,ad_name,purchases:purch};
       }).filter(Boolean);
       if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
+      // Diagnostic: Phoebe 3월 구매 체크
+      const phoebeM=result.filter(r=>r.person==='Phoebe'&&r.month==='2026-03');
+      const phoebeTotal=phoebeM.reduce((s,r)=>s+r.purchases,0);
+      console.log('[PHOEBE MAR] AMZ파싱 후 구매합계:',phoebeTotal,'건 /행수:',phoebeM.length);
+      console.log('[PHOEBE MAR] product없는행:',phoebeM.filter(r=>!r.product).length,'건');
+      console.log('[PHOEBE MAR] 샘플(구매>0):', phoebeM.filter(r=>r.purchases>0).slice(0,5));
+      // nameKey 확인
+      if(rows.length>0){const k=Object.keys(rows[0]);console.log('[AMZ COLS] nameKey:',k.find(c=>c.includes('소재명')),'/ purchKey:',k.find(c=>c.includes('구매')||c.toLowerCase().includes('purchase')));}
       return result;
     }
 
