@@ -483,8 +483,10 @@ async function loadData(){
         const name=String(r[nameKey]||'');
         const person=parsePerson(name);
         if(!person)return null;
+        const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
+        const product=PRODS[name.split('_')[1]]||null;
         return{date,month:date.slice(0,7),person,
-          product:parseProduct(name),ad_name:parseAdName(name),
+          product,ad_name:parseAdName(name),
           purchases:parseNum(r[purchKey])};
       }).filter(Boolean);
     }
@@ -571,9 +573,9 @@ function computeData(from,to){
   });
 
   const ads_m=grp(meta,['ad_name','person','product','media'],['clicks','spend','impressions']);
-  const ads_a=grp(amz,['ad_name','person'],['purchases']);
+  const ads_a=grp(amz,['ad_name','person','product'],['purchases']);
   const ads=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
-    const a=ads_a.find(x=>x.ad_name===m.ad_name&&x.person===m.person)||{purchases:0};
+    const a=ads_a.find(x=>x.ad_name===m.ad_name&&x.person===m.person&&x.product===m.product)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   }).sort((a,b)=>b.clicks-a.clicks).slice(0,100);
 
