@@ -312,7 +312,14 @@ const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-0
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
 function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
-function getAdImg(adName){if(!adName)return'';const e=AD_IMAGES.find(x=>x.n.includes(adName));return e?driveUrl(e.u):'';}
+function getAdImg(adName,product){
+  if(!adName)return'';
+  const PROD_CODES={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
+  const codes=product?(PROD_CODES[product]||[]):[];
+  if(codes.length){const e=AD_IMAGES.find(x=>x.n.includes(adName)&&codes.some(c=>x.n.split('_')[4]===c));if(e)return driveUrl(e.u);}
+  const e=AD_IMAGES.find(x=>x.n.includes(adName));
+  return e?driveUrl(e.u):'';
+}
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
 const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
@@ -863,7 +870,7 @@ function renderCreativeTable(){
   const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
   document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
     var i=start+idx;
-    var thumbUrl=getAdImg(a.ad_name);
+    var thumbUrl=getAdImg(a.ad_name,a.product);
     var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
