@@ -312,18 +312,13 @@ const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-0
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
 function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
-function getAdImg(rawName,adName,product){
-  // 1. 소재명 완전 일치
-  if(rawName){const e=AD_IMAGES.find(x=>x.n===rawName);if(e)return driveUrl(e.u);}
-  // 2. ad_name + 제품코드(parts[4]) 매칭
-  if(adName&&product){
-    const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
-    const codes=PC[product]||[];
-    if(codes.length){const e=AD_IMAGES.find(x=>x.n.includes(adName)&&codes.some(c=>x.n.split('_')[4]===c));if(e)return driveUrl(e.u);}
-  }
-  // 3. ad_name 포함 매칭 (폴백)
-  if(adName){const e=AD_IMAGES.find(x=>x.n.includes(adName));if(e)return driveUrl(e.u);}
-  return'';
+function getAdImg(adName,product){
+  if(!adName)return'';
+  const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
+  const codes=product?(PC[product]||[]):[];
+  if(codes.length){const e=AD_IMAGES.find(x=>x.n.includes(adName)&&codes.some(c=>x.n.split('_')[4]===c));if(e)return driveUrl(e.u);}
+  const e=AD_IMAGES.find(x=>x.n.includes(adName));
+  return e?driveUrl(e.u):'';
 }
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
@@ -581,7 +576,7 @@ function computeData(from,to){
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
 
-  const ads_m=grp(meta,['ad_name','person','product','media','raw_name'],['clicks','spend','impressions']);
+  const ads_m=grp(meta,['ad_name','person','product','media'],['clicks','spend','impressions']);
   const ads_a=grp(amz,['ad_name','person','product'],['purchases']);
   const ads=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
     const a=ads_a.find(x=>x.ad_name===m.ad_name&&x.person===m.person&&x.product===m.product)||{purchases:0};
@@ -875,7 +870,7 @@ function renderCreativeTable(){
   const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
   document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
     var i=start+idx;
-    var thumbUrl=getAdImg(a.raw_name,a.ad_name,a.product);
+    var thumbUrl=getAdImg(a.ad_name,a.product);
     var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
