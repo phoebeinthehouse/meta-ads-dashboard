@@ -499,10 +499,15 @@ async function loadData(){
       // 구매 있는 AMZ 행들이 Meta에 매칭되는지 전체 체크
       const withPurch=RAW.amz.filter(r=>r.purchases>0);
       const metaAdKeys=new Set(RAW.meta.filter(r=>r.product).map(r=>r.ad_name+'|||'+r.person+'|||'+r.product));
+      const metaNames=new Set(RAW.meta.map(r=>r.ad_name+'|||'+r.person));
       const matched=withPurch.filter(r=>metaAdKeys.has(r.ad_name+'|||'+r.person+'|||'+r.product));
       const unmatched=withPurch.filter(r=>!metaAdKeys.has(r.ad_name+'|||'+r.person+'|||'+r.product));
-      console.log('[PURCHASE CHECK] 구매 있는 AMZ행:',withPurch.length,'개 / Meta 매칭:',matched.length,'개 / 미매칭:',unmatched.length,'개');
-      if(unmatched.length)console.log('[PURCHASE CHECK] 미매칭 샘플(최대10):',unmatched.slice(0,10).map(r=>({ad_name:r.ad_name,person:r.person,product:r.product,purchases:r.purchases})));
+      const nullProd=unmatched.filter(r=>!r.product);
+      const noMeta=unmatched.filter(r=>r.product&&!metaNames.has(r.ad_name+'|||'+r.person));
+      const prodMismatch=unmatched.filter(r=>r.product&&metaNames.has(r.ad_name+'|||'+r.person));
+      console.log('[PURCHASE CHECK] AMZ구매행:',withPurch.length,'/ Meta매칭:',matched.length,'/ 미매칭:',unmatched.length,'(product없음:',nullProd.length,'/ Meta소재없음:',noMeta.length,'/ product불일치:',prodMismatch.length,')');
+      if(nullProd.length)console.log('[PURCHASE CHECK] product없음 샘플:',nullProd.slice(0,5).map(r=>({ad_name:r.ad_name,person:r.person,purchases:r.purchases})));
+      if(prodMismatch.length)console.log('[PURCHASE CHECK] product불일치 샘플:',prodMismatch.slice(0,5).map(r=>({ad_name:r.ad_name,person:r.person,product:r.product,purchases:r.purchases})));
     }
     const allDates=[...RAW.meta.map(r=>r.date),...RAW.amz.map(r=>r.date)].filter(Boolean).sort();
     if(allDates.length){
