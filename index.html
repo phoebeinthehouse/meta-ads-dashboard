@@ -304,11 +304,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 </div>
 
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbx_-aj6U_5eLs0vVI8IUHmrUmEPW8kY7zVWKpb8S3bhMphABRnTH91Y2QT9PBWEXgKr/exec';
-const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('아마존 raw');
-const META_URL=API_URL+'?sheet='+encodeURIComponent('메타 소재별_raw');
-const HIST_META_SHEETS=['메타_2025-12','메타_2026-01','메타_2026-02'];
-const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-02'];
+const API_URL='https://script.google.com/macros/s/AKfycbyqF0FdpkBPCj9DSLoR1Vvr8j9_TounIJxKsx6LXaXvTONvQdKtmriJIG0dVarJIg9T/exec';
+const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('amz-raw-new');
+const META_URL=API_URL+'?sheet='+encodeURIComponent('meta-raw-new');
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
 function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
@@ -414,13 +412,9 @@ async function loadData(){
 
     const fetchOpts={redirect:'follow'};
 
-    // Fetch current + historical sheets in parallel
-    const histMetaFetches=HIST_META_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL]',s,e.message);return'[]';}));
-    const histAmzFetches=HIST_AMZ_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL]',s,e.message);return'[]';}));
     const adsListFetch=fetch(ADS_LIST_URL,fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL] meta-ads-list',e.message);return'[]';});
-    const [mr,ar,adsListText,...histResults]=await Promise.all([
-      fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),adsListFetch,
-      ...histMetaFetches,...histAmzFetches
+    const [mr,ar,adsListText]=await Promise.all([
+      fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),adsListFetch
     ]);
     const [mt,at]=await Promise.all([mr.text(),ar.text()]);
 
@@ -438,8 +432,6 @@ async function loadData(){
       console.log('[ADS LIST] Loaded',AD_IMAGES.length,'image mappings');
       if(AD_IMAGES.length>0)console.log('[ADS LIST] Sample:',AD_IMAGES[0]);
     }catch(e){console.warn('[ADS LIST ERROR]',e);}
-    const histMetaTexts=histResults.slice(0,HIST_META_SHEETS.length);
-    const histAmzTexts=histResults.slice(HIST_META_SHEETS.length);
 
     function parseNum(v){return parseFloat(String(v||'0').replace(/,/g,'').replace(/-/g,'0'))||0;}
 
@@ -483,34 +475,9 @@ async function loadData(){
       }).filter(Boolean);
     }
 
-    // Parse current sheets
     RAW.meta=parseMetaRows(mt);
     RAW.amz=parseAmzRows(at);
-    {const p=RAW.amz.reduce((s,r)=>s+r.purchases,0);console.log('[AMZ current] rows:',RAW.amz.length,'total purchases:',p);}
-
-    // Merge historical Meta sheets
-    HIST_META_SHEETS.forEach((name,i)=>{
-      try{
-        const parsed=parseMetaRows(histMetaTexts[i]);
-        if(parsed.length){
-          const ds=parsed.map(r=>r.date).sort();
-          console.log('[HIST META]',name,'→',parsed.length,'rows, dates:',ds[0],'~',ds[ds.length-1]);
-        } else {
-          console.log('[HIST META]',name,'→ 0 rows (raw length:',histMetaTexts[i].length,')');
-          if(histMetaTexts[i].length>10){const sample=arrToObjs(histMetaTexts[i]);if(sample[0]){const k=Object.keys(sample[0]);console.log('[HIST META]',name,'sample keys:',k,'first row:',sample[0]);}}
-        }
-        RAW.meta.push(...parsed);
-      }catch(e){console.warn('[HIST META ERROR]',name,e);}
-    });
-    // Merge historical Amazon sheets
-    HIST_AMZ_SHEETS.forEach((name,i)=>{
-      try{
-        const parsed=parseAmzRows(histAmzTexts[i]);
-        const p=parsed.reduce((s,r)=>s+r.purchases,0);
-        console.log('[HIST AMZ]',name,'→',parsed.length,'rows, total purchases:',p);
-        RAW.amz.push(...parsed);
-      }catch(e){console.warn('[HIST AMZ ERROR]',name,e);}
-    });
+    {const p=RAW.amz.reduce((s,r)=>s+r.purchases,0);console.log('[AMZ] rows:',RAW.amz.length,'total purchases:',p);}
     const allDates=[...RAW.meta.map(r=>r.date),...RAW.amz.map(r=>r.date)].filter(Boolean).sort();
     if(allDates.length){
       customFrom=allDates[0];customTo=allDates[allDates.length-1];
