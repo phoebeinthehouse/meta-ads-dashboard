@@ -593,7 +593,7 @@ function computeData(from,to){
   const ads=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
     const a=ads_a.find(x=>x.ad_name===m.ad_name&&x.person===m.person&&x.product===m.product)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
-  }).sort((a,b)=>b.clicks-a.clicks).slice(0,100);
+  }).sort((a,b)=>b.clicks-a.clicks);
 
   return{ps,pm,daily,pp,psum,ads};
 }
