@@ -584,16 +584,16 @@ function computeData(from,to){
 
   const ads_m=grp(meta,['ad_name','person','product','media'],['clicks','spend','impressions']);
   const ads_a=grp(amz,['ad_name','person','product'],['purchases']);
-  // Diagnostic: AMZ 구매있는 행 중 Meta에 없는 것
-  const amzUnmatched=ads_a.filter(x=>x.purchases>0&&!ads_m.find(m=>m.ad_name===x.ad_name&&m.person===x.person&&m.product===x.product));
-  amzUnmatched.forEach(x=>{
-    const metaPersonProd=ads_m.find(m=>m.person===x.person&&m.product===x.product);
-    console.log('[MISMATCH]',JSON.stringify({ad_name:x.ad_name,person:x.person,product:x.product,purchases:x.purchases,meta_ad_name:metaPersonProd?metaPersonProd.ad_name:'없음'}));
-  });
-  const ads=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
+  // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
+  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
     const a=ads_a.find(x=>x.ad_name===m.ad_name&&x.person===m.person&&x.product===m.product)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
-  }).sort((a,b)=>b.clicks-a.clicks);
+  });
+  // AMZ 전용 rows (Meta에 없지만 구매 있는 소재)
+  const metaKeys=new Set(ads_m.filter(m=>m.ad_name&&m.product).map(m=>m.ad_name+'|||'+m.person+'|||'+m.product));
+  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(x.ad_name+'|||'+x.person+'|||'+x.product))
+    .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
+  const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
   return{ps,pm,daily,pp,psum,ads};
 }
