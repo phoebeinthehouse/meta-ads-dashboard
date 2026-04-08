@@ -316,12 +316,14 @@ function getAdImg(adName,product,person){
   const personLc=person?person.toLowerCase():null;
   const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
   const codes=product?(PC[product]||[]):[];
+  // exact token match: ad_name must be a whole _-separated part
+  const mt=x=>x.n.toLowerCase().split('_').includes(lc);
   const mp=x=>!personLc||x.n.toLowerCase().includes(personLc);
   if(codes.length){
-    const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
+    const e=AD_IMAGES.find(x=>mt(x)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
     if(e)return driveUrl(e.u);
   }
-  const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&mp(x));
+  const e=AD_IMAGES.find(x=>mt(x)&&mp(x));
   if(e)return driveUrl(e.u);
   return'';
 }
