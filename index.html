@@ -497,6 +497,9 @@ async function loadData(){
         return{date,month:date.slice(0,7),person,product,ad_name,purchases:purch};
       }).filter(Boolean);
       if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
+      // 누락 진단: product null인 구매 행
+      const nullProd=result.filter(r=>r.purchases>0&&!r.product);
+      if(nullProd.length)console.log('[AMZ NULL PRODUCT] 구매있는데 product없는행:',nullProd.map(r=>r.date+'|'+r.person+'|'+r.ad_name+'|purch:'+r.purchases));
       return result;
     }
 
@@ -591,6 +594,21 @@ function computeData(from,to){
   const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(x.ad_name+'|||'+x.person+'|||'+x.product))
     .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
+
+  // ── 전체 누락 진단 ──
+  const amzTotal=amz.reduce((s,r)=>s+r.purchases,0);
+  const psTotal=ps.reduce((s,r)=>s+r.purchases,0);
+  const ppTotal=pp.reduce((s,r)=>s+r.purchases,0);
+  const adsTotal=ads.reduce((s,r)=>s+r.purchases,0);
+  console.log('[PURCHASE CHECK] AMZ총합:'+amzTotal+' / byCreator:'+psTotal+' / byProduct:'+ppTotal+' / byCreative:'+adsTotal);
+  // by person 상세
+  ['Lina','Sarah','Phoebe'].forEach(p=>{
+    const amzP=amz.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
+    const psP=(ps.find(r=>r.person===p)||{purchases:0}).purchases;
+    const ppP=pp.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
+    const adsP=ads.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
+    console.log('['+p+'] AMZ:'+amzP+' byCreator:'+psP+' byProduct:'+ppP+' byCreative:'+adsP);
+  });
 
   return{ps,pm,daily,pp,psum,ads};
 }
