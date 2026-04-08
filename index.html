@@ -310,16 +310,18 @@ const META_URL=API_URL+'?sheet='+encodeURIComponent('meta-raw-new');
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
 function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
-function getAdImg(adName,product){
+function getAdImg(adName,product,person){
   if(!adName)return'';
   const lc=adName.toLowerCase();
+  const personLc=person?person.toLowerCase():null;
   const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
   const codes=product?(PC[product]||[]):[];
+  const mp=x=>!personLc||x.n.toLowerCase().includes(personLc);
   if(codes.length){
-    const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&codes.some(c=>x.n.split('_')[4]===c));
+    const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
     if(e)return driveUrl(e.u);
   }
-  const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc));
+  const e=AD_IMAGES.find(x=>x.n.toLowerCase().includes(lc)&&mp(x));
   if(e)return driveUrl(e.u);
   return'';
 }
@@ -882,7 +884,7 @@ function renderCreativeTable(){
   const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
   document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
     var i=start+idx;
-    var thumbUrl=getAdImg(a.ad_name,a.product);
+    var thumbUrl=getAdImg(a.ad_name,a.product,a.person);
     var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
