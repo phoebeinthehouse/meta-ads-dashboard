@@ -496,14 +496,7 @@ async function loadData(){
         const ad_name=parseAdName(rawName);
         return{date,month:date.slice(0,7),person,product,ad_name,purchases:purch};
       }).filter(Boolean);
-      // Diagnostic: dropped 중 Phoebe 건
-      const droppedPhoebe=dropped.filter(d=>String(d.rawName||'').toLowerCase().includes('phoebe'));
-      if(droppedPhoebe.length)console.log('[DROPPED PHOEBE]',droppedPhoebe.length,'건:',droppedPhoebe);
-      else console.log('[DROPPED PHOEBE] 0건 (dropped 중 Phoebe 없음)');
-      // Diagnostic: Phoebe 3월 구매 체크
-      const phoebeM=result.filter(r=>r.person==='Phoebe'&&r.month==='2026-03');
-      const phoebeTotal=phoebeM.reduce((s,r)=>s+r.purchases,0);
-      console.log('[PHOEBE MAR] AMZ파싱 후 구매합계:',phoebeTotal,'건 /행수:',phoebeM.length);
+      if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
       return result;
     }
 
