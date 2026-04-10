@@ -272,6 +272,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="fb" onclick="setCF('person','Lina',this)">Lina</button>
     <button class="fb" onclick="setCF('person','Phoebe',this)">Phoebe</button>
     <button class="fb" onclick="setCF('person','Sarah',this)">Sarah</button>
+    <button class="fb" onclick="setCF('person','Partner',this)">Partnership</button>
     <span class="filter-label" style="margin-left:8px">Media</span>
     <button class="fb active" onclick="setCF('media','All',this)">All</button>
     <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
@@ -330,8 +331,8 @@ function getAdImg(adName,product,person){
   return'';
 }
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
-const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE'};
-const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041'};
+const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE',Partner:'#F3F0FB'};
+const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041',Partner:'#4B3A8A'};
 const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','GS':'#D9A006','GSP':'#5B8AD9'};
 const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9'};
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A'};
@@ -376,6 +377,8 @@ function parsePerson(name){
   if(parts[parts.length-1].toLowerCase()==='stella')return null;
   for(const p of PEOPLE){if(parts[parts.length-1].toLowerCase()===p.toLowerCase())return p;}
   for(const p of PEOPLE){if(parts.includes(p))return p;}
+  // Partnership ads: last underscore-token ends with -p
+  if(parts[parts.length-1].endsWith('-p'))return'Partner';
   return null;
 }
 function parseProduct(name){
@@ -393,7 +396,13 @@ function parseAdName(name){
   if(!name)return null;
   const parts=name.split('_');
   for(let i=0;i<parts.length;i++){
-    if((parts[i]==='vdo'||parts[i]==='img')&&i+1<parts.length)return parts[i+1];
+    if((parts[i]==='vdo'||parts[i]==='img')&&i+1<parts.length){
+      const rest=parts.slice(i+1);
+      const last=rest[rest.length-1];
+      // Partnership ads: last token ends with -p → join all tokens and strip -p suffix
+      if(last.endsWith('-p')){rest[rest.length-1]=last.slice(0,-2);return rest.join('_');}
+      return parts[i+1];
+    }
   }
   return null;
 }
@@ -557,31 +566,34 @@ function grp(arr,keys,vals){
 function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
+  // Partnership ads only shown in By Creative, excluded from By Creator / By Product
+  const metaNP=meta.filter(r=>r.person!=='Partner');
+  const amzNP=amz.filter(r=>r.person!=='Partner');
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
 
-  const ps_m=grp(meta,['person'],['clicks','spend','impressions']);
-  const ps_a=grp(amz,['person'],['purchases']);
+  const ps_m=grp(metaNP,['person'],['clicks','spend','impressions']);
+  const ps_a=grp(amzNP,['person'],['purchases']);
   const ps=ps_m.map(m=>{
     const a=ps_a.find(x=>x.person===m.person)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases});
   });
 
-  const pm_m=grp(meta,['person','media'],['clicks','spend','impressions']);
+  const pm_m=grp(metaNP,['person','media'],['clicks','spend','impressions']);
   const pm=pm_m.map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m)}));
 
-  const daily_m=grp(meta,['date','person'],['clicks','spend','impressions']);
+  const daily_m=grp(metaNP,['date','person'],['clicks','spend','impressions']);
   const daily=daily_m.map(m=>({date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m)}));
 
-  const pp_m=grp(meta,['product','person'],['clicks','spend','impressions']);
-  const pp_a=grp(amz,['product','person'],['purchases']);
+  const pp_m=grp(metaNP,['product','person'],['clicks','spend','impressions']);
+  const pp_a=grp(amzNP,['product','person'],['purchases']);
   const pp=pp_m.filter(m=>m.product).map(m=>{
     const a=pp_a.find(x=>x.product===m.product&&x.person===m.person)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
 
-  const psum_m=grp(meta,['product'],['clicks','spend','impressions']);
-  const psum_a=grp(amz,['product'],['purchases']);
+  const psum_m=grp(metaNP,['product'],['clicks','spend','impressions']);
+  const psum_a=grp(amzNP,['product'],['purchases']);
   const psum=psum_m.filter(m=>m.product).map(m=>{
     const a=psum_a.find(x=>x.product===m.product)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
@@ -601,19 +613,23 @@ function computeData(from,to){
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
   // ── 전체 누락 진단 ──
-  const amzTotal=amz.reduce((s,r)=>s+r.purchases,0);
+  const amzTotal=amzNP.reduce((s,r)=>s+r.purchases,0);
   const psTotal=ps.reduce((s,r)=>s+r.purchases,0);
   const ppTotal=pp.reduce((s,r)=>s+r.purchases,0);
   const adsTotal=ads.reduce((s,r)=>s+r.purchases,0);
-  console.log('[PURCHASE CHECK] AMZ총합:'+amzTotal+' / byCreator:'+psTotal+' / byProduct:'+ppTotal+' / byCreative:'+adsTotal);
+  console.log('[PURCHASE CHECK] AMZ총합:'+amzTotal+' / byCreator:'+psTotal+' / byProduct:'+ppTotal+' / byCreative(non-partner):'+ads.filter(r=>r.person!=='Partner').reduce((s,r)=>s+r.purchases,0));
   // by person 상세
   ['Lina','Sarah','Phoebe'].forEach(p=>{
-    const amzP=amz.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
+    const amzP=amzNP.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
     const psP=(ps.find(r=>r.person===p)||{purchases:0}).purchases;
     const ppP=pp.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
     const adsP=ads.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
     console.log('['+p+'] AMZ:'+amzP+' byCreator:'+psP+' byProduct:'+ppP+' byCreative:'+adsP);
   });
+  // 파트너십 광고 진단
+  const partnerAds=ads.filter(r=>r.person==='Partner');
+  const partnerAmz=amz.filter(r=>r.person==='Partner').reduce((s,r)=>s+r.purchases,0);
+  console.log('[Partner] unique소재:'+partnerAds.length+'개 / AMZ구매:'+partnerAmz+' / byCreative구매:'+partnerAds.reduce((s,r)=>s+r.purchases,0));
 
   return{ps,pm,daily,pp,psum,ads};
 }
@@ -864,7 +880,7 @@ function setProdFilter(p,btn){cFilters.product=p;adPage=0;renderProdPills();rend
 
 function setCF(key,val,btn){
   cFilters[key]=val;
-  const group=key==='person'?['All','Lina','Phoebe','Sarah']:['All','vdo','img'];
+  const group=key==='person'?['All','Lina','Phoebe','Sarah','Partner']:['All','vdo','img'];
   document.querySelectorAll('.filter-bar .fb').forEach(function(b){
     const txt=b.textContent.trim();
     const inGroup=group.some(g=>g===txt||(g==='vdo'&&txt==='Video')||(g==='img'&&txt==='Image'));
