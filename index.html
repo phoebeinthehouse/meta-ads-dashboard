@@ -502,6 +502,9 @@ async function loadData(){
       // 누락 진단: product null인 구매 행
       const nullProd=result.filter(r=>r.purchases>0&&!r.product);
       if(nullProd.length)console.log('[AMZ NULL PRODUCT] 구매있는데 product없는행:',nullProd.map(r=>r.date+'|'+r.person+'|'+r.ad_name+'|purch:'+r.purchases));
+      // 누락 진단: ad_name null인 구매 행 (vdo/img 없는 소재명)
+      const nullAdName=result.filter(r=>r.purchases>0&&r.product&&!r.ad_name);
+      if(nullAdName.length)console.log('[AMZ NULL ADNAME] 구매있는데 ad_name없는행:',nullAdName.map(r=>r.date+'|'+r.person+'|'+r.product+'|rawName확인필요|purch:'+r.purchases));
       return result;
     }
 
