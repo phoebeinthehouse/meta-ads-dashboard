@@ -272,6 +272,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="fb" onclick="setCF('person','Lina',this)">Lina</button>
     <button class="fb" onclick="setCF('person','Phoebe',this)">Phoebe</button>
     <button class="fb" onclick="setCF('person','Sarah',this)">Sarah</button>
+    <button class="fb" onclick="setCF('person','Partner',this)">Partnership</button>
     <span class="filter-label" style="margin-left:8px">Media</span>
     <button class="fb active" onclick="setCF('media','All',this)">All</button>
     <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
@@ -879,7 +880,7 @@ function setProdFilter(p,btn){cFilters.product=p;adPage=0;renderProdPills();rend
 
 function setCF(key,val,btn){
   cFilters[key]=val;
-  const group=key==='person'?['All','Lina','Phoebe','Sarah']:['All','vdo','img'];
+  const group=key==='person'?['All','Lina','Phoebe','Sarah','Partner']:['All','vdo','img'];
   document.querySelectorAll('.filter-bar .fb').forEach(function(b){
     const txt=b.textContent.trim();
     const inGroup=group.some(g=>g===txt||(g==='vdo'&&txt==='Video')||(g==='img'&&txt==='Image'));
