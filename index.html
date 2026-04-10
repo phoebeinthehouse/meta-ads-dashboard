@@ -293,7 +293,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
           <th>Creator</th>
           <th>Media</th>
           <th onclick="setCS('clicks',null)" class="sorted">Clicks <span class="sort-arrow">↓</span></th>
+          <th onclick="setCS('spend',null)">Spend <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('ctr',null)">CTR <span class="sort-arrow">↕</span></th>
+          <th onclick="setCS('cpc',null)">CPC <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('purchases',null)">Purchases <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody id="creativeTbody"></tbody>
@@ -886,7 +888,7 @@ function renderCreativeTable(){
     return cSortDir*(av-bv);
   });
   if(!ads.length){
-    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="8" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
+    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="10" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
     document.getElementById('adPagination').innerHTML='';
     return;
   }
@@ -906,7 +908,9 @@ function renderCreativeTable(){
       '<td><span class="pp" style="background:'+(CB[a.person]||'var(--surface2)')+';color:'+(CT[a.person]||'var(--muted)')+'">'+a.person+'</span></td>'+
       '<td><span class="bdg '+(a.media==='vdo'?'bvdo':'bimg')+'">'+(a.media==='vdo'?'Video':'Image')+'</span></td>'+
       '<td style="font-weight:600">'+f(a.clicks)+'</td>'+
+      '<td style="font-size:12px">₩'+f(a.spend)+'</td>'+
       '<td>'+fd(a.ctr)+'%</td>'+
+      '<td>₩'+f(a.cpc)+'</td>'+
       '<td style="font-weight:600;color:'+(a.purchases>0?'#0F6E56':'var(--muted)')+'">'+(a.purchases>0?a.purchases+'건':'—')+'</td>'+
       '</tr>';
   }).join('');
