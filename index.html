@@ -309,7 +309,7 @@ const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('amz-raw-new');
 const META_URL=API_URL+'?sheet='+encodeURIComponent('meta-raw-new');
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
-function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
+function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]+'=s1600':u;}
 function getAdImg(adName,product,person){
   if(!adName)return'';
   const lc=adName.toLowerCase();
