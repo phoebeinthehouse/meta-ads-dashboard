@@ -329,6 +329,7 @@ function getAdImg(adName,product,person){
   }
   const e=AD_IMAGES.find(x=>mt(x)&&mp(x));
   if(e)return driveUrl(e.u);
+  if(person==='Partner')console.log('[IMG MISS] partner ad_name:'+adName+' | searching lc:'+lc+' | AD_IMAGES sample:',AD_IMAGES.slice(0,3).map(x=>x.n));
   return'';
 }
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
