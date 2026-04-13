@@ -996,8 +996,8 @@ loadData();
   <img id="imgModalImg" style="max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);">
 </div>
 <script>function openImg(u){
-  var m=u.match(/lh3\.googleusercontent\.com\/d\/([^=?/]+)/);
-  var src=m?'https://drive.google.com/uc?export=view&id='+m[1]:u;
+  // Use full resolution (=s0) instead of thumbnail (=s400)
+  var src=u.replace(/=s\d+$/,'=s0');
   document.getElementById('imgModalImg').src=src;
   document.getElementById('imgModal').style.display='flex';
 }</script>
