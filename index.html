@@ -329,7 +329,9 @@ function getAdImg(adName,product,person){
   }
   const e=AD_IMAGES.find(x=>mt(x)&&mp(x));
   if(e)return driveUrl(e.u);
-  if(person==='Partner')console.log('[IMG MISS] partner ad_name:'+adName+' | searching lc:'+lc+' | AD_IMAGES sample:',AD_IMAGES.slice(0,3).map(x=>x.n));
+  // Log if name matches but person filter is blocking it (image exists but wrong person)
+  const nameOnly=AD_IMAGES.find(x=>mt(x));
+  if(nameOnly)console.log('[IMG BLOCKED] ad_name:'+adName+' person:'+person+' | name matched:'+nameOnly.n+' but person filter blocked');
   return'';
 }
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
@@ -446,7 +448,7 @@ async function loadData(){
       adsListRows.forEach(r=>{
         const keys=Object.keys(r);
         const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name')||k.includes('소재명'))||keys[0]||'';
-        const imgKey=keys[3]||keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[1]||'';
+        const imgKey=keys[12]||keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[1]||'';
         const name=String(r[nameKey]||'').trim();
         const url=String(r[imgKey]||'').trim();
         if(name&&url)AD_IMAGES.push({n:name,u:url});
@@ -932,7 +934,7 @@ function renderCreativeTable(){
   document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
     var i=start+idx;
     var thumbUrl=getAdImg(a.ad_name,a.product,a.person);
-    var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;" onclick="openImg(\''+thumbUrl+'\')" style="cursor:zoom-in">':'';
+    var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
       '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+(a.ad_name||'')+'">'+(a.ad_name||'—')+'</td>'+
@@ -960,19 +962,27 @@ function renderCreativeTable(){
 
 function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
 
+// 콘솔에서 checkMissingAds() 실행하면 By Creative에 누락된 소재 목록 출력
+window.checkMissingAds=function(){
+  const{from,to}=getDateRange();
+  const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
+  const ads=D().ads;
+  const adsKeys=new Set(ads.map(a=>a.ad_name+'|||'+a.person+'|||'+a.product));
+  const missing=[],seen=new Set();
+  meta.forEach(r=>{
+    const k=(r.ad_name||'null')+'|||'+r.person+'|||'+(r.product||'null');
+    if(!seen.has(k)&&!adsKeys.has(k)){seen.add(k);missing.push(r);}
+  });
+  if(!missing.length){console.log('[MISSING ADS] 없음 - 모든 소재 표시중');return[];}
+  console.log('[MISSING ADS] By Creative에 없는 소재 '+missing.length+'개:');
+  missing.forEach(r=>console.log('  ad_name:'+(r.ad_name||'❌null')+' | person:'+r.person+' | product:'+(r.product||'❌null')+' | raw:'+r.raw_name));
+  return missing;
+};
+
 loadData();
 </script>
 
-<!-- Image modal -->
-<div id="imgModal" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;cursor:zoom-out;align-items:center;justify-content:center;">
-  <img id="imgModalImg" style="width:min(90vw,900px);height:auto;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);">
-</div>
 <script>function openImg(u){
-  // Convert lh3 thumbnail to full-resolution direct Drive URL for crisp modal display
-  var m=u.match(/lh3\.googleusercontent\.com\/d\/([^=?/]+)/);
-  var src=m?'https://drive.google.com/uc?export=view&id='+m[1]:u;
-  document.getElementById('imgModalImg').src=src;
-  document.getElementById('imgModal').style.display='flex';
 }</script>
 </body>
 </html>
