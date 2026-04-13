@@ -638,25 +638,6 @@ function computeData(from,to){
     .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
-  // ── 전체 누락 진단 ──
-  const amzTotal=amzNP.reduce((s,r)=>s+r.purchases,0);
-  const psTotal=ps.reduce((s,r)=>s+r.purchases,0);
-  const ppTotal=pp.reduce((s,r)=>s+r.purchases,0);
-  const adsTotal=ads.reduce((s,r)=>s+r.purchases,0);
-  console.log('[PURCHASE CHECK] AMZ총합:'+amzTotal+' / byCreator:'+psTotal+' / byProduct:'+ppTotal+' / byCreative(non-partner):'+ads.filter(r=>r.person!=='Partner').reduce((s,r)=>s+r.purchases,0));
-  // by person 상세
-  ['Lina','Sarah','Phoebe'].forEach(p=>{
-    const amzP=amzNP.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
-    const psP=(ps.find(r=>r.person===p)||{purchases:0}).purchases;
-    const ppP=pp.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
-    const adsP=ads.filter(r=>r.person===p).reduce((s,r)=>s+r.purchases,0);
-    console.log('['+p+'] AMZ:'+amzP+' byCreator:'+psP+' byProduct:'+ppP+' byCreative:'+adsP);
-  });
-  // 파트너십 광고 진단
-  const partnerAds=ads.filter(r=>r.person==='Partner');
-  const partnerAmz=amz.filter(r=>r.person==='Partner').reduce((s,r)=>s+r.purchases,0);
-  console.log('[Partner] unique소재:'+partnerAds.length+'개 / AMZ구매:'+partnerAmz+' / byCreative구매:'+partnerAds.reduce((s,r)=>s+r.purchases,0));
-
   return{ps,pm,daily,pp,psum,ads};
 }
 
