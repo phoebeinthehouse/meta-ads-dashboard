@@ -280,6 +280,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="fb active" onclick="setCF('media','All',this)">All</button>
     <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
     <button class="fb" onclick="setCF('media','img',this)">Image</button>
+    <button id="splitCampaignBtn" class="fb" onclick="toggleSplitCampaign()" style="margin-left:8px">캠페인 분리</button>
     <div class="sort-tabs">
       <button class="sort-btn active" onclick="setCS('clicks',this)">Clicks</button>
       <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
@@ -290,7 +291,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   <div class="ccard" style="padding:0;overflow:hidden;">
     <div class="ad-table-wrap">
       <table class="ad-tbl" id="creativeTable">
-        <thead><tr>
+        <thead><tr id="creativeThead">
           <th style="width:36px;padding-left:14px">#</th>
           <th onclick="setCS('ad_name',null)">Ad name <span class="sort-arrow">↕</span></th>
           <th class="ad-thumb-cell"></th>
@@ -359,7 +360,7 @@ function clearCache(){['meta_raw','amz_raw','ads_list'].forEach(k=>localStorage.
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
 let cFilters={person:'All',media:'All',product:'All'};
-let cSort='clicks',cSortDir=-1,adPage=0,adNameSearch='';
+let cSort='clicks',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC,pC;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
@@ -494,6 +495,7 @@ async function loadData(){
         if(!person){if(name)droppedNoPerson.push(name);return null;}
         return{date,month:date.slice(0,7),person,
           product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
+          campaign_type:name.split('_')[0]||null,
           clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
       }).filter(Boolean);
       if(droppedNoPerson.length)console.log('[META DROPPED person] 담당자 인식 실패:',droppedNoPerson);
@@ -616,7 +618,8 @@ function computeData(from,to){
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
 
-  const ads_m=grp(meta,['ad_name','person','product','media'],['clicks','spend','impressions']);
+  const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
+  const ads_m=grp(meta,adGroupKeys,['clicks','spend','impressions']);
   const ads_a=grp(amz,['ad_name','person','product'],['purchases']);
   // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
@@ -913,6 +916,19 @@ function setCF(key,val,btn){
   adPage=0;renderCreativeTable();
 }
 
+function toggleSplitCampaign(){
+  splitByCampaign=!splitByCampaign;
+  const btn=document.getElementById('splitCampaignBtn');
+  btn.classList.toggle('active',splitByCampaign);
+  // Insert/remove Campaign column header
+  const thead=document.getElementById('creativeThead');
+  const existing=document.getElementById('campaignTh');
+  if(splitByCampaign&&!existing){
+    const th=document.createElement('th');th.id='campaignTh';th.textContent='캠페인';
+    thead.insertBefore(th,thead.children[4]); // after Creator
+  }else if(!splitByCampaign&&existing){existing.remove();}
+  adPage=0;renderCreativeTable();
+}
 function setCS(s,btn){
   if(s===cSort)cSortDir*=-1;else{cSort=s;cSortDir=-1;}
   if(btn){document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
@@ -949,6 +965,7 @@ function renderCreativeTable(){
       '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+(a.ad_name||'')+'">'+(a.ad_name||'—')+'</td>'+
       '<td class="ad-thumb-cell">'+thumbHtml+'</td>'+
       '<td><span class="pp" style="background:'+(CB[a.person]||'var(--surface2)')+';color:'+(CT[a.person]||'var(--muted)')+'">'+((a.person==='Partner'&&a.ad_name)?a.ad_name:a.person)+'</span></td>'+
+      (splitByCampaign?'<td style="font-size:12px;color:var(--muted)">'+(a.campaign_type||'—')+'</td>':'')+'
       '<td>'+(a.media?'<span class="bdg '+(a.media==='vdo'?'bvdo':'bimg')+'">'+(a.media==='vdo'?'Video':'Image')+'</span>':'—')+'</td>'+
       '<td style="font-weight:600">'+f(a.clicks)+'</td>'+
       '<td style="font-size:12px">₩'+f(a.spend)+'</td>'+
