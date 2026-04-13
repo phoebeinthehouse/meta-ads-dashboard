@@ -320,8 +320,13 @@ function getAdImg(adName,product,person){
   const personLc=(person&&person!=='Partner')?person.toLowerCase():null;
   const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
   const codes=product?(PC[product]||[]):[];
-  // single-token: exact _-separated token match; multi-token (partnership): substring match
-  const mt=x=>lc.includes('_')?x.n.toLowerCase().includes(lc):x.n.toLowerCase().split('_').includes(lc);
+  // Partnership: try token match with and without -p suffix, plus substring for multi-token names
+  // Regular: exact _-separated token match for single-token; substring for multi-token
+  const mt=x=>{
+    const fn=x.n.toLowerCase(),tokens=fn.split('_');
+    if(person==='Partner')return tokens.includes(lc)||tokens.includes(lc+'-p')||(lc.includes('_')&&fn.includes(lc));
+    return lc.includes('_')?fn.includes(lc):tokens.includes(lc);
+  };
   const mp=x=>!personLc||x.n.toLowerCase().includes(personLc);
   if(codes.length){
     const e=AD_IMAGES.find(x=>mt(x)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
