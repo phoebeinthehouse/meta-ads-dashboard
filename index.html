@@ -316,11 +316,12 @@ function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googl
 function getAdImg(adName,product,person){
   if(!adName)return'';
   const lc=adName.toLowerCase();
-  const personLc=person?person.toLowerCase():null;
+  // Partnership ads (person='Partner') have no creator in image filenames — skip person filter
+  const personLc=(person&&person!=='Partner')?person.toLowerCase():null;
   const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS']};
   const codes=product?(PC[product]||[]):[];
-  // exact token match: ad_name must be a whole _-separated part
-  const mt=x=>x.n.toLowerCase().split('_').includes(lc);
+  // single-token: exact _-separated token match; multi-token (partnership): substring match
+  const mt=x=>lc.includes('_')?x.n.toLowerCase().includes(lc):x.n.toLowerCase().split('_').includes(lc);
   const mp=x=>!personLc||x.n.toLowerCase().includes(personLc);
   if(codes.length){
     const e=AD_IMAGES.find(x=>mt(x)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
