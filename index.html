@@ -312,7 +312,7 @@ const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('amz-raw-new');
 const META_URL=API_URL+'?sheet='+encodeURIComponent('meta-raw-new');
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
-function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]+'=s0':u;}
+function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]+'=s400':u;}
 function getAdImg(adName,product,person){
   if(!adName)return'';
   const lc=adName.toLowerCase();
@@ -469,7 +469,8 @@ async function loadData(){
 
     function parseMetaRows(text){
       const rows=arrToObjs(text);
-      return rows.map(r=>{
+      const droppedNoPerson=[];
+      const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
@@ -480,11 +481,15 @@ async function loadData(){
         if(!date)return null;
         const name=String(r[nameKey]||'');
         const person=parsePerson(name);
-        if(!person)return null;
+        if(!person){if(name)droppedNoPerson.push(name);return null;}
         return{date,month:date.slice(0,7),person,
           product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
           clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
       }).filter(Boolean);
+      if(droppedNoPerson.length)console.log('[META DROPPED person] 담당자 인식 실패:',droppedNoPerson);
+      const nullAdName=result.filter(r=>!r.ad_name&&r.product&&r.person);
+      if(nullAdName.length)console.log('[META NULL ad_name] vdo/img 없는 소재명:',nullAdName.map(r=>r.person+'|'+r.product+'|'+r.raw_name));
+      return result;
     }
 
     function parseAmzRows(text){
@@ -603,6 +608,12 @@ function computeData(from,to){
 
   const ads_m=grp(meta,['ad_name','person','product','media'],['clicks','spend','impressions']);
   const ads_a=grp(amz,['ad_name','person','product'],['purchases']);
+  // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
+  const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
+  if(nullAdNameAds.length){
+    const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+1;});
+    console.log('[META DROPPED ad_name] vdo/img 없어서 누락된 소재 per product:',cnt);
+  }
   // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
   const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
     const a=ads_a.find(x=>x.ad_name===m.ad_name&&x.person===m.person&&x.product===m.product)||{purchases:0};
@@ -956,6 +967,12 @@ loadData();
 <div id="imgModal" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;cursor:zoom-out;align-items:center;justify-content:center;">
   <img id="imgModalImg" style="width:min(90vw,900px);height:auto;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);">
 </div>
-<script>function openImg(u){document.getElementById('imgModalImg').src=u;document.getElementById('imgModal').style.display='flex';}</script>
+<script>function openImg(u){
+  // Convert lh3 thumbnail to full-resolution direct Drive URL for crisp modal display
+  var m=u.match(/lh3\.googleusercontent\.com\/d\/([^=?/]+)/);
+  var src=m?'https://drive.google.com/uc?export=view&id='+m[1]:u;
+  document.getElementById('imgModalImg').src=src;
+  document.getElementById('imgModal').style.display='flex';
+}</script>
 </body>
 </html>
