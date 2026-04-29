@@ -283,9 +283,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button id="splitCampaignBtn" class="fb" onclick="toggleSplitCampaign()" style="margin-left:8px">캠페인 분리</button>
     <button id="heroBtn" class="fb" onclick="toggleHeroOnly()" style="margin-left:4px">⭐ Hero</button>
     <div class="sort-tabs">
-      <button class="sort-btn active" onclick="setCS('clicks',this)">Clicks</button>
+      <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
       <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
-      <button class="sort-btn" onclick="setCS('purchases',this)">Purchases</button>
+      <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
     </div>
   </div>
   <!-- Creative table -->
@@ -298,11 +298,11 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
           <th class="ad-thumb-cell"></th>
           <th>Creator</th>
           <th>Media</th>
-          <th onclick="setCS('clicks',null)" class="sorted">Clicks <span class="sort-arrow">↓</span></th>
+          <th onclick="setCS('clicks',null)">Clicks <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('spend',null)">Spend <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('ctr',null)">CTR <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('cpc',null)">CPC <span class="sort-arrow">↕</span></th>
-          <th onclick="setCS('purchases',null)">Purchases <span class="sort-arrow">↕</span></th>
+          <th onclick="setCS('purchases',null)" class="sorted">Purchases <span class="sort-arrow">↓</span></th>
         </tr></thead>
         <tbody id="creativeTbody"></tbody>
       </table>
@@ -361,7 +361,7 @@ function clearCache(){['meta_raw','amz_raw','ads_list'].forEach(k=>localStorage.
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
 let cFilters={person:'All',media:'All',product:'All'};
-let cSort='clicks',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false,heroOnly=false;
+let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false,heroOnly=false;
 const ADS_PER_PAGE=30;
 let tC,mC,pC;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
