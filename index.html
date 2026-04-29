@@ -281,6 +281,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
     <button class="fb" onclick="setCF('media','img',this)">Image</button>
     <button id="splitCampaignBtn" class="fb" onclick="toggleSplitCampaign()" style="margin-left:8px">캠페인 분리</button>
+    <button id="heroBtn" class="fb" onclick="toggleHeroOnly()" style="margin-left:4px">⭐ Hero</button>
     <div class="sort-tabs">
       <button class="sort-btn active" onclick="setCS('clicks',this)">Clicks</button>
       <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
@@ -360,7 +361,7 @@ function clearCache(){['meta_raw','amz_raw','ads_list'].forEach(k=>localStorage.
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
 let cFilters={person:'All',media:'All',product:'All'};
-let cSort='clicks',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
+let cSort='clicks',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false,heroOnly=false;
 const ADS_PER_PAGE=30;
 let tC,mC,pC;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
@@ -910,6 +911,11 @@ function toggleSplitCampaign(){
   }else if(!splitByCampaign&&existing){existing.remove();}
   adPage=0;renderCreativeTable();
 }
+function toggleHeroOnly(){
+  heroOnly=!heroOnly;
+  document.getElementById('heroBtn').classList.toggle('active',heroOnly);
+  adPage=0;renderCreativeTable();
+}
 function setCS(s,btn){
   if(s===cSort)cSortDir*=-1;else{cSort=s;cSortDir=-1;}
   if(btn){document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
@@ -922,6 +928,11 @@ function renderCreativeTable(){
   if(cFilters.person!=='All')ads=ads.filter(a=>a.person===cFilters.person);
   if(cFilters.media!=='All')ads=ads.filter(a=>a.media===cFilters.media);
   if(adNameSearch)ads=ads.filter(a=>a.ad_name&&a.ad_name.toLowerCase().includes(adNameSearch));
+  if(heroOnly){
+    ads.sort((a,b)=>b.purchases-a.purchases);
+    const seen=new Set();
+    ads=ads.filter(a=>{const k=a.product||'null';if(seen.has(k))return false;seen.add(k);return true;});
+  }
   ads.sort(function(a,b){
     const av=a[cSort]||0,bv=b[cSort]||0;
     if(typeof av==='string')return cSortDir*av.localeCompare(bv);
