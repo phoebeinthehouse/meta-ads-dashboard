@@ -930,8 +930,8 @@ function renderCreativeTable(){
   if(adNameSearch)ads=ads.filter(a=>a.ad_name&&a.ad_name.toLowerCase().includes(adNameSearch));
   if(heroOnly){
     ads.sort((a,b)=>b.purchases-a.purchases);
-    const seen=new Set();
-    ads=ads.filter(a=>{const k=a.product||'null';if(seen.has(k))return false;seen.add(k);return true;});
+    const cnt={};
+    ads=ads.filter(a=>{const k=a.product||'null';cnt[k]=(cnt[k]||0)+1;return cnt[k]<=3;});
   }
   ads.sort(function(a,b){
     const av=a[cSort]||0,bv=b[cSort]||0;
@@ -951,7 +951,8 @@ function renderCreativeTable(){
   document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
     var i=start+idx;
     var thumbUrl=getAdImg(a.ad_name,a.product,a.person);
-    var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;" onclick="openImg(\''+thumbUrl+'\')" style="cursor:zoom-in">':'';
+    var esc=function(s){return(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");};
+    var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;" onclick="openImg(\''+thumbUrl+'\',\''+esc(a.ad_name)+'\',\''+esc(a.product)+'\',\''+esc(a.person)+'\')" style="cursor:zoom-in">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
       '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+(a.ad_name||'')+'">'+(a.ad_name||'—')+'</td>'+
@@ -1001,14 +1002,35 @@ loadData();
 </script>
 
 <!-- Image modal -->
-<div id="imgModal" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;cursor:zoom-out;align-items:center;justify-content:center;">
-  <img id="imgModalImg" style="max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);">
+<div id="imgModal" onclick="closeImgModal(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;">
+  <div id="imgModalCard" style="background:var(--surface);border-radius:14px;overflow:hidden;width:min(94vw,640px);box-shadow:0 8px 40px rgba(0,0,0,.5);position:relative;">
+    <button onclick="document.getElementById('imgModal').style.display='none'" style="position:absolute;top:10px;right:10px;z-index:1;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+    <img id="imgModalImg" style="width:100%;display:block;object-fit:contain;max-height:70vh;">
+    <div style="padding:16px">
+      <div id="imgModalLabel" style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:500"></div>
+      <textarea id="imgModalComment" placeholder="코멘트 추가..." rows="3" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);resize:vertical;outline:none;"></textarea>
+      <button onclick="saveImgComment(this)" style="margin-top:8px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:7px 18px;font-size:13px;font-weight:500;cursor:pointer;">저장</button>
+    </div>
+  </div>
 </div>
-<script>function openImg(u){
-  // Use full resolution (=s0) instead of thumbnail (=s400)
+<script>
+var imgModalKey='';
+function openImg(u,adName,product,person){
   var src=u.replace(/=s\d+$/,'=s0');
   document.getElementById('imgModalImg').src=src;
+  imgModalKey=(adName||'')+'|||'+(product||'')+'|||'+(person||'');
+  document.getElementById('imgModalLabel').textContent=[adName,product,person].filter(Boolean).join(' · ');
+  document.getElementById('imgModalComment').value=localStorage.getItem('adcmt:'+imgModalKey)||'';
   document.getElementById('imgModal').style.display='flex';
-}</script>
+}
+function saveImgComment(btn){
+  var val=document.getElementById('imgModalComment').value.trim();
+  if(val)localStorage.setItem('adcmt:'+imgModalKey,val);
+  else localStorage.removeItem('adcmt:'+imgModalKey);
+  btn.textContent='저장됨 ✓';
+  setTimeout(function(){btn.textContent='저장';},1500);
+}
+function closeImgModal(e){if(e.target===document.getElementById('imgModal'))document.getElementById('imgModal').style.display='none';}
+</script>
 </body>
 </html>
