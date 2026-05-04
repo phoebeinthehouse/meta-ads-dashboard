@@ -390,6 +390,7 @@ function parsePerson(name){
   if(parts[parts.length-1].toLowerCase()==='stella')return null;
   for(const p of PEOPLE){if(parts[parts.length-1].toLowerCase()===p.toLowerCase())return p;}
   for(const p of PEOPLE){if(parts.includes(p))return p;}
+  if(parts[parts.length-1]==='SB')return'Phoebe';
   // Partnership ads: last underscore-token ends with -p
   if(parts[parts.length-1].endsWith('-p'))return'Partner';
   return null;
