@@ -338,9 +338,8 @@ function getAdImg(adName,product,person){
   }
   const e=AD_IMAGES.find(x=>mt(x)&&mp(x));
   if(e)return driveUrl(e.u);
-  // Log if name matches but person filter is blocking it (image exists but wrong person)
   const nameOnly=AD_IMAGES.find(x=>mt(x));
-  if(nameOnly)console.log('[IMG BLOCKED] ad_name:'+adName+' person:'+person+' | name matched:'+nameOnly.n+' but person filter blocked');
+  if(nameOnly)return driveUrl(nameOnly.u);
   return'';
 }
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
