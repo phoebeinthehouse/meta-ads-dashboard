@@ -281,7 +281,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
     <button class="fb" onclick="setCF('media','img',this)">Image</button>
     <button id="splitCampaignBtn" class="fb" onclick="toggleSplitCampaign()" style="margin-left:8px">캠페인 분리</button>
-    <button id="heroBtn" class="fb" onclick="toggleHeroOnly()" style="margin-left:4px">⭐ Hero</button>
     <div class="sort-tabs">
       <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
       <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
@@ -361,7 +360,7 @@ function clearCache(){['meta_raw','amz_raw','ads_list'].forEach(k=>localStorage.
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
 let cFilters={person:'All',media:'All',product:'All'};
-let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false,heroOnly=false;
+let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC,pC;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
@@ -399,7 +398,7 @@ function parseProduct(name){
   if(!name)return null;
   const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS'};
   const parts=name.split('_');
-  return PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||null;
+  return PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||PRODS[parts[0]]||null;
 }
 function parseMedia(name){
   if(!name)return null;
@@ -911,11 +910,6 @@ function toggleSplitCampaign(){
   }else if(!splitByCampaign&&existing){existing.remove();}
   adPage=0;renderCreativeTable();
 }
-function toggleHeroOnly(){
-  heroOnly=!heroOnly;
-  document.getElementById('heroBtn').classList.toggle('active',heroOnly);
-  adPage=0;renderCreativeTable();
-}
 function setCS(s,btn){
   if(s===cSort)cSortDir*=-1;else{cSort=s;cSortDir=-1;}
   if(btn){document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
@@ -928,11 +922,6 @@ function renderCreativeTable(){
   if(cFilters.person!=='All')ads=ads.filter(a=>a.person===cFilters.person);
   if(cFilters.media!=='All')ads=ads.filter(a=>a.media===cFilters.media);
   if(adNameSearch)ads=ads.filter(a=>a.ad_name&&a.ad_name.toLowerCase().includes(adNameSearch));
-  if(heroOnly){
-    ads.sort((a,b)=>b.purchases-a.purchases);
-    const cnt={};
-    ads=ads.filter(a=>{const k=a.product||'null';cnt[k]=(cnt[k]||0)+1;return cnt[k]<=3;});
-  }
   ads.sort(function(a,b){
     const av=a[cSort]||0,bv=b[cSort]||0;
     if(typeof av==='string')return cSortDir*av.localeCompare(bv);
