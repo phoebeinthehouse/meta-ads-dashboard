@@ -507,7 +507,6 @@ async function loadData(){
     function parseAmzRows(text){
       const rows=arrToObjs(text);
       const dropped=[];
-      const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS','OTC':'OTC'};
       const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
@@ -519,10 +518,7 @@ async function loadData(){
         const rawName=String(r[nameKey]||'').trim();
         const person=parsePerson(rawName);
         if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
-        // Standard: Alwz_GPG_vdo_spa_Phoebe → parts[1]=product
-        // Non-standard: Alwz_F1840_PCM_vdo_gentle_Sarah → parts[1]=code, parts[2]=product
-        const rp=rawName.split('_');
-        const product=PRODS[rp[1]]||PRODS[rp[2]]||null;
+        const product=parseProduct(rawName);
         const ad_name=parseAdName(rawName);
         return{date,month:date.slice(0,7),person,product,ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch};
       }).filter(Boolean);
