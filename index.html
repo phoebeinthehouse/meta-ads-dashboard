@@ -541,7 +541,7 @@ async function loadData(){
       df.min=customFrom;df.max=customTo;df.value=customFrom;
       dt.min=customFrom;dt.max=customTo;dt.value=customTo;
     }
-    const months=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
+    const months=[...new Set([...RAW.meta.map(r=>r.month),...RAW.amz.map(r=>r.month)].filter(Boolean))].sort();
     curMonth=months[months.length-1]||'2026-03';
     renderMonthPills(months);
     showLoading(false);
