@@ -630,7 +630,6 @@ function computeData(from,to){
   // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
   const ads_a_join=splitByCampaign?grp(amz,['ad_name','person','product'],['purchases']):ads_a;
   const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
-  const adKey=(r,withCampaign)=>r.ad_name+'|||'+r.person+'|||'+r.product+(withCampaign?'|||'+(r.campaign_type||''):'');
   // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
   if(nullAdNameAds.length){
