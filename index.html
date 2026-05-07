@@ -550,7 +550,8 @@ async function loadData(){
       dt.min=customFrom;dt.max=customTo;dt.value=customTo;
     }
     const months=[...new Set([...RAW.meta.map(r=>r.month),...RAW.amz.map(r=>r.month)].filter(Boolean))].sort();
-    curMonth=months[months.length-1]||'2026-03';
+    const metaMonths=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
+    curMonth=metaMonths[metaMonths.length-1]||months[months.length-1]||'2026-03';
     renderMonthPills(months);
     showLoading(false);
     refresh();
@@ -626,7 +627,9 @@ function computeData(from,to){
   const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
   const ads_m=grp(meta,adGroupKeys,['clicks','spend','impressions']);
   const ads_a=grp(amz,amzGroupKeys,['purchases']);
-  const adKey=(r,withCampaign)=>r.ad_name+'|||'+r.person+'|||'+r.product+(withCampaign?'|||'+(r.campaign_type||''):'');
+  // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
+  const ads_a_join=splitByCampaign?grp(amz,['ad_name','person','product'],['purchases']):ads_a;
+  const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
   // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
   if(nullAdNameAds.length){
@@ -635,12 +638,12 @@ function computeData(from,to){
   }
   // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
   const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
-    const a=ads_a.find(x=>adKey(x,splitByCampaign)===adKey(m,splitByCampaign))||{purchases:0};
+    const a=ads_a_join.find(x=>joinKey(x)===joinKey(m))||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
   // AMZ 전용 rows (Meta에 없지만 구매 있는 소재)
-  const metaKeys=new Set(ads_m.filter(m=>m.ad_name&&m.product).map(m=>adKey(m,splitByCampaign)));
-  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(adKey(x,splitByCampaign)))
+  const metaKeys=new Set(ads_m.filter(m=>m.ad_name&&m.product).map(m=>joinKey(m)));
+  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
     .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
