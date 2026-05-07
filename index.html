@@ -317,7 +317,7 @@ const META_URL=API_URL+'?sheet='+encodeURIComponent('meta-raw-new');
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
 function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]+'=s400':u;}
-function getAdImg(adName,product,person){
+function getAdImg(adName,product,person,from,to){
   if(!adName)return'';
   const lc=adName.toLowerCase();
   // Partnership ads (person='Partner') have no creator in image filenames — skip person filter
@@ -332,14 +332,19 @@ function getAdImg(adName,product,person){
     return lc.includes('_')?fn.includes(lc):tokens.includes(lc);
   };
   const mp=x=>!personLc||x.n.toLowerCase().includes(personLc);
+  const inRange=x=>!x.d||!from||(x.d>=from&&x.d<=to);
+  const best=(arr)=>{
+    const ranged=from?arr.find(x=>inRange(x)):null;
+    return ranged||arr[0]||null;
+  };
   if(codes.length){
-    const e=AD_IMAGES.find(x=>mt(x)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
-    if(e)return driveUrl(e.u);
+    const matches=AD_IMAGES.filter(x=>mt(x)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
+    if(matches.length){const e=best(matches);return driveUrl(e.u);}
   }
-  const e=AD_IMAGES.find(x=>mt(x)&&mp(x));
-  if(e)return driveUrl(e.u);
-  const nameOnly=AD_IMAGES.find(x=>mt(x));
-  if(nameOnly)return driveUrl(nameOnly.u);
+  const matches=AD_IMAGES.filter(x=>mt(x)&&mp(x));
+  if(matches.length){const e=best(matches);return driveUrl(e.u);}
+  const nameMatches=AD_IMAGES.filter(x=>mt(x));
+  if(nameMatches.length){const e=best(nameMatches);return driveUrl(e.u);}
   return'';
 }
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75'};
@@ -458,9 +463,11 @@ async function loadData(){
         const keys=Object.keys(r);
         const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name')||k.includes('소재명'))||keys[0]||'';
         const imgKey=keys[12]||keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[1]||'';
+        const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||'';
         const name=String(r[nameKey]||'').trim();
         const url=String(r[imgKey]||'').trim();
-        if(name&&url)AD_IMAGES.push({n:name,u:url});
+        const date=dateKey?parseDateStr(r[dateKey])||'':'';
+        if(name&&url)AD_IMAGES.push({n:name,u:url,d:date});
       });
     }catch(e){console.warn('[ADS LIST ERROR]',e);}
 
@@ -934,10 +941,11 @@ function renderCreativeTable(){
   if(adPage>=totalPages)adPage=totalPages-1;
   const start=adPage*ADS_PER_PAGE,end=start+ADS_PER_PAGE;
   const pageAds=ads.slice(start,end);
+  const {from:imgFrom,to:imgTo}=getDateRange();
   const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
   document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
     var i=start+idx;
-    var thumbUrl=getAdImg(a.ad_name,a.product,a.person);
+    var thumbUrl=getAdImg(a.ad_name,a.product,a.person,imgFrom,imgTo);
     var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;" onclick="openImg(\''+thumbUrl+'\')" style="cursor:zoom-in">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
