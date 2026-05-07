@@ -550,7 +550,8 @@ async function loadData(){
       dt.min=customFrom;dt.max=customTo;dt.value=customTo;
     }
     const months=[...new Set([...RAW.meta.map(r=>r.month),...RAW.amz.map(r=>r.month)].filter(Boolean))].sort();
-    curMonth=months[months.length-1]||'2026-03';
+    const metaMonths=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
+    curMonth=metaMonths[metaMonths.length-1]||months[months.length-1]||'2026-03';
     renderMonthPills(months);
     showLoading(false);
     refresh();
