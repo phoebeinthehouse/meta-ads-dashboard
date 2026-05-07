@@ -464,7 +464,7 @@ async function loadData(){
         const keys=Object.keys(r);
         const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name')||k.includes('소재명'))||keys[0]||'';
         const imgKey=keys[12]||keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[1]||'';
-        const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||'';
+        const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0]||'';
         const name=String(r[nameKey]||'').trim();
         const url=String(r[imgKey]||'').trim();
         const date=dateKey?parseDateStr(r[dateKey])||'':'';
