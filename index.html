@@ -332,11 +332,11 @@ function getAdImg(adName,product,person,from,to){
     return lc.includes('_')?fn.includes(lc):tokens.includes(lc);
   };
   const mp=x=>!personLc||x.n.toLowerCase().includes(personLc);
-  const inRange=x=>!x.d||!from||(x.d>=from&&x.d<=to);
-  const latest=(arr)=>arr.reduce((a,b)=>(!a.d||b.d>a.d)?b:a);
+  const inDateRange=x=>x.d&&from&&x.d>=from&&x.d<=to;
+  const latest=(arr)=>arr.reduce((a,b)=>b.d>a.d?b:a);
   const best=(arr)=>{
-    const ranged=from?arr.filter(x=>inRange(x)):[];
-    return ranged.length?latest(ranged):latest(arr);
+    const ranged=arr.filter(x=>inDateRange(x));
+    return ranged.length?latest(ranged):arr[0];
   };
   if(codes.length){
     const matches=AD_IMAGES.filter(x=>mt(x)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
