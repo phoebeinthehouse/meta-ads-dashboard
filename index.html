@@ -268,6 +268,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   <div class="slabel">Filter by product</div>
   <div class="prod-pills" id="prodPills"></div>
   <!-- Sub-filters + sort -->
+  <div style="margin-bottom:10px">
+    <input id="adSearchInput" type="text" placeholder="소재명 검색..." oninput="adNameSearch=this.value.toLowerCase();adPage=0;renderCreativeTable()" style="width:240px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;">
+  </div>
   <div class="filter-bar">
     <span class="filter-label">Creator</span>
     <button class="fb active" onclick="setCF('person','All',this)">All</button>
@@ -275,29 +278,33 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="fb" onclick="setCF('person','Phoebe',this)">Phoebe</button>
     <button class="fb" onclick="setCF('person','Sarah',this)">Sarah</button>
     <button class="fb" onclick="setCF('person','Iris',this)">Iris</button>
+    <button class="fb" onclick="setCF('person','Partner',this)">Partnership</button>
     <span class="filter-label" style="margin-left:8px">Media</span>
     <button class="fb active" onclick="setCF('media','All',this)">All</button>
     <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
     <button class="fb" onclick="setCF('media','img',this)">Image</button>
+    <button id="splitCampaignBtn" class="fb" onclick="toggleSplitCampaign()" style="margin-left:8px">캠페인 분리</button>
     <div class="sort-tabs">
-      <button class="sort-btn active" onclick="setCS('clicks',this)">Clicks</button>
+      <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
       <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
-      <button class="sort-btn" onclick="setCS('purchases',this)">Purchases</button>
+      <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
     </div>
   </div>
   <!-- Creative table -->
   <div class="ccard" style="padding:0;overflow:hidden;">
     <div class="ad-table-wrap">
       <table class="ad-tbl" id="creativeTable">
-        <thead><tr>
+        <thead><tr id="creativeThead">
           <th style="width:36px;padding-left:14px">#</th>
           <th onclick="setCS('ad_name',null)">Ad name <span class="sort-arrow">↕</span></th>
           <th class="ad-thumb-cell"></th>
           <th>Creator</th>
           <th>Media</th>
-          <th onclick="setCS('clicks',null)" class="sorted">Clicks <span class="sort-arrow">↓</span></th>
+          <th onclick="setCS('clicks',null)">Clicks <span class="sort-arrow">↕</span></th>
+          <th onclick="setCS('spend',null)">Spend <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('ctr',null)">CTR <span class="sort-arrow">↕</span></th>
-          <th onclick="setCS('purchases',null)">Purchases <span class="sort-arrow">↕</span></th>
+          <th onclick="setCS('cpc',null)">CPC <span class="sort-arrow">↕</span></th>
+          <th onclick="setCS('purchases',null)" class="sorted">Purchases <span class="sort-arrow">↓</span></th>
         </tr></thead>
         <tbody id="creativeTbody"></tbody>
       </table>
@@ -307,29 +314,58 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 </div>
 
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbx_-aj6U_5eLs0vVI8IUHmrUmEPW8kY7zVWKpb8S3bhMphABRnTH91Y2QT9PBWEXgKr/exec';
-const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('아마존 raw');
-const META_URL=API_URL+'?sheet='+encodeURIComponent('메타 소재별_raw');
-const HIST_META_SHEETS=['메타_2025-12','메타_2026-01','메타_2026-02'];
-const HIST_AMZ_SHEETS=['아마존_2025-12','아마존_2026-01','아마존_2026-02'];
+const API_URL='https://script.google.com/macros/s/AKfycbzxCoy9uj0X7IInXAhi4OHjciZBC1vq3mqC3q0O5uwfdytufvEfIl7y8Ci-RV8pnl7t/exec';
+const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('amz-raw-new');
+const META_URL=API_URL+'?sheet='+encodeURIComponent('meta-raw-new');
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
 let AD_IMAGES=[];
-function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]:u;}
-function getAdImg(adName){if(!adName)return'';const e=AD_IMAGES.find(x=>x.n.includes(adName));return e?driveUrl(e.u):'';}
+function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]+'=s400':u;}
+function getAdImg(adName,product,person,from,to){
+  if(!adName)return'';
+  const lc=adName.toLowerCase();
+  const personLc=(person&&person!=='Partner')?person.toLowerCase():null;
+  const PC={'BCA/BPD':['BCA','BPD','PCF'],'GPG':['GPG'],'PCO':['PCO'],'PCM':['PCM'],'GSP':['GSP'],'GS':['GS'],'OTC':['OTC']};
+  const codes=product?(PC[product]||[]):[];
+  const mt=x=>{
+    const fn=x.n.toLowerCase(),tokens=fn.split('_');
+    if(person==='Partner')return tokens.includes(lc)||tokens.includes(lc+'-p')||(lc.includes('_')&&fn.includes(lc));
+    return lc.includes('_')?fn.includes(lc):tokens.includes(lc);
+  };
+  const mp=x=>!personLc||x.n.toLowerCase().includes(personLc);
+  const inDateRange=x=>x.d&&from&&x.d>=from&&x.d<=to;
+  const latest=(arr)=>arr.reduce((a,b)=>b.d>a.d?b:a);
+  const best=(arr)=>{
+    const ranged=arr.filter(x=>inDateRange(x));
+    return ranged.length?latest(ranged):arr[0];
+  };
+  if(codes.length){
+    const matches=AD_IMAGES.filter(x=>mt(x)&&codes.some(c=>x.n.split('_')[4]===c)&&mp(x));
+    if(matches.length){const e=best(matches);return driveUrl(e.u);}
+  }
+  const matches=AD_IMAGES.filter(x=>mt(x)&&mp(x));
+  if(matches.length){const e=best(matches);return driveUrl(e.u);}
+  const nameMatches=AD_IMAGES.filter(x=>mt(x));
+  if(nameMatches.length){const e=best(nameMatches);return driveUrl(e.u);}
+  return'';
+}
 const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75',Iris:'#9B59B6'};
-const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE',Iris:'#F0E6F6'};
-const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041',Iris:'#5B2D6E'};
-const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','GS':'#D9A006','GSP':'#5B8AD9'};
-const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9'};
-const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A'};
+const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE',Iris:'#F0E6F6',Partner:'#F3F0FB'};
+const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041',Iris:'#5B2D6E',Partner:'#4B3A8A'};
+const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','GS':'#D9A006','GSP':'#5B8AD9','OTC':'#2A7AB5'};
+const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9','OTC':'#E3F0FA'};
+const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A','OTC':'#14395A'};
 const PEOPLE=['Lina','Sarah','Phoebe','Iris'];
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
 let RAW={meta:[],amz:[]};
+const CACHE_TTL=4*60*60*1000;
+function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
+function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
+function clearCache(){['meta_raw','amz_raw','ads_list'].forEach(k=>localStorage.removeItem(k));}
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
 let cFilters={person:'All',media:'All',product:'All'};
-let cSort='clicks',cSortDir=-1,adPage=0;
+let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC,pC;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
@@ -359,16 +395,16 @@ function parsePerson(name){
   if(parts[parts.length-1].toLowerCase()==='stella')return null;
   for(const p of PEOPLE){if(parts[parts.length-1].toLowerCase()===p.toLowerCase())return p;}
   for(const p of PEOPLE){if(parts.includes(p))return p;}
+  if(parts[parts.length-1]==='SB')return'Phoebe';
+  // Partnership ads: last underscore-token ends with -p
+  if(parts[parts.length-1].endsWith('-p'))return'Partner';
   return null;
 }
 function parseProduct(name){
   if(!name)return null;
+  const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS','OTC':'OTC'};
   const parts=name.split('_');
-  for(const p of ['GPG','PCO','BCA','PCM','BPD','PCF','GSP','GS']){
-    if(parts.includes(p))return['BCA','BPD','PCF'].includes(p)?'BCA/BPD':p;
-  }
-  if(['GPG','PCO','BCA','PCM','BPD','GS','GSP'].includes(parts[0]))return parts[0];
-  return null;
+  return PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||PRODS[parts[0]]||null;
 }
 function parseMedia(name){
   if(!name)return null;
@@ -379,7 +415,13 @@ function parseAdName(name){
   if(!name)return null;
   const parts=name.split('_');
   for(let i=0;i<parts.length;i++){
-    if((parts[i]==='vdo'||parts[i]==='img')&&i+1<parts.length)return parts[i+1];
+    if((parts[i]==='vdo'||parts[i]==='img')&&i+1<parts.length){
+      const rest=parts.slice(i+1);
+      const last=rest[rest.length-1];
+      // Partnership ads: last token ends with -p → join all tokens and strip -p suffix
+      if(last.endsWith('-p')){rest[rest.length-1]=last.slice(0,-2);return rest.join('_');}
+      return parts[i+1];
+    }
   }
   return null;
 }
@@ -407,97 +449,99 @@ async function loadData(){
 
     const fetchOpts={redirect:'follow'};
 
-    // Fetch current + historical sheets in parallel
-    const histMetaFetches=HIST_META_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL]',s,e.message);return'[]';}));
-    const histAmzFetches=HIST_AMZ_SHEETS.map(s=>fetch(API_URL+'?sheet='+encodeURIComponent(s),fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL]',s,e.message);return'[]';}));
-    const adsListFetch=fetch(ADS_LIST_URL,fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL] meta-ads-list',e.message);return'[]';});
-    const [mr,ar,adsListText,...histResults]=await Promise.all([
-      fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),adsListFetch,
-      ...histMetaFetches,...histAmzFetches
-    ]);
-    const [mt,at]=await Promise.all([mr.text(),ar.text()]);
+    let mt=getCached('meta_raw'),at=getCached('amz_raw'),adsListText=getCached('ads_list');
+    if(!mt||!at||!adsListText){
+      const adsListFetch=fetch(ADS_LIST_URL,fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL] meta-ads-list',e.message);return'[]';});
+      const [mr,ar,alt]=await Promise.all([fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),adsListFetch]);
+      [mt,at,adsListText]=await Promise.all([mr.text(),ar.text(),Promise.resolve(alt)]);
+      setCached('meta_raw',mt);setCached('amz_raw',at);setCached('ads_list',adsListText);
+    }
 
     // Build ad_name → image URL map
     try{
       const adsListRows=arrToObjs(adsListText);
       adsListRows.forEach(r=>{
         const keys=Object.keys(r);
-        const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name'))||keys[2]||'';
-        const imgKey=keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[3]||'';
+        const nameKey=keys.find(k=>k.toLowerCase().includes('ad_name')||k.includes('소재명'))||keys[0]||'';
+        const imgKey=keys[12]||keys.find(k=>k.includes('이미지_URL')||k.includes('이미지')||k.toLowerCase().includes('url'))||keys[1]||'';
+        const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0]||'';
         const name=String(r[nameKey]||'').trim();
         const url=String(r[imgKey]||'').trim();
-        if(name&&url)AD_IMAGES.push({n:name,u:url});
+        const date=dateKey?parseDateStr(r[dateKey])||'':'';
+        if(name&&url)AD_IMAGES.push({n:name,u:url,d:date});
       });
-      console.log('[ADS LIST] Loaded',AD_IMAGES.length,'image mappings');
     }catch(e){console.warn('[ADS LIST ERROR]',e);}
-    const histMetaTexts=histResults.slice(0,HIST_META_SHEETS.length);
-    const histAmzTexts=histResults.slice(HIST_META_SHEETS.length);
 
     function parseNum(v){return parseFloat(String(v||'0').replace(/,/g,'').replace(/-/g,'0'))||0;}
+    function parseDateStr(raw){
+      const s=String(raw||'').trim();
+      if(!s)return null;
+      if(s.includes('T')){
+        const d=new Date(s);
+        if(isNaN(d))return null;
+        const kst=new Date(d.getTime()+9*60*60*1000);
+        return kst.toISOString().slice(0,10);
+      }
+      const m=s.match(/(\d{4}-\d{2}-\d{2})/);
+      return m?m[1]:null;
+    }
 
     function parseMetaRows(text){
       const rows=arrToObjs(text);
-      return rows.map(r=>{
+      const droppedNoPerson=[];
+      const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
         const spendKey=keys.find(k=>k.includes('광고비'))||'';
         const impKey=keys.find(k=>k.includes('노출'))||'';
-        const date=String(r[dateKey]||'').trim();
-        if(!date.match(/\d{4}-\d{2}-\d{2}/))return null;
+        const date=parseDateStr(r[dateKey]);
+        if(!date)return null;
         const name=String(r[nameKey]||'');
         const person=parsePerson(name);
-        if(!person)return null;
+        if(!person){if(name)droppedNoPerson.push(name);return null;}
         return{date,month:date.slice(0,7),person,
-          product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),
+          product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
+          campaign_type:name.split('_')[0]||null,
           clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
       }).filter(Boolean);
+      if(droppedNoPerson.length)console.log('[META DROPPED person] 담당자 인식 실패:',droppedNoPerson);
+      const nullAdName=result.filter(r=>!r.ad_name&&r.product&&r.person);
+      if(nullAdName.length)console.log('[META NULL ad_name] vdo/img 없는 소재명:',nullAdName.map(r=>r.person+'|'+r.product+'|'+r.raw_name));
+      return result;
     }
 
     function parseAmzRows(text){
       const rows=arrToObjs(text);
-      return rows.map(r=>{
+      const dropped=[];
+      const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
-        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
-        const date=String(r[dateKey]||'').trim();
-        if(!date.match(/\d{4}-\d{2}-\d{2}/))return null;
-        const name=String(r[nameKey]||'');
-        const person=parsePerson(name);
-        if(!person)return null;
-        return{date,month:date.slice(0,7),person,
-          product:parseProduct(name),ad_name:parseAdName(name),
-          purchases:parseNum(r[purchKey])};
+        const purch=parseNum(r[purchKey]);
+        const date=parseDateStr(r[dateKey]);
+        if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
+        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
+        const rawName=String(r[nameKey]||'').trim();
+        const person=parsePerson(rawName);
+        if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
+        const product=parseProduct(rawName);
+        const ad_name=parseAdName(rawName);
+        return{date,month:date.slice(0,7),person,product,ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch};
       }).filter(Boolean);
+      if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
+      // 누락 진단: product null인 구매 행
+      const nullProd=result.filter(r=>r.purchases>0&&!r.product);
+      if(nullProd.length)console.log('[AMZ NULL PRODUCT] 구매있는데 product없는행:',nullProd.map(r=>r.date+'|'+r.person+'|'+r.ad_name+'|purch:'+r.purchases));
+      // 누락 진단: ad_name null인 구매 행 (vdo/img 없는 소재명)
+      const nullAdName=result.filter(r=>r.purchases>0&&r.product&&!r.ad_name);
+      if(nullAdName.length)console.log('[AMZ NULL ADNAME] 구매있는데 ad_name없는행:',nullAdName.map(r=>r.date+'|'+r.person+'|'+r.product+'|rawName확인필요|purch:'+r.purchases));
+      return result;
     }
 
-    // Parse current sheets
     RAW.meta=parseMetaRows(mt);
     RAW.amz=parseAmzRows(at);
-
-    // Merge historical Meta sheets
-    HIST_META_SHEETS.forEach((name,i)=>{
-      try{
-        const parsed=parseMetaRows(histMetaTexts[i]);
-        console.log('[HIST META]',name,'→',parsed.length,'rows. raw length:',histMetaTexts[i].length);
-        if(!parsed.length&&histMetaTexts[i].length>10){
-          const sample=arrToObjs(histMetaTexts[i]);
-          console.log('[HIST META]',name,'total raw rows:',sample.length,'sample:',sample[0]);
-          if(sample[0]){const k=Object.keys(sample[0]);const n=String(sample[0][k.find(x=>x.includes('소재명'))||'']||'');console.log('[HIST META]',name,'소재명:',n,'person:',parsePerson(n),'date:',sample[0][k.find(x=>x.includes('일자'))||k[0]]);}
-        }
-        RAW.meta.push(...parsed);
-      }catch(e){console.warn('[HIST META ERROR]',name,e);}
-    });
-    // Merge historical Amazon sheets
-    HIST_AMZ_SHEETS.forEach((name,i)=>{
-      try{
-        const parsed=parseAmzRows(histAmzTexts[i]);
-        console.log('[HIST AMZ]',name,'→',parsed.length,'rows. raw length:',histAmzTexts[i].length);
-        RAW.amz.push(...parsed);
-      }catch(e){console.warn('[HIST AMZ ERROR]',name,e);}
-    });
     const allDates=[...RAW.meta.map(r=>r.date),...RAW.amz.map(r=>r.date)].filter(Boolean).sort();
     if(allDates.length){
       customFrom=allDates[0];customTo=allDates[allDates.length-1];
@@ -505,8 +549,9 @@ async function loadData(){
       df.min=customFrom;df.max=customTo;df.value=customFrom;
       dt.min=customFrom;dt.max=customTo;dt.value=customTo;
     }
-    const months=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
-    curMonth=months[months.length-1]||'2026-03';
+    const months=[...new Set([...RAW.meta.map(r=>r.month),...RAW.amz.map(r=>r.month)].filter(Boolean))].sort();
+    const metaMonths=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
+    curMonth=metaMonths[metaMonths.length-1]||months[months.length-1]||'2026-03';
     renderMonthPills(months);
     showLoading(false);
     refresh();
@@ -545,42 +590,62 @@ function grp(arr,keys,vals){
 function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
+  // Partnership ads only shown in By Creative, excluded from By Creator / By Product
+  const metaNP=meta.filter(r=>r.person!=='Partner');
+  const amzNP=amz.filter(r=>r.person!=='Partner');
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
 
-  const ps_m=grp(meta,['person'],['clicks','spend','impressions']);
-  const ps_a=grp(amz,['person'],['purchases']);
+  const ps_m=grp(metaNP,['person'],['clicks','spend','impressions']);
+  const ps_a=grp(amzNP,['person'],['purchases']);
   const ps=ps_m.map(m=>{
     const a=ps_a.find(x=>x.person===m.person)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases});
   });
 
-  const pm_m=grp(meta,['person','media'],['clicks','spend','impressions']);
+  const pm_m=grp(metaNP,['person','media'],['clicks','spend','impressions']);
   const pm=pm_m.map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m)}));
 
-  const daily_m=grp(meta,['date','person'],['clicks','spend','impressions']);
+  const daily_m=grp(metaNP,['date','person'],['clicks','spend','impressions']);
   const daily=daily_m.map(m=>({date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m)}));
 
-  const pp_m=grp(meta,['product','person'],['clicks','spend','impressions']);
-  const pp_a=grp(amz,['product','person'],['purchases']);
+  const pp_m=grp(metaNP,['product','person'],['clicks','spend','impressions']);
+  const pp_a=grp(amzNP,['product','person'],['purchases']);
   const pp=pp_m.filter(m=>m.product).map(m=>{
     const a=pp_a.find(x=>x.product===m.product&&x.person===m.person)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
 
-  const psum_m=grp(meta,['product'],['clicks','spend','impressions']);
-  const psum_a=grp(amz,['product'],['purchases']);
+  const psum_m=grp(metaNP,['product'],['clicks','spend','impressions']);
+  const psum_a=grp(amzNP,['product'],['purchases']);
   const psum=psum_m.filter(m=>m.product).map(m=>{
     const a=psum_a.find(x=>x.product===m.product)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
 
-  const ads_m=grp(meta,['ad_name','person','product','media'],['clicks','spend','impressions']);
-  const ads_a=grp(amz,['ad_name','person','product'],['purchases']);
-  const ads=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
-    const a=ads_a.find(x=>x.ad_name===m.ad_name&&x.person===m.person&&x.product===m.product)||{purchases:0};
+  const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
+  const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
+  const ads_m=grp(meta,adGroupKeys,['clicks','spend','impressions']);
+  const ads_a=grp(amz,amzGroupKeys,['purchases']);
+  // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
+  const ads_a_join=splitByCampaign?grp(amz,['ad_name','person','product'],['purchases']):ads_a;
+  const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
+  // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
+  const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
+  if(nullAdNameAds.length){
+    const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+1;});
+    console.log('[META DROPPED ad_name] vdo/img 없어서 누락된 소재 per product:',cnt);
+  }
+  // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
+  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
+    const a=ads_a_join.find(x=>joinKey(x)===joinKey(m))||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
-  }).sort((a,b)=>b.clicks-a.clicks).slice(0,100);
+  });
+  // AMZ 전용 rows (Meta에 없지만 구매 있는 소재)
+  const metaKeys=new Set(ads_m.filter(m=>m.ad_name&&m.product).map(m=>joinKey(m)));
+  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
+    .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
+  const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
   return{ps,pm,daily,pp,psum,ads};
 }
@@ -831,7 +896,7 @@ function setProdFilter(p,btn){cFilters.product=p;adPage=0;renderProdPills();rend
 
 function setCF(key,val,btn){
   cFilters[key]=val;
-  const group=key==='person'?['All','Lina','Phoebe','Sarah','Iris']:['All','vdo','img'];
+  const group=key==='person'?['All','Lina','Phoebe','Sarah','Iris','Partner']:['All','vdo','img'];
   document.querySelectorAll('.filter-bar .fb').forEach(function(b){
     const txt=b.textContent.trim();
     const inGroup=group.some(g=>g===txt||(g==='vdo'&&txt==='Video')||(g==='img'&&txt==='Image'));
@@ -841,6 +906,19 @@ function setCF(key,val,btn){
   adPage=0;renderCreativeTable();
 }
 
+function toggleSplitCampaign(){
+  splitByCampaign=!splitByCampaign;
+  const btn=document.getElementById('splitCampaignBtn');
+  btn.classList.toggle('active',splitByCampaign);
+  // Insert/remove Campaign column header
+  const thead=document.getElementById('creativeThead');
+  const existing=document.getElementById('campaignTh');
+  if(splitByCampaign&&!existing){
+    const th=document.createElement('th');th.id='campaignTh';th.textContent='캠페인';
+    thead.insertBefore(th,thead.children[4]); // after Creator
+  }else if(!splitByCampaign&&existing){existing.remove();}
+  adPage=0;renderCreativeTable();
+}
 function setCS(s,btn){
   if(s===cSort)cSortDir*=-1;else{cSort=s;cSortDir=-1;}
   if(btn){document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
@@ -852,13 +930,14 @@ function renderCreativeTable(){
   if(cFilters.product!=='All')ads=ads.filter(a=>a.product===cFilters.product);
   if(cFilters.person!=='All')ads=ads.filter(a=>a.person===cFilters.person);
   if(cFilters.media!=='All')ads=ads.filter(a=>a.media===cFilters.media);
+  if(adNameSearch)ads=ads.filter(a=>a.ad_name&&a.ad_name.toLowerCase().includes(adNameSearch));
   ads.sort(function(a,b){
     const av=a[cSort]||0,bv=b[cSort]||0;
     if(typeof av==='string')return cSortDir*av.localeCompare(bv);
     return cSortDir*(av-bv);
   });
   if(!ads.length){
-    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="8" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
+    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="10" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
     document.getElementById('adPagination').innerHTML='';
     return;
   }
@@ -866,19 +945,23 @@ function renderCreativeTable(){
   if(adPage>=totalPages)adPage=totalPages-1;
   const start=adPage*ADS_PER_PAGE,end=start+ADS_PER_PAGE;
   const pageAds=ads.slice(start,end);
+  const {from:imgFrom,to:imgTo}=getDateRange();
   const rb=['#B5D4F4','#D3D1C7','#FAC775'],rt=['#0C447C','#444441','#633806'];
   document.getElementById('creativeTbody').innerHTML=pageAds.map(function(a,idx){
     var i=start+idx;
-    var thumbUrl=getAdImg(a.ad_name);
-    var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;">':'';
+    var thumbUrl=getAdImg(a.ad_name,a.product,a.person,imgFrom,imgTo);
+    var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;" onclick="openImg(\''+thumbUrl+'\')" style="cursor:zoom-in">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
       '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+(a.ad_name||'')+'">'+(a.ad_name||'—')+'</td>'+
       '<td class="ad-thumb-cell">'+thumbHtml+'</td>'+
-      '<td><span class="pp" style="background:'+(CB[a.person]||'var(--surface2)')+';color:'+(CT[a.person]||'var(--muted)')+'">'+a.person+'</span></td>'+
-      '<td><span class="bdg '+(a.media==='vdo'?'bvdo':'bimg')+'">'+(a.media==='vdo'?'Video':'Image')+'</span></td>'+
+      '<td><span class="pp" style="background:'+(CB[a.person]||'var(--surface2)')+';color:'+(CT[a.person]||'var(--muted)')+'">'+((a.person==='Partner'&&a.ad_name)?a.ad_name:a.person)+'</span></td>'+
+      (splitByCampaign?'<td style="font-size:12px;color:var(--muted)">'+(a.campaign_type||'—')+'</td>':'')+
+      '<td>'+(a.media?'<span class="bdg '+(a.media==='vdo'?'bvdo':'bimg')+'">'+(a.media==='vdo'?'Video':'Image')+'</span>':'—')+'</td>'+
       '<td style="font-weight:600">'+f(a.clicks)+'</td>'+
+      '<td style="font-size:12px">₩'+f(a.spend)+'</td>'+
       '<td>'+fd(a.ctr)+'%</td>'+
+      '<td>₩'+f(a.cpc)+'</td>'+
       '<td style="font-weight:600;color:'+(a.purchases>0?'#0F6E56':'var(--muted)')+'">'+(a.purchases>0?a.purchases+'건':'—')+'</td>'+
       '</tr>';
   }).join('');
@@ -896,7 +979,33 @@ function renderCreativeTable(){
 
 function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
 
+// 콘솔에서 checkMissingAds() 실행하면 By Creative에 누락된 소재 목록 출력
+window.checkMissingAds=function(){
+  const{from,to}=getDateRange();
+  const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
+  const ads=D().ads;
+  const adsKeys=new Set(ads.map(a=>a.ad_name+'|||'+a.person+'|||'+a.product));
+  const missing=[],seen=new Set();
+  meta.forEach(r=>{
+    const k=(r.ad_name||'null')+'|||'+r.person+'|||'+(r.product||'null');
+    if(!seen.has(k)&&!adsKeys.has(k)){seen.add(k);missing.push(r);}
+  });
+  if(!missing.length){console.log('[MISSING ADS] 없음 - 모든 소재 표시중');return[];}
+  console.log('[MISSING ADS] By Creative에 없는 소재 '+missing.length+'개:');
+  missing.forEach(r=>console.log('  ad_name:'+(r.ad_name||'❌null')+' | person:'+r.person+' | product:'+(r.product||'❌null')+' | raw:'+r.raw_name));
+  return missing;
+};
+
 loadData();
 </script>
+
+<!-- Image modal -->
+<div id="imgModal" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;cursor:zoom-out;align-items:center;justify-content:center;">
+  <img id="imgModalImg" style="max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);">
+</div>
+<script>function openImg(u){
+  document.getElementById('imgModalImg').src=u.replace(/=s\d+$/,'=s0');
+  document.getElementById('imgModal').style.display='flex';
+}</script>
 </body>
 </html>
