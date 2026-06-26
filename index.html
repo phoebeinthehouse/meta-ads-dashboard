@@ -805,6 +805,7 @@ function renderPSum(){
       '<div class="psname" style="color:'+(PC[p.product]||'var(--text)')+'">'+(p.product||'—')+'</div>'+
       '<div class="pml">Clicks</div><div class="pmv">'+f(p.clicks)+'</div>'+
       '<div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩'+f(p.spend)+'</div>'+
+      '<div class="pml">CPC</div><div class="pmv" style="font-size:12px">₩'+f(p.cpc)+'</div>'+
       '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(p.purchases||'—')+'</div>'+
       '</div>';
   }).join('');
