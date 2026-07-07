@@ -227,7 +227,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="pmtab" onclick="switchPM('cpa',this)">CPA</button>
     </div>
   </div>
-  <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases</div>
+  <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; <strong>ROAS</strong> = Amazon 매출 ÷ Meta 광고비 (배수, 1x = 광고비만큼 매출)</div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
   <div class="ccard">
@@ -524,6 +524,8 @@ async function loadData(){
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
         const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
         const purch=parseNum(r[purchKey]);
+        const revKey=keys.find(k=>k.includes('매출')||k.toLowerCase().includes('revenue'))||keys[19]||'';
+        const revenue=parseNum(r[revKey]);
         const date=parseDateStr(r[dateKey]);
         if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
@@ -532,7 +534,7 @@ async function loadData(){
         if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
         const product=parseProduct(rawName);
         const ad_name=parseAdName(rawName);
-        return{date,month:date.slice(0,7),person,product,ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch};
+        return{date,month:date.slice(0,7),person,product,ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
       }).filter(Boolean);
       if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
       // 누락 진단: product null인 구매 행
@@ -621,10 +623,10 @@ function computeData(from,to){
   });
 
   const psum_m=grp(metaNP,['product'],['clicks','spend','impressions']);
-  const psum_a=grp(amzNP,['product'],['purchases']);
+  const psum_a=grp(amzNP,['product'],['purchases','revenue']);
   const psum=psum_m.filter(m=>m.product).map(m=>{
-    const a=psum_a.find(x=>x.product===m.product)||{purchases:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
+    const a=psum_a.find(x=>x.product===m.product)||{purchases:0,revenue:0};
+    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend).toFixed(2):0});
   });
 
   const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
@@ -800,13 +802,16 @@ function renderProdPage(){renderPSum();renderProdChart();renderPDGrid();renderPr
 
 function renderPSum(){
   const ps=D().psum||[];
+  const noAmz=isNoAmz();
   document.getElementById('psgrid').innerHTML=ps.map(p=>{
     return '<div class="pscard">'+
       '<div class="psname" style="color:'+(PC[p.product]||'var(--text)')+'">'+(p.product||'—')+'</div>'+
       '<div class="pml">Clicks</div><div class="pmv">'+f(p.clicks)+'</div>'+
+      '<div class="pml">CTR</div><div class="pmv" style="font-size:12px">'+fd(p.ctr)+'%</div>'+
       '<div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩'+f(p.spend)+'</div>'+
       '<div class="pml">CPC</div><div class="pmv" style="font-size:12px">₩'+f(p.cpc)+'</div>'+
-      '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(p.purchases||'—')+'</div>'+
+      '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(noAmz?'—':(p.purchases||'—'))+'</div>'+
+      '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'x')+'</div>'+
       '</div>';
   }).join('');
 }
