@@ -227,7 +227,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="pmtab" onclick="switchPM('cpa',this)">CPA</button>
     </div>
   </div>
-  <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; <strong>ROAS</strong> = Amazon 매출 ÷ Meta 광고비 (1.00 = 광고비만큼 매출)</div>
+  <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; <strong>ROAS</strong> = (Amazon 매출 ÷ Meta 광고비) × 100 (%, 100% = 광고비만큼 매출)</div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
   <div class="ccard">
@@ -627,7 +627,7 @@ function computeData(from,to){
   const psum_a=grp(amz,['product'],['purchases','revenue']);
   const psum=psum_m.filter(m=>m.product).map(m=>{
     const a=psum_a.find(x=>x.product===m.product)||{purchases:0,revenue:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend).toFixed(2):0});
+    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
   const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
@@ -812,7 +812,7 @@ function renderPSum(){
       '<div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩'+f(p.spend)+'</div>'+
       '<div class="pml">CPC</div><div class="pmv" style="font-size:12px">₩'+f(p.cpc)+'</div>'+
       '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(noAmz?'—':(p.purchases||'—'))+'</div>'+
-      '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas))+'</div>'+
+      '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'%')+'</div>'+
       '</div>';
   }).join('');
 }
