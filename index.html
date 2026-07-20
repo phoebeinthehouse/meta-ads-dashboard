@@ -227,7 +227,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="pmtab" onclick="switchPM('cpa',this)">CPA</button>
     </div>
   </div>
-  <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; <strong>ROAS</strong> = (Amazon 매출 ÷ Meta 광고비) × 100 (%, 100% = 광고비만큼 매출)</div>
+  <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; <strong>ROAS</strong> = Amazon 매출 ÷ Meta 광고비 (1.00 = 광고비만큼 매출)</div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
   <div class="ccard">
@@ -238,6 +238,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
         <div class="li"><span class="ld" style="background:#D4537E"></span>Phoebe</div>
         <div class="li"><span class="ld" style="background:#1D9E75"></span>Sarah</div>
         <div class="li"><span class="ld" style="background:#9B59B6"></span>Iris</div>
+        <div class="li"><span class="ld" style="background:#5C6570"></span>Partner</div>
       </div>
     </div>
     <div style="position:relative;width:100%;height:260px;"><canvas id="prodC"></canvas></div>
@@ -352,7 +353,7 @@ function getAdImg(adName,product,person,from,to,media){
   if(anyMatches.length){const e=best(anyMatches);return driveUrl(e.u);}
   return'';
 }
-const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75',Iris:'#9B59B6'};
+const C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75',Iris:'#9B59B6',Partner:'#5C6570'};
 const CB={Lina:'#E6F1FB',Phoebe:'#FBEAF0',Sarah:'#E1F5EE',Iris:'#F0E6F6',Partner:'#EEF0F2'};
 const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041',Iris:'#5B2D6E',Partner:'#3D454D'};
 const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','GS':'#D9A006','GSP':'#5B8AD9','OTC':'#2A7AB5'};
@@ -596,7 +597,7 @@ function grp(arr,keys,vals){
 function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
-  // Partnership ads only shown in By Creative, excluded from By Creator / By Product
+  // Partnership ads excluded from By Creator (person-based cards); included in By Product and By Creative
   const metaNP=meta.filter(r=>r.person!=='Partner');
   const amzNP=amz.filter(r=>r.person!=='Partner');
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
@@ -615,18 +616,18 @@ function computeData(from,to){
   const daily_m=grp(metaNP,['date','person'],['clicks','spend','impressions']);
   const daily=daily_m.map(m=>({date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m)}));
 
-  const pp_m=grp(metaNP,['product','person'],['clicks','spend','impressions']);
-  const pp_a=grp(amzNP,['product','person'],['purchases']);
+  const pp_m=grp(meta,['product','person'],['clicks','spend','impressions']);
+  const pp_a=grp(amz,['product','person'],['purchases']);
   const pp=pp_m.filter(m=>m.product).map(m=>{
     const a=pp_a.find(x=>x.product===m.product&&x.person===m.person)||{purchases:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
 
-  const psum_m=grp(metaNP,['product'],['clicks','spend','impressions']);
-  const psum_a=grp(amzNP,['product'],['purchases','revenue']);
+  const psum_m=grp(meta,['product'],['clicks','spend','impressions']);
+  const psum_a=grp(amz,['product'],['purchases','revenue']);
   const psum=psum_m.filter(m=>m.product).map(m=>{
     const a=psum_a.find(x=>x.product===m.product)||{purchases:0,revenue:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
+    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend).toFixed(2):0});
   });
 
   const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
@@ -811,7 +812,7 @@ function renderPSum(){
       '<div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩'+f(p.spend)+'</div>'+
       '<div class="pml">CPC</div><div class="pmv" style="font-size:12px">₩'+f(p.cpc)+'</div>'+
       '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(noAmz?'—':(p.purchases||'—'))+'</div>'+
-      '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'%')+'</div>'+
+      '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas))+'</div>'+
       '</div>';
   }).join('');
 }
@@ -822,7 +823,7 @@ function renderProdChart(){
   document.getElementById('prodChartT').textContent=lbls[m]+' by product & creator';
   const pp=D().pp||[];
   const prods=[...new Set(pp.map(r=>r.product))];
-  const persons=PEOPLE;
+  const persons=[...PEOPLE,'Partner'];
   const ctx=document.getElementById('prodC').getContext('2d');
   if(pC)pC.destroy();
   pC=new Chart(ctx,{
