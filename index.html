@@ -236,19 +236,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   <div class="note">선택한 주(월~일)의 일별 추이 · 창작자+파트너십 전체 합산 · 위 탭에서 고른 지표가 그대로 적용돼요</div>
   <div class="filter-bar" id="weekPills" style="margin-bottom:1.25rem"></div>
   <div id="weeklyCharts" style="margin-bottom:1.75rem"></div>
-  <div class="ccard">
-    <div class="ctop">
-      <div class="ctitle" id="prodChartT">Clicks by product &amp; creator</div>
-      <div class="leg">
-        <div class="li"><span class="ld" style="background:#378ADD"></span>Lina</div>
-        <div class="li"><span class="ld" style="background:#D4537E"></span>Phoebe</div>
-        <div class="li"><span class="ld" style="background:#1D9E75"></span>Sarah</div>
-        <div class="li"><span class="ld" style="background:#9B59B6"></span>Iris</div>
-        <div class="li"><span class="ld" style="background:#5C6570"></span>Partner</div>
-      </div>
-    </div>
-    <div style="position:relative;width:100%;height:260px;"><canvas id="prodC"></canvas></div>
-  </div>
   <div class="slabel">Creator breakdown per product</div>
   <div class="pdgrid" id="pdgrid"></div>
 </div>
@@ -364,7 +351,7 @@ let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
 let cFilters={person:'All',media:'All',product:'All'};
 let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
-let tC,mC,pC;
+let tC,mC;
 let curWeek=null,weeklyCharts=[];
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
@@ -835,7 +822,7 @@ function switchM(m,btn){
   renderPCards();renderTrend();renderMedia();
 }
 
-function renderProdPage(){renderPSum();renderProdChart();renderPDGrid();renderWeekPills();renderWeeklyCharts();}
+function renderProdPage(){renderPSum();renderPDGrid();renderWeekPills();renderWeeklyCharts();}
 
 function renderPSum(){
   const ps=D().psum||[];
@@ -851,33 +838,6 @@ function renderPSum(){
       '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'%')+'</div>'+
       '</div>';
   }).join('');
-}
-
-function renderProdChart(){
-  const m=cPM;
-  const lbls={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',spend:'Spend (₩)',purchases:'Purchases',cpa:'CPA (₩)',roas:'ROAS (%)'};
-  document.getElementById('prodChartT').textContent=lbls[m]+' by product & creator';
-  const pp=D().pp||[];
-  const prods=[...new Set(pp.map(r=>r.product))];
-  const persons=[...PEOPLE,'Partner'];
-  const ctx=document.getElementById('prodC').getContext('2d');
-  if(pC)pC.destroy();
-  pC=new Chart(ctx,{
-    type:'bar',
-    data:{labels:prods,datasets:persons.map(function(person){return{
-      label:person,
-      data:prods.map(function(prod){const r=pp.find(x=>x.product===prod&&x.person===person);return r?r[m]||0:0;}),
-      backgroundColor:C[person],borderRadius:4,barPercentage:.7
-    };})},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{font:{size:12},color:'#888'},grid:{display:false}},
-        y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,.1)'}}
-      }
-    }
-  });
 }
 
 function renderPDGrid(){
@@ -957,7 +917,7 @@ function renderWeeklyCharts(){
 
 function switchPM(m,btn){
   cPM=m;document.querySelectorAll('#pmtabs .pmtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-  renderProdChart();renderPDGrid();renderWeeklyCharts();
+  renderPDGrid();renderWeeklyCharts();
 }
 
 function renderProdPills(){
