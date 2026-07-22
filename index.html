@@ -134,6 +134,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="nav-tab active" onclick="goPage('creator',this)">By creator</button>
     <button class="nav-tab" onclick="goPage('product',this)">By product</button>
     <button class="nav-tab" onclick="goPage('creative',this)">By creative</button>
+    <button class="nav-tab" onclick="goPage('weekly',this)">Weekly trend</button>
     <button class="nav-tab" style="margin-left:auto;font-size:12px;color:var(--muted)" onclick="clearCache();location.reload();" title="데이터 새로고침">↻ Refresh</button>
   </div>
 </nav>
@@ -231,10 +232,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   </div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
-  <div class="slabel">Weekly trend by product</div>
-  <div class="note">선택한 주(월~일)의 일별 추이</div>
-  <div class="filter-bar" id="weekPills" style="margin-bottom:1.25rem"></div>
-  <div id="weeklyCharts" style="margin-bottom:1.75rem"></div>
   <div class="slabel">Creator breakdown per product</div>
   <div class="pdgrid" id="pdgrid"></div>
 </div>
@@ -291,6 +288,25 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     </div>
     <div class="pagination" id="adPagination"></div>
   </div>
+</div>
+
+<!-- PAGE 4: WEEKLY TREND -->
+<div class="pg" id="pg-weekly">
+  <div class="top-bar">
+    <div><h1>Weekly trend by product</h1><div class="top-meta" id="weeklyMeta"></div></div>
+    <div class="pmtabs" id="wpmtabs">
+      <button class="pmtab active" onclick="switchWM('clicks',this)">Clicks</button>
+      <button class="pmtab" onclick="switchWM('ctr',this)">CTR</button>
+      <button class="pmtab" onclick="switchWM('cpc',this)">CPC</button>
+      <button class="pmtab" onclick="switchWM('spend',this)">Spend</button>
+      <button class="pmtab" onclick="switchWM('purchases',this)">Purchases</button>
+      <button class="pmtab" onclick="switchWM('cpa',this)">CPA</button>
+      <button class="pmtab" onclick="switchWM('roas',this)">ROAS</button>
+    </div>
+  </div>
+  <div class="note">선택한 주(월~일)의 일별 추이</div>
+  <div class="filter-bar" id="weekPills" style="margin-bottom:1.25rem"></div>
+  <div id="weeklyCharts"></div>
 </div>
 
 <script>
@@ -351,7 +367,7 @@ let cFilters={person:'All',media:'All',product:'All'};
 let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC;
-let curWeek=null,weeklyCharts=[];
+let curWeek=null,cWM='clicks',weeklyCharts=[];
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
 
@@ -697,7 +713,7 @@ function computeWeekDaily(weekStart){
 
 function updateMeta(){
   const lbl=getDateLabel(),noAmz=isNoAmz();
-  ['creatorMeta','productMeta','creativeMeta'].forEach(id=>{
+  ['creatorMeta','productMeta','creativeMeta','weeklyMeta'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.textContent=lbl+(noAmz?' · Meta only':' · Meta + Amazon');
   });
@@ -709,6 +725,7 @@ function refresh(){
   if(curPage==='creator'){renderPCards();renderTrend();renderMedia();}
   else if(curPage==='product')renderProdPage();
   else if(curPage==='creative'){renderProdPills();renderCreativeTable();}
+  else if(curPage==='weekly')renderWeeklyPage();
 }
 
 function setDateMode(mode,btn){
@@ -739,6 +756,7 @@ function goPage(pg,btn){
   btn.classList.add('active');
   if(pg==='product')renderProdPage();
   else if(pg==='creative'){renderProdPills();renderCreativeTable();}
+  else if(pg==='weekly')renderWeeklyPage();
 }
 
 function renderPCards(){
@@ -832,7 +850,8 @@ function switchM(m,btn){
   renderPCards();renderTrend();renderMedia();
 }
 
-function renderProdPage(){renderPSum();renderPDGrid();renderWeekPills();renderWeeklyCharts();}
+function renderProdPage(){renderPSum();renderPDGrid();}
+function renderWeeklyPage(){renderWeekPills();renderWeeklyCharts();}
 
 function renderPSum(){
   const ps=D().psum||[];
@@ -903,13 +922,13 @@ function renderWeeklyCharts(){
   if(!products.length){container.innerHTML='<div class="no-data">이 주에는 데이터가 없어요.</div>';return;}
   container.innerHTML=products.map(function(p,i){
     return '<div class="ccard"><div class="ctop"><div class="ctitle">'+
-      '<span style="color:'+(PC[p]||'var(--text)')+'">'+p+'</span> — '+mLabels[cPM]+' ('+weekLabel(curWeek)+')'+
+      '<span style="color:'+(PC[p]||'var(--text)')+'">'+p+'</span> — '+mLabels[cWM]+' ('+weekLabel(curWeek)+')'+
       '</div></div><div style="position:relative;width:100%;height:180px;"><canvas id="wchart-'+i+'"></canvas></div></div>';
   }).join('');
   products.forEach(function(p,i){
     const ctx=document.getElementById('wchart-'+i).getContext('2d');
     const color=PC[p]||'#378ADD';
-    const data=byProduct[p].map(r=>r[cPM]||0);
+    const data=byProduct[p].map(r=>r[cWM]||0);
     weeklyCharts.push(new Chart(ctx,{
       type:'line',
       data:{labels:dayLabels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:3,pointHoverRadius:5,tension:.3,fill:true}]},
@@ -927,7 +946,11 @@ function renderWeeklyCharts(){
 
 function switchPM(m,btn){
   cPM=m;document.querySelectorAll('#pmtabs .pmtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-  renderPDGrid();renderWeeklyCharts();
+  renderPDGrid();
+}
+function switchWM(m,btn){
+  cWM=m;document.querySelectorAll('#wpmtabs .pmtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  renderWeeklyCharts();
 }
 
 function renderProdPills(){
