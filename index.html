@@ -68,12 +68,12 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .bdg{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
 .bvdo{background:#E6F1FB;color:#0C447C;}.bimg{background:#FAEEDA;color:#633806;}
 .pp{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;}
-.psgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;}
+.psgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1.5rem;}
 @media(max-width:700px){.psgrid{grid-template-columns:repeat(2,1fr);}}
-.pscard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:1rem;}
-.psname{font-size:16px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px;}
-.pml{font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-top:4px;}
-.pmv{font-size:14px;font-weight:600;}
+.pscard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:.7rem .8rem;}
+.psname{font-size:14px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;}
+.pml{font-size:9px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
+.pmv{font-size:12px;font-weight:600;}
 .pdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:1.25rem;}
 .pdcard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
 .pdname{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
@@ -230,6 +230,17 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; <strong>ROAS</strong> = (Amazon 매출 ÷ Meta 광고비) × 100 (%, 100% = 광고비만큼 매출)</div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
+  <div class="slabel">Weekly trend by product</div>
+  <div class="note">선택한 주(월~일)의 일별 추이 · 창작자+파트너십 전체 합산</div>
+  <div class="filter-bar" id="weekPills" style="margin-bottom:10px"></div>
+  <div class="pmtabs" id="wmtabs" style="margin-bottom:1.25rem">
+    <button class="pmtab active" onclick="switchWM('spend',this)">Spend</button>
+    <button class="pmtab" onclick="switchWM('cpc',this)">CPC</button>
+    <button class="pmtab" onclick="switchWM('ctr',this)">CTR</button>
+    <button class="pmtab" onclick="switchWM('roas',this)">ROAS</button>
+    <button class="pmtab" onclick="switchWM('purchases',this)">Purchases</button>
+  </div>
+  <div id="weeklyCharts" style="margin-bottom:1.75rem"></div>
   <div class="ccard">
     <div class="ctop">
       <div class="ctitle" id="prodChartT">Clicks by product &amp; creator</div>
@@ -245,17 +256,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   </div>
   <div class="slabel">Creator breakdown per product</div>
   <div class="pdgrid" id="pdgrid"></div>
-  <div class="slabel">Weekly trend by product</div>
-  <div class="note">선택한 주(월~일)의 일별 추이 · 창작자+파트너십 전체 합산</div>
-  <div class="filter-bar" id="weekPills" style="margin-bottom:10px"></div>
-  <div class="pmtabs" id="wmtabs" style="margin-bottom:1.25rem">
-    <button class="pmtab active" onclick="switchWM('spend',this)">Spend</button>
-    <button class="pmtab" onclick="switchWM('cpc',this)">CPC</button>
-    <button class="pmtab" onclick="switchWM('ctr',this)">CTR</button>
-    <button class="pmtab" onclick="switchWM('roas',this)">ROAS</button>
-    <button class="pmtab" onclick="switchWM('purchases',this)">Purchases</button>
-  </div>
-  <div id="weeklyCharts"></div>
 </div>
 
 <!-- PAGE 3: BY CREATIVE -->
@@ -849,9 +849,9 @@ function renderPSum(){
     return '<div class="pscard">'+
       '<div class="psname" style="color:'+(PC[p.product]||'var(--text)')+'">'+(p.product||'—')+'</div>'+
       '<div class="pml">Clicks</div><div class="pmv">'+f(p.clicks)+'</div>'+
-      '<div class="pml">CTR</div><div class="pmv" style="font-size:12px">'+fd(p.ctr)+'%</div>'+
-      '<div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩'+f(p.spend)+'</div>'+
-      '<div class="pml">CPC</div><div class="pmv" style="font-size:12px">₩'+f(p.cpc)+'</div>'+
+      '<div class="pml">CTR</div><div class="pmv">'+fd(p.ctr)+'%</div>'+
+      '<div class="pml">Spend</div><div class="pmv">₩'+f(p.spend)+'</div>'+
+      '<div class="pml">CPC</div><div class="pmv">₩'+f(p.cpc)+'</div>'+
       '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(noAmz?'—':(p.purchases||'—'))+'</div>'+
       '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'%')+'</div>'+
       '</div>';
