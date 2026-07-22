@@ -245,20 +245,17 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   </div>
   <div class="slabel">Creator breakdown per product</div>
   <div class="pdgrid" id="pdgrid"></div>
-  <div class="ccard">
-    <div class="ctitle" style="margin-bottom:4px;">Full detail table</div>
-    <div class="note">CPA = 소재별 광고비 ÷ purchases &nbsp;·&nbsp; — = no Amazon data</div>
-    <div class="tw"><table>
-      <thead><tr>
-        <th>Product</th><th>Creator</th>
-        <th style="text-align:right">Clicks</th><th style="text-align:right">Spend</th>
-        <th style="text-align:right">CTR</th><th style="text-align:right">CPC</th>
-        <th style="text-align:right">Purchases</th>
-        <th style="text-align:right">CPA</th>
-      </tr></thead>
-      <tbody id="prodTbody"></tbody>
-    </table></div>
+  <div class="slabel">Weekly trend by product</div>
+  <div class="note">선택한 주(월~일)의 일별 추이 · 창작자+파트너십 전체 합산</div>
+  <div class="filter-bar" id="weekPills" style="margin-bottom:10px"></div>
+  <div class="pmtabs" id="wmtabs" style="margin-bottom:1.25rem">
+    <button class="pmtab active" onclick="switchWM('spend',this)">Spend</button>
+    <button class="pmtab" onclick="switchWM('cpc',this)">CPC</button>
+    <button class="pmtab" onclick="switchWM('ctr',this)">CTR</button>
+    <button class="pmtab" onclick="switchWM('roas',this)">ROAS</button>
+    <button class="pmtab" onclick="switchWM('purchases',this)">Purchases</button>
   </div>
+  <div id="weeklyCharts"></div>
 </div>
 
 <!-- PAGE 3: BY CREATIVE -->
@@ -373,6 +370,7 @@ let cFilters={person:'All',media:'All',product:'All'};
 let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC,pC;
+let curWeek=null,cWM='spend',weeklyCharts=[];
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
 
@@ -665,6 +663,49 @@ function D(){const{from,to}=getDateRange();return computeData(from,to);}
 function getDateLabel(){return dateMode==='monthly'?monthLabel(curMonth):customFrom+' ~ '+customTo;}
 function isNoAmz(){const{to}=getDateRange();return to<'2025-12-01';}
 
+function addDays(dateStr,n){
+  const d=new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function isoWeekStart(dateStr){
+  const d=new Date(dateStr+'T00:00:00');
+  const dow=(d.getDay()+6)%7; // Mon=0..Sun=6
+  d.setDate(d.getDate()-dow);
+  return d.toISOString().slice(0,10);
+}
+function weekLabel(weekStart){
+  const end=addDays(weekStart,6);
+  const fmt=s=>{const p=s.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);};
+  return fmt(weekStart)+'–'+fmt(end);
+}
+function weeksInRange(from,to){
+  const weeks=[];
+  let cur=isoWeekStart(from);
+  while(cur<=to){weeks.push(cur);cur=addDays(cur,7);}
+  return weeks;
+}
+function computeWeekDaily(weekStart){
+  const weekEnd=addDays(weekStart,6);
+  const meta=RAW.meta.filter(r=>r.date>=weekStart&&r.date<=weekEnd&&r.product);
+  const amz=RAW.amz.filter(r=>r.date>=weekStart&&r.date<=weekEnd&&r.product);
+  const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
+  const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
+  const m_g=grp(meta,['date','product'],['clicks','spend','impressions']);
+  const a_g=grp(amz,['date','product'],['purchases','revenue']);
+  const days=[];for(let i=0;i<7;i++)days.push(addDays(weekStart,i));
+  const products=[...new Set([...m_g.map(r=>r.product),...a_g.map(r=>r.product)])];
+  const byProduct={};
+  products.forEach(p=>{
+    byProduct[p]=days.map(d=>{
+      const m=m_g.find(x=>x.date===d&&x.product===p)||{clicks:0,spend:0,impressions:0};
+      const a=a_g.find(x=>x.date===d&&x.product===p)||{purchases:0,revenue:0};
+      return{date:d,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
+    });
+  });
+  return{days,products,byProduct};
+}
+
 function updateMeta(){
   const lbl=getDateLabel(),noAmz=isNoAmz();
   ['creatorMeta','productMeta','creativeMeta'].forEach(id=>{
@@ -799,7 +840,7 @@ function switchM(m,btn){
   renderPCards();renderTrend();renderMedia();
 }
 
-function renderProdPage(){renderPSum();renderProdChart();renderPDGrid();renderProdTable();}
+function renderProdPage(){renderPSum();renderProdChart();renderPDGrid();renderWeekPills();renderWeeklyCharts();}
 
 function renderPSum(){
   const ps=D().psum||[];
@@ -870,20 +911,59 @@ function renderPDGrid(){
   }).join('');
 }
 
-function renderProdTable(){
-  const pp=[...D().pp||[]].sort((a,b)=>b.clicks-a.clicks);
-  document.getElementById('prodTbody').innerHTML=pp.map(r=>{
-    return '<tr>'+
-      '<td><span class="bdg" style="background:'+(PB[r.product]||'var(--surface2)')+';color:'+(PT[r.product]||'var(--muted)')+'">'+(r.product||'—')+'</span></td>'+
-      '<td><span class="pp" style="background:'+CB[r.person]+';color:'+CT[r.person]+'">'+r.person+'</span></td>'+
-      '<td style="text-align:right">'+f(r.clicks)+'</td>'+
-      '<td style="text-align:right">₩'+f(r.spend)+'</td>'+
-      '<td style="text-align:right">'+fd(r.ctr)+'%</td>'+
-      '<td style="text-align:right">₩'+fd(r.cpc)+'</td>'+
-      '<td style="text-align:right;font-weight:600;color:'+(r.purchases>0?'#0F6E56':'var(--muted)')+'">'+(r.purchases>0?r.purchases:'—')+'</td>'+
-      '<td style="text-align:right">'+(r.purchases>0?'₩'+f(r.cpa):'—')+'</td>'+
-      '</tr>';
+function renderWeekPills(){
+  const{from,to}=getDateRange();
+  const weeks=weeksInRange(from,to);
+  if(!weeks.length)return;
+  if(!curWeek||!weeks.includes(curWeek))curWeek=weeks[weeks.length-1];
+  document.getElementById('weekPills').innerHTML=weeks.map(w=>{
+    const active=w===curWeek?' active':'';
+    return '<button class="fb'+active+'" onclick="switchWeek(\''+w+'\',this)">'+weekLabel(w)+'</button>';
   }).join('');
+}
+function switchWeek(w,btn){
+  curWeek=w;
+  document.querySelectorAll('#weekPills .fb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderWeeklyCharts();
+}
+function switchWM(m,btn){
+  cWM=m;
+  document.querySelectorAll('#wmtabs .pmtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderWeeklyCharts();
+}
+function renderWeeklyCharts(){
+  const container=document.getElementById('weeklyCharts');
+  weeklyCharts.forEach(c=>c.destroy());
+  weeklyCharts=[];
+  if(!curWeek){container.innerHTML='';return;}
+  const{products,days,byProduct}=computeWeekDaily(curWeek);
+  const mLabels={spend:'Spend (₩)',cpc:'CPC (₩)',ctr:'CTR (%)',roas:'ROAS (%)',purchases:'Purchases'};
+  const dayLabels=days.map(d=>{const p=d.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);});
+  if(!products.length){container.innerHTML='<div class="no-data">이 주에는 데이터가 없어요.</div>';return;}
+  container.innerHTML=products.map(function(p,i){
+    return '<div class="ccard"><div class="ctop"><div class="ctitle">'+
+      '<span style="color:'+(PC[p]||'var(--text)')+'">'+p+'</span> — '+mLabels[cWM]+' ('+weekLabel(curWeek)+')'+
+      '</div></div><div style="position:relative;width:100%;height:180px;"><canvas id="wchart-'+i+'"></canvas></div></div>';
+  }).join('');
+  products.forEach(function(p,i){
+    const ctx=document.getElementById('wchart-'+i).getContext('2d');
+    const color=PC[p]||'#378ADD';
+    const data=byProduct[p].map(r=>r[cWM]||0);
+    weeklyCharts.push(new Chart(ctx,{
+      type:'line',
+      data:{labels:dayLabels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:3,pointHoverRadius:5,tension:.3,fill:true}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{ticks:{font:{size:11},color:'#888'},grid:{display:false}},
+          y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,.1)'}}
+        }
+      }
+    }));
+  });
 }
 
 function switchPM(m,btn){
