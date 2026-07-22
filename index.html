@@ -184,6 +184,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="tab active" onclick="switchM('clicks',this)">Clicks</button>
       <button class="tab" onclick="switchM('ctr',this)">CTR</button>
       <button class="tab" onclick="switchM('cpc',this)">CPC</button>
+      <button class="tab" onclick="switchM('purchases',this)">Purchases</button>
+      <button class="tab" onclick="switchM('roas',this)">ROAS</button>
     </div>
   </div>
   <div id="novNotice" style="display:none" class="notice">Nov 2025: Amazon purchase data not available.</div>
@@ -512,7 +514,7 @@ async function loadData(){
         if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
         const product=parseProduct(rawName);
         const ad_name=parseAdName(rawName);
-        return{date,month:date.slice(0,7),person,product,ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
+        return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
       }).filter(Boolean);
       if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
       // 누락 진단: product null인 구매 행
@@ -581,17 +583,25 @@ function computeData(from,to){
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
 
   const ps_m=grp(metaNP,['person'],['clicks','spend','impressions']);
-  const ps_a=grp(amzNP,['person'],['purchases']);
+  const ps_a=grp(amzNP,['person'],['purchases','revenue']);
   const ps=ps_m.map(m=>{
-    const a=ps_a.find(x=>x.person===m.person)||{purchases:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases});
+    const a=ps_a.find(x=>x.person===m.person)||{purchases:0,revenue:0};
+    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
   const pm_m=grp(metaNP,['person','media'],['clicks','spend','impressions']);
-  const pm=pm_m.map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m)}));
+  const pm_a=grp(amzNP,['person','media'],['purchases','revenue']);
+  const pm=pm_m.map(m=>{
+    const a=pm_a.find(x=>x.person===m.person&&x.media===m.media)||{purchases:0,revenue:0};
+    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
+  });
 
   const daily_m=grp(metaNP,['date','person'],['clicks','spend','impressions']);
-  const daily=daily_m.map(m=>({date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m)}));
+  const daily_a=grp(amzNP,['date','person'],['purchases','revenue']);
+  const daily=daily_m.map(m=>{
+    const a=daily_a.find(x=>x.date===m.date&&x.person===m.person)||{purchases:0,revenue:0};
+    return{date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
+  });
 
   const pp_m=grp(meta,['product','person'],['clicks','spend','impressions']);
   const pp_a=grp(amz,['product','person'],['purchases','revenue']);
@@ -736,9 +746,11 @@ function renderPCards(){
   const sorted={
     clicks:[...ps].sort((a,b)=>b.clicks-a.clicks).map(x=>x.person),
     ctr:[...ps].sort((a,b)=>b.ctr-a.ctr).map(x=>x.person),
-    cpc:[...ps].sort((a,b)=>a.cpc-b.cpc).map(x=>x.person)
+    cpc:[...ps].sort((a,b)=>a.cpc-b.cpc).map(x=>x.person),
+    purchases:[...ps].sort((a,b)=>b.purchases-a.purchases).map(x=>x.person),
+    roas:[...ps].sort((a,b)=>b.roas-a.roas).map(x=>x.person)
   };
-  const rl={clicks:'clicks',ctr:'CTR',cpc:'CPC (lower)'};
+  const rl={clicks:'clicks',ctr:'CTR',cpc:'CPC (lower)',purchases:'purchases',roas:'ROAS'};
   const noAmz=isNoAmz();
   document.getElementById('pcards').innerHTML=ps.map(p=>{
     const rank=sorted[cM].indexOf(p.person)+1;
@@ -757,6 +769,7 @@ function renderPCards(){
       '</div><div class="srow">'+
       '<div class="st"><div class="stl">Spend</div><div class="stv sm">₩'+f(p.spend)+'</div></div>'+
       '<div class="st"><div class="stl">Purchases</div><div class="stv'+(p.purchases>0?' good':'')+'">'+(noAmz?'—':p.purchases)+'</div></div>'+
+      '<div class="st"><div class="stl">ROAS</div><div class="stv'+(p.roas>0?' good':'')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'%')+'</div></div>'+
       '</div>'+
       '<div class="mlabels"><span>Video '+vp+'%</span><span>Image '+(100-vp)+'%</span></div>'+
       '<div class="btrack"><div class="bfill" style="width:'+vp+'%;background:'+C[p.person]+'"></div></div>'+
@@ -766,7 +779,7 @@ function renderPCards(){
 
 function renderTrend(){
   const d=D().daily||[];
-  const labels={clicks:'Daily clicks',ctr:'Daily CTR (%)',cpc:'Daily CPC (₩)'};
+  const labels={clicks:'Daily clicks',ctr:'Daily CTR (%)',cpc:'Daily CPC (₩)',purchases:'Daily purchases',roas:'Daily ROAS (%)'};
   document.getElementById('trendT').textContent=labels[cM]+' by creator';
   const dates=[...new Set(d.map(r=>r.date))].sort();
   const ds=function(person){return{label:person,
@@ -793,7 +806,7 @@ function renderMedia(){
   const pm=D().pm||[];
   const ppl=PEOPLE;
   const gv=function(p,m){const r=pm.find(x=>x.person===p&&x.media===m);return r?r[cM]:0;};
-  const mlabels={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)'};
+  const mlabels={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',roas:'ROAS (%)'};
   document.getElementById('mediaT').textContent='Video vs image — '+mlabels[cM]+' by creator';
   const ctx=document.getElementById('mediaC').getContext('2d');
   if(mC)mC.destroy();
