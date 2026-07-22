@@ -700,12 +700,15 @@ function computeProductDaily(days){
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
   const m_g=grp(meta,['date','product'],['clicks','spend','impressions']);
   const a_g=grp(amz,['date','product'],['purchases','revenue']);
+  const mMap=new Map(m_g.map(r=>[r.date+'|||'+r.product,r]));
+  const aMap=new Map(a_g.map(r=>[r.date+'|||'+r.product,r]));
   const products=[...new Set([...m_g.map(r=>r.product),...a_g.map(r=>r.product)])];
   const byProduct={};
   products.forEach(p=>{
     byProduct[p]=days.map(d=>{
-      const m=m_g.find(x=>x.date===d&&x.product===p)||{clicks:0,spend:0,impressions:0};
-      const a=a_g.find(x=>x.date===d&&x.product===p)||{purchases:0,revenue:0};
+      const key=d+'|||'+p;
+      const m=mMap.get(key)||{clicks:0,spend:0,impressions:0};
+      const a=aMap.get(key)||{purchases:0,revenue:0};
       return{date:d,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
     });
   });
