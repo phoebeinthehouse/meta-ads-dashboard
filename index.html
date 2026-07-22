@@ -362,7 +362,7 @@ let cFilters={person:'All',media:'All',product:'All'};
 let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC;
-let curWeeks=new Set(),cWM='purchases',weeklyCharts=[];
+let curWeeks=new Set(),cWM='purchases',weeklyCharts=[],weeklyRenderGen=0;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
 
@@ -932,6 +932,7 @@ function getWeeklyDays(){
   return[...curWeeks].sort().flatMap(w=>{const a=[];for(let i=0;i<7;i++)a.push(addDays(w,i));return a;});
 }
 function renderWeeklyCharts(){
+  const myGen=++weeklyRenderGen;
   const container=document.getElementById('weeklyCharts');
   weeklyCharts.forEach(c=>c.destroy());
   weeklyCharts=[];
@@ -942,27 +943,36 @@ function renderWeeklyCharts(){
   const dayLabels=days.map(d=>{const p=d.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);});
   const rangeLabel=dayLabels[0]+'–'+dayLabels[dayLabels.length-1];
   if(!products.length){container.innerHTML='<div class="no-data">이 기간에는 데이터가 없어요.</div>';return;}
+  const dense=days.length>60;
   container.innerHTML=products.map(function(p,i){
     return '<div class="ccard"><div class="ctop"><div class="ctitle">'+
       '<span style="color:'+(PC[p]||'var(--text)')+'">'+p+'</span> — '+mLabels[cWM]+' ('+rangeLabel+')'+
       '</div></div><div style="position:relative;width:100%;height:180px;"><canvas id="wchart-'+i+'"></canvas></div></div>';
   }).join('');
+  // Chart creation is spread across separate tasks so a wide date range
+  // (many points × many product charts) can't block the main thread long
+  // enough to trigger the browser's "page unresponsive" warning.
   products.forEach(function(p,i){
-    const ctx=document.getElementById('wchart-'+i).getContext('2d');
-    const color=PC[p]||'#378ADD';
-    const data=byProduct[p].map(r=>r[cWM]||0);
-    weeklyCharts.push(new Chart(ctx,{
-      type:'line',
-      data:{labels:dayLabels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:3,pointHoverRadius:5,tension:.3,fill:true}]},
-      options:{
-        responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false}},
-        scales:{
-          x:{ticks:{font:{size:11},color:'#888',maxRotation:45,autoSkip:true,maxTicksLimit:20},grid:{display:false}},
-          y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,.1)'}}
+    setTimeout(function(){
+      if(myGen!==weeklyRenderGen)return;
+      const canvas=document.getElementById('wchart-'+i);
+      if(!canvas)return;
+      const color=PC[p]||'#378ADD';
+      const data=byProduct[p].map(r=>r[cWM]||0);
+      weeklyCharts.push(new Chart(canvas.getContext('2d'),{
+        type:'line',
+        data:{labels:dayLabels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:dense?0:3,pointHoverRadius:5,tension:.3,fill:true}]},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          animation:false,
+          plugins:{legend:{display:false}},
+          scales:{
+            x:{ticks:{font:{size:11},color:'#888',maxRotation:45,autoSkip:true,maxTicksLimit:20},grid:{display:false}},
+            y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,.1)'}}
+          }
         }
-      }
-    }));
+      }));
+    },0);
   });
 }
 
