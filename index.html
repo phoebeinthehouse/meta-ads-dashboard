@@ -68,12 +68,12 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .bdg{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
 .bvdo{background:#E6F1FB;color:#0C447C;}.bimg{background:#FAEEDA;color:#633806;}
 .pp{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;}
-.psgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;}
+.psgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1.5rem;}
 @media(max-width:700px){.psgrid{grid-template-columns:repeat(2,1fr);}}
-.pscard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:1rem;}
-.psname{font-size:16px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px;}
-.pml{font-size:10px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-top:4px;}
-.pmv{font-size:14px;font-weight:600;}
+.pscard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:.7rem .8rem;}
+.psname{font-size:14px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;}
+.pml{font-size:9px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
+.pmv{font-size:12px;font-weight:600;}
 .pdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:1.25rem;}
 .pdcard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
 .pdname{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
@@ -223,13 +223,19 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="pmtab active" onclick="switchPM('clicks',this)">Clicks</button>
       <button class="pmtab" onclick="switchPM('ctr',this)">CTR</button>
       <button class="pmtab" onclick="switchPM('cpc',this)">CPC</button>
+      <button class="pmtab" onclick="switchPM('spend',this)">Spend</button>
       <button class="pmtab" onclick="switchPM('purchases',this)">Purchases</button>
       <button class="pmtab" onclick="switchPM('cpa',this)">CPA</button>
+      <button class="pmtab" onclick="switchPM('roas',this)">ROAS</button>
     </div>
   </div>
   <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; <strong>ROAS</strong> = (Amazon 매출 ÷ Meta 광고비) × 100 (%, 100% = 광고비만큼 매출)</div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
+  <div class="slabel">Weekly trend by product</div>
+  <div class="note">선택한 주(월~일)의 일별 추이 · 창작자+파트너십 전체 합산 · 위 탭에서 고른 지표가 그대로 적용돼요</div>
+  <div class="filter-bar" id="weekPills" style="margin-bottom:1.25rem"></div>
+  <div id="weeklyCharts" style="margin-bottom:1.75rem"></div>
   <div class="ccard">
     <div class="ctop">
       <div class="ctitle" id="prodChartT">Clicks by product &amp; creator</div>
@@ -245,17 +251,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   </div>
   <div class="slabel">Creator breakdown per product</div>
   <div class="pdgrid" id="pdgrid"></div>
-  <div class="slabel">Weekly trend by product</div>
-  <div class="note">선택한 주(월~일)의 일별 추이 · 창작자+파트너십 전체 합산</div>
-  <div class="filter-bar" id="weekPills" style="margin-bottom:10px"></div>
-  <div class="pmtabs" id="wmtabs" style="margin-bottom:1.25rem">
-    <button class="pmtab active" onclick="switchWM('spend',this)">Spend</button>
-    <button class="pmtab" onclick="switchWM('cpc',this)">CPC</button>
-    <button class="pmtab" onclick="switchWM('ctr',this)">CTR</button>
-    <button class="pmtab" onclick="switchWM('roas',this)">ROAS</button>
-    <button class="pmtab" onclick="switchWM('purchases',this)">Purchases</button>
-  </div>
-  <div id="weeklyCharts"></div>
 </div>
 
 <!-- PAGE 3: BY CREATIVE -->
@@ -370,7 +365,7 @@ let cFilters={person:'All',media:'All',product:'All'};
 let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC,pC;
-let curWeek=null,cWM='spend',weeklyCharts=[];
+let curWeek=null,weeklyCharts=[];
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
 
@@ -615,10 +610,10 @@ function computeData(from,to){
   const daily=daily_m.map(m=>({date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m)}));
 
   const pp_m=grp(meta,['product','person'],['clicks','spend','impressions']);
-  const pp_a=grp(amz,['product','person'],['purchases']);
+  const pp_a=grp(amz,['product','person'],['purchases','revenue']);
   const pp=pp_m.filter(m=>m.product).map(m=>{
-    const a=pp_a.find(x=>x.product===m.product&&x.person===m.person)||{purchases:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
+    const a=pp_a.find(x=>x.product===m.product&&x.person===m.person)||{purchases:0,revenue:0};
+    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
   const psum_m=grp(meta,['product'],['clicks','spend','impressions']);
@@ -700,7 +695,7 @@ function computeWeekDaily(weekStart){
     byProduct[p]=days.map(d=>{
       const m=m_g.find(x=>x.date===d&&x.product===p)||{clicks:0,spend:0,impressions:0};
       const a=a_g.find(x=>x.date===d&&x.product===p)||{purchases:0,revenue:0};
-      return{date:d,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
+      return{date:d,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
     });
   });
   return{days,products,byProduct};
@@ -849,9 +844,9 @@ function renderPSum(){
     return '<div class="pscard">'+
       '<div class="psname" style="color:'+(PC[p.product]||'var(--text)')+'">'+(p.product||'—')+'</div>'+
       '<div class="pml">Clicks</div><div class="pmv">'+f(p.clicks)+'</div>'+
-      '<div class="pml">CTR</div><div class="pmv" style="font-size:12px">'+fd(p.ctr)+'%</div>'+
-      '<div class="pml">Spend</div><div class="pmv" style="font-size:12px">₩'+f(p.spend)+'</div>'+
-      '<div class="pml">CPC</div><div class="pmv" style="font-size:12px">₩'+f(p.cpc)+'</div>'+
+      '<div class="pml">CTR</div><div class="pmv">'+fd(p.ctr)+'%</div>'+
+      '<div class="pml">Spend</div><div class="pmv">₩'+f(p.spend)+'</div>'+
+      '<div class="pml">CPC</div><div class="pmv">₩'+f(p.cpc)+'</div>'+
       '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(noAmz?'—':(p.purchases||'—'))+'</div>'+
       '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'%')+'</div>'+
       '</div>';
@@ -860,7 +855,7 @@ function renderPSum(){
 
 function renderProdChart(){
   const m=cPM;
-  const lbls={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',cpa:'CPA (₩)'};
+  const lbls={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',spend:'Spend (₩)',purchases:'Purchases',cpa:'CPA (₩)',roas:'ROAS (%)'};
   document.getElementById('prodChartT').textContent=lbls[m]+' by product & creator';
   const pp=D().pp||[];
   const prods=[...new Set(pp.map(r=>r.product))];
@@ -889,7 +884,7 @@ function renderPDGrid(){
   const m=cPM;
   const pp=D().pp||[];
   const prods=[...new Set(pp.map(r=>r.product))];
-  const mLabels={clicks:'CLICKS',ctr:'CTR',cpc:'CPC',purchases:'PURCHASES',cpa:'CPA'};
+  const mLabels={clicks:'CLICKS',ctr:'CTR',cpc:'CPC',spend:'SPEND',purchases:'PURCHASES',cpa:'CPA',roas:'ROAS'};
   document.getElementById('pdgrid').innerHTML=prods.map(function(prod){
     const rows=pp.filter(r=>r.product===prod);
     const vals=rows.map(r=>r[m]).filter(v=>v>0);
@@ -899,7 +894,7 @@ function renderPDGrid(){
     rows.sort((a,b)=>b[m]-a[m]).forEach(function(r){
       const val=r[m]||0;
       const pct=mx>0&&val>0?Math.round(val/mx*100):0;
-      let dv=m==='clicks'?f(val):m==='ctr'?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):(val>0?'₩'+f(val):'—');
+      let dv=m==='clicks'?f(val):(m==='ctr'||m==='roas')?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):(val>0?'₩'+f(val):'—');
       html+='<div class="crow">'+
         '<div class="clabel"><span class="cdot" style="background:'+C[r.person]+'"></span><span class="cname">'+r.person+'</span></div>'+
         '<div class="cbw"><div class="cbt"><div class="cbf" style="width:'+pct+'%;background:'+C[r.person]+'"></div></div></div>'+
@@ -927,30 +922,24 @@ function switchWeek(w,btn){
   btn.classList.add('active');
   renderWeeklyCharts();
 }
-function switchWM(m,btn){
-  cWM=m;
-  document.querySelectorAll('#wmtabs .pmtab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderWeeklyCharts();
-}
 function renderWeeklyCharts(){
   const container=document.getElementById('weeklyCharts');
   weeklyCharts.forEach(c=>c.destroy());
   weeklyCharts=[];
   if(!curWeek){container.innerHTML='';return;}
   const{products,days,byProduct}=computeWeekDaily(curWeek);
-  const mLabels={spend:'Spend (₩)',cpc:'CPC (₩)',ctr:'CTR (%)',roas:'ROAS (%)',purchases:'Purchases'};
+  const mLabels={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',spend:'Spend (₩)',purchases:'Purchases',cpa:'CPA (₩)',roas:'ROAS (%)'};
   const dayLabels=days.map(d=>{const p=d.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);});
   if(!products.length){container.innerHTML='<div class="no-data">이 주에는 데이터가 없어요.</div>';return;}
   container.innerHTML=products.map(function(p,i){
     return '<div class="ccard"><div class="ctop"><div class="ctitle">'+
-      '<span style="color:'+(PC[p]||'var(--text)')+'">'+p+'</span> — '+mLabels[cWM]+' ('+weekLabel(curWeek)+')'+
+      '<span style="color:'+(PC[p]||'var(--text)')+'">'+p+'</span> — '+mLabels[cPM]+' ('+weekLabel(curWeek)+')'+
       '</div></div><div style="position:relative;width:100%;height:180px;"><canvas id="wchart-'+i+'"></canvas></div></div>';
   }).join('');
   products.forEach(function(p,i){
     const ctx=document.getElementById('wchart-'+i).getContext('2d');
     const color=PC[p]||'#378ADD';
-    const data=byProduct[p].map(r=>r[cWM]||0);
+    const data=byProduct[p].map(r=>r[cPM]||0);
     weeklyCharts.push(new Chart(ctx,{
       type:'line',
       data:{labels:dayLabels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:3,pointHoverRadius:5,tension:.3,fill:true}]},
@@ -968,7 +957,7 @@ function renderWeeklyCharts(){
 
 function switchPM(m,btn){
   cPM=m;document.querySelectorAll('#pmtabs .pmtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-  renderProdChart();renderPDGrid();
+  renderProdChart();renderPDGrid();renderWeeklyCharts();
 }
 
 function renderProdPills(){
