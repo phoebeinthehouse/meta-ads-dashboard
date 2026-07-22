@@ -295,16 +295,11 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   <div class="top-bar">
     <div><h1>Weekly trend by product</h1><div class="top-meta" id="weeklyMeta"></div></div>
     <div class="pmtabs" id="wpmtabs">
-      <button class="pmtab active" onclick="switchWM('clicks',this)">Clicks</button>
-      <button class="pmtab" onclick="switchWM('ctr',this)">CTR</button>
-      <button class="pmtab" onclick="switchWM('cpc',this)">CPC</button>
-      <button class="pmtab" onclick="switchWM('spend',this)">Spend</button>
-      <button class="pmtab" onclick="switchWM('purchases',this)">Purchases</button>
-      <button class="pmtab" onclick="switchWM('cpa',this)">CPA</button>
+      <button class="pmtab active" onclick="switchWM('purchases',this)">Purchases</button>
       <button class="pmtab" onclick="switchWM('roas',this)">ROAS</button>
     </div>
   </div>
-  <div class="note">선택한 주(월~일)의 일별 추이</div>
+  <div class="note" id="weeklyNote">선택한 기간의 일별 추이 · 주는 여러 개 선택할 수 있어요</div>
   <div class="filter-bar" id="weekPills" style="margin-bottom:1.25rem"></div>
   <div id="weeklyCharts"></div>
 </div>
@@ -367,7 +362,7 @@ let cFilters={person:'All',media:'All',product:'All'};
 let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC;
-let curWeek=null,cWM='clicks',weeklyCharts=[];
+let curWeeks=new Set(),cWM='purchases',weeklyCharts=[];
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
 
@@ -690,15 +685,21 @@ function weeksInRange(from,to){
   while(cur<=to){weeks.push(cur);cur=addDays(cur,7);}
   return weeks;
 }
-function computeWeekDaily(weekStart){
-  const weekEnd=addDays(weekStart,6);
-  const meta=RAW.meta.filter(r=>r.date>=weekStart&&r.date<=weekEnd&&r.product);
-  const amz=RAW.amz.filter(r=>r.date>=weekStart&&r.date<=weekEnd&&r.product);
+function daysBetween(from,to){
+  const days=[];
+  let cur=from;
+  while(cur<=to){days.push(cur);cur=addDays(cur,1);}
+  return days;
+}
+function computeProductDaily(days){
+  if(!days.length)return{days,products:[],byProduct:{}};
+  const daySet=new Set(days);
+  const meta=RAW.meta.filter(r=>r.product&&daySet.has(r.date));
+  const amz=RAW.amz.filter(r=>r.product&&daySet.has(r.date));
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
   const m_g=grp(meta,['date','product'],['clicks','spend','impressions']);
   const a_g=grp(amz,['date','product'],['purchases','revenue']);
-  const days=[];for(let i=0;i<7;i++)days.push(addDays(weekStart,i));
   const products=[...new Set([...m_g.map(r=>r.product),...a_g.map(r=>r.product)])];
   const byProduct={};
   products.forEach(p=>{
@@ -896,33 +897,51 @@ function renderPDGrid(){
 }
 
 function renderWeekPills(){
+  const pillsEl=document.getElementById('weekPills'),noteEl=document.getElementById('weeklyNote');
+  if(dateMode==='custom'){
+    pillsEl.style.display='none';
+    pillsEl.innerHTML='';
+    if(noteEl)noteEl.textContent='선택한 기간의 일별 추이';
+    return;
+  }
+  pillsEl.style.display='flex';
+  if(noteEl)noteEl.textContent='선택한 기간의 일별 추이 · 주는 여러 개 선택할 수 있어요';
   const{from,to}=getDateRange();
   const weeks=weeksInRange(from,to);
   if(!weeks.length)return;
-  if(!curWeek||!weeks.includes(curWeek))curWeek=weeks[weeks.length-1];
-  document.getElementById('weekPills').innerHTML=weeks.map(w=>{
-    const active=w===curWeek?' active':'';
-    return '<button class="fb'+active+'" onclick="switchWeek(\''+w+'\',this)">'+weekLabel(w)+'</button>';
+  curWeeks=new Set([...curWeeks].filter(w=>weeks.includes(w)));
+  if(!curWeeks.size)curWeeks.add(weeks[weeks.length-1]);
+  pillsEl.innerHTML=weeks.map(w=>{
+    const active=curWeeks.has(w)?' active':'';
+    return '<button class="fb'+active+'" onclick="toggleWeek(\''+w+'\',this)">'+weekLabel(w)+'</button>';
   }).join('');
 }
-function switchWeek(w,btn){
-  curWeek=w;
-  document.querySelectorAll('#weekPills .fb').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+function toggleWeek(w,btn){
+  if(curWeeks.has(w))curWeeks.delete(w);else curWeeks.add(w);
+  btn.classList.toggle('active');
   renderWeeklyCharts();
+}
+function getWeeklyDays(){
+  if(dateMode==='custom'){
+    const{from,to}=getDateRange();
+    return daysBetween(from,to);
+  }
+  return[...curWeeks].sort().flatMap(w=>{const a=[];for(let i=0;i<7;i++)a.push(addDays(w,i));return a;});
 }
 function renderWeeklyCharts(){
   const container=document.getElementById('weeklyCharts');
   weeklyCharts.forEach(c=>c.destroy());
   weeklyCharts=[];
-  if(!curWeek){container.innerHTML='';return;}
-  const{products,days,byProduct}=computeWeekDaily(curWeek);
-  const mLabels={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',spend:'Spend (₩)',purchases:'Purchases',cpa:'CPA (₩)',roas:'ROAS (%)'};
+  const days=getWeeklyDays();
+  if(!days.length){container.innerHTML='<div class="no-data">표시할 기간을 선택해주세요.</div>';return;}
+  const{products,byProduct}=computeProductDaily(days);
+  const mLabels={purchases:'Purchases',roas:'ROAS (%)'};
   const dayLabels=days.map(d=>{const p=d.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);});
-  if(!products.length){container.innerHTML='<div class="no-data">이 주에는 데이터가 없어요.</div>';return;}
+  const rangeLabel=dayLabels[0]+'–'+dayLabels[dayLabels.length-1];
+  if(!products.length){container.innerHTML='<div class="no-data">이 기간에는 데이터가 없어요.</div>';return;}
   container.innerHTML=products.map(function(p,i){
     return '<div class="ccard"><div class="ctop"><div class="ctitle">'+
-      '<span style="color:'+(PC[p]||'var(--text)')+'">'+p+'</span> — '+mLabels[cWM]+' ('+weekLabel(curWeek)+')'+
+      '<span style="color:'+(PC[p]||'var(--text)')+'">'+p+'</span> — '+mLabels[cWM]+' ('+rangeLabel+')'+
       '</div></div><div style="position:relative;width:100%;height:180px;"><canvas id="wchart-'+i+'"></canvas></div></div>';
   }).join('');
   products.forEach(function(p,i){
@@ -936,7 +955,7 @@ function renderWeeklyCharts(){
         responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false}},
         scales:{
-          x:{ticks:{font:{size:11},color:'#888'},grid:{display:false}},
+          x:{ticks:{font:{size:11},color:'#888',maxRotation:45,autoSkip:true,maxTicksLimit:20},grid:{display:false}},
           y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,.1)'}}
         }
       }
