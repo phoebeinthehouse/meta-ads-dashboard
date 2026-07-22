@@ -88,8 +88,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .pmtabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;flex-wrap:wrap;}
 .pmtab{padding:4px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all .15s;}
 .pmtab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
-.formula-box{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:1.25rem;line-height:1.6;}
-.formula-box strong{color:var(--text);}
 .note{font-size:11px;color:var(--muted);margin-bottom:12px;}
 .notice{background:#FAEEDA;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#633806;margin-bottom:1.25rem;}
 
@@ -229,11 +227,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="pmtab" onclick="switchPM('roas',this)">ROAS</button>
     </div>
   </div>
-  <div class="formula-box"><strong>CPA</strong> = 소재별 Meta 광고비 ÷ Amazon purchases &nbsp;·&nbsp; <strong>ROAS</strong> = (Amazon 매출 ÷ Meta 광고비) × 100 (%, 100% = 광고비만큼 매출)</div>
   <div class="slabel">Product summary</div>
   <div class="psgrid" id="psgrid"></div>
   <div class="slabel">Weekly trend by product</div>
-  <div class="note">선택한 주(월~일)의 일별 추이 · 창작자+파트너십 전체 합산 · 위 탭에서 고른 지표가 그대로 적용돼요</div>
+  <div class="note">선택한 주(월~일)의 일별 추이</div>
   <div class="filter-bar" id="weekPills" style="margin-bottom:1.25rem"></div>
   <div id="weeklyCharts" style="margin-bottom:1.75rem"></div>
   <div class="slabel">Creator breakdown per product</div>
