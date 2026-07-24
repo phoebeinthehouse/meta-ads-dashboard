@@ -663,16 +663,19 @@ function D(){const{from,to}=getDateRange();return computeData(from,to);}
 function getDateLabel(){return dateMode==='monthly'?monthLabel(curMonth):customFrom+' ~ '+customTo;}
 function isNoAmz(){const{to}=getDateRange();return to<'2025-12-01';}
 
+function fmtLocalDate(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function addDays(dateStr,n){
   const d=new Date(dateStr+'T00:00:00');
   d.setDate(d.getDate()+n);
-  return d.toISOString().slice(0,10);
+  return fmtLocalDate(d);
 }
 function isoWeekStart(dateStr){
   const d=new Date(dateStr+'T00:00:00');
   const dow=(d.getDay()+6)%7; // Mon=0..Sun=6
   d.setDate(d.getDate()-dow);
-  return d.toISOString().slice(0,10);
+  return fmtLocalDate(d);
 }
 function weekLabel(weekStart){
   const end=addDays(weekStart,6);
