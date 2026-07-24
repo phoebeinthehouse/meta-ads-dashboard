@@ -131,10 +131,11 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 <nav class="nav">
   <div class="nav-inner">
     <div class="nav-logo">Meta Ads <span>Dashboard</span></div>
-    <button class="nav-tab active" onclick="goPage('creator',this)">By creator</button>
-    <button class="nav-tab" onclick="goPage('product',this)">By product</button>
-    <button class="nav-tab" onclick="goPage('creative',this)">By creative</button>
-    <button class="nav-tab" onclick="goPage('weekly',this)">Weekly trend</button>
+    <button class="nav-tab active" onclick="goPage('creator',this)">By Creator</button>
+    <button class="nav-tab" onclick="goPage('product',this)">By Product</button>
+    <button class="nav-tab" onclick="goPage('creative',this)">By Creative</button>
+    <button class="nav-tab" onclick="goPage('weekly',this)">Weekly Trend</button>
+    <button class="nav-tab" onclick="goPage('weeklycreative',this)">Weekly Trend by Creative</button>
     <button class="nav-tab" style="margin-left:auto;font-size:12px;color:var(--muted)" onclick="clearCache();location.reload();" title="데이터 새로고침">↻ Refresh</button>
   </div>
 </nav>
@@ -304,6 +305,30 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   <div id="weeklyCharts"></div>
 </div>
 
+<!-- PAGE 5: WEEKLY TREND BY CREATIVE -->
+<div class="pg" id="pg-weeklycreative">
+  <div class="top-bar">
+    <div><h1>Weekly Trend by Creative</h1><div class="top-meta" id="weeklyCreativeMeta"></div></div>
+    <div class="pmtabs" id="wcpmtabs">
+      <button class="pmtab active" onclick="switchWCM('purchases',this)">Purchases</button>
+      <button class="pmtab" onclick="switchWCM('roas',this)">ROAS</button>
+    </div>
+  </div>
+  <div class="note">선택한 기간의 일별 추이 · 중복 선택 가능 · 광고비 ₩30,000 이상 소재만 표시</div>
+  <div class="filter-bar" id="weekPillsWC" style="margin-bottom:1.25rem"></div>
+  <div class="prod-pills" id="wcProdPills"></div>
+  <div class="filter-bar" id="wcCreatorFilter" style="margin-bottom:1.25rem">
+    <span class="filter-label">Creator</span>
+    <button class="fb active" onclick="setWCFilter('person','All',this)">All</button>
+    <button class="fb" onclick="setWCFilter('person','Lina',this)">Lina</button>
+    <button class="fb" onclick="setWCFilter('person','Phoebe',this)">Phoebe</button>
+    <button class="fb" onclick="setWCFilter('person','Sarah',this)">Sarah</button>
+    <button class="fb" onclick="setWCFilter('person','Iris',this)">Iris</button>
+    <button class="fb" onclick="setWCFilter('person','Partner',this)">Partnership</button>
+  </div>
+  <div id="weeklyCreativeCharts"></div>
+</div>
+
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbzxCoy9uj0X7IInXAhi4OHjciZBC1vq3mqC3q0O5uwfdytufvEfIl7y8Ci-RV8pnl7t/exec';
 const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('amz-raw-new');
@@ -363,6 +388,9 @@ let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false
 const ADS_PER_PAGE=30;
 let tC,mC;
 let curWeeks=new Set(),cWM='purchases',weeklyCharts=[],weeklyRenderGen=0;
+let curWeeksWC=new Set(),cWCM='purchases',weeklyCreativeCharts=[],weeklyCreativeRenderGen=0;
+let cFiltersWC={product:'All',person:'All'};
+const WC_MIN_SPEND=30000;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
 
@@ -663,16 +691,19 @@ function D(){const{from,to}=getDateRange();return computeData(from,to);}
 function getDateLabel(){return dateMode==='monthly'?monthLabel(curMonth):customFrom+' ~ '+customTo;}
 function isNoAmz(){const{to}=getDateRange();return to<'2025-12-01';}
 
+function fmtLocalDate(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function addDays(dateStr,n){
   const d=new Date(dateStr+'T00:00:00');
   d.setDate(d.getDate()+n);
-  return d.toISOString().slice(0,10);
+  return fmtLocalDate(d);
 }
 function isoWeekStart(dateStr){
   const d=new Date(dateStr+'T00:00:00');
   const dow=(d.getDay()+6)%7; // Mon=0..Sun=6
   d.setDate(d.getDate()-dow);
-  return d.toISOString().slice(0,10);
+  return fmtLocalDate(d);
 }
 function weekLabel(weekStart){
   const end=addDays(weekStart,6);
@@ -708,10 +739,40 @@ function computeProductDaily(days){
   });
   return{days,products,byProduct};
 }
+function computeCreativeDaily(days,productFilter,personFilter){
+  if(!days.length)return{days,creatives:[],byCreative:{}};
+  const daySet=new Set(days);
+  const passFilter=r=>r.ad_name&&r.product&&daySet.has(r.date)&&(productFilter==='All'||r.product===productFilter)&&(personFilter==='All'||r.person===personFilter);
+  const meta=RAW.meta.filter(passFilter);
+  const amz=RAW.amz.filter(passFilter);
+  const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
+  const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
+  const m_g=grp(meta,['date','ad_name','person','product'],['clicks','spend','impressions']);
+  const a_g=grp(amz,['date','ad_name','person','product'],['purchases','revenue']);
+  const keyOf=r=>r.ad_name+'|||'+r.person+'|||'+r.product;
+  const mMap=new Map(m_g.map(r=>[r.date+'|||'+keyOf(r),r]));
+  const aMap=new Map(a_g.map(r=>[r.date+'|||'+keyOf(r),r]));
+  const keySet=new Set([...m_g.map(keyOf),...a_g.map(keyOf)]);
+  const byCreative={},totalSpend={};
+  keySet.forEach(key=>{
+    byCreative[key]=days.map(d=>{
+      const mk=d+'|||'+key;
+      const m=mMap.get(mk)||{clicks:0,spend:0,impressions:0};
+      const a=aMap.get(mk)||{purchases:0,revenue:0};
+      return{date:d,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
+    });
+    totalSpend[key]=byCreative[key].reduce((s,r)=>s+r.spend,0);
+  });
+  const creatives=[...keySet].filter(key=>totalSpend[key]>WC_MIN_SPEND).map(key=>{
+    const[ad_name,person,product]=key.split('|||');
+    return{key,ad_name,person,product,totalSpend:totalSpend[key]};
+  }).sort((a,b)=>b.totalSpend-a.totalSpend);
+  return{days,creatives,byCreative};
+}
 
 function updateMeta(){
   const lbl=getDateLabel(),noAmz=isNoAmz();
-  ['creatorMeta','productMeta','creativeMeta','weeklyMeta'].forEach(id=>{
+  ['creatorMeta','productMeta','creativeMeta','weeklyMeta','weeklyCreativeMeta'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.textContent=lbl+(noAmz?' · Meta only':' · Meta + Amazon');
   });
@@ -724,6 +785,7 @@ function refresh(){
   else if(curPage==='product')renderProdPage();
   else if(curPage==='creative'){renderProdPills();renderCreativeTable();}
   else if(curPage==='weekly')renderWeeklyPage();
+  else if(curPage==='weeklycreative')renderWeeklyCreativePage();
 }
 
 function setDateMode(mode,btn){
@@ -755,6 +817,7 @@ function goPage(pg,btn){
   if(pg==='product')renderProdPage();
   else if(pg==='creative'){renderProdPills();renderCreativeTable();}
   else if(pg==='weekly')renderWeeklyPage();
+  else if(pg==='weeklycreative')renderWeeklyCreativePage();
 }
 
 function renderPCards(){
@@ -967,6 +1030,92 @@ function switchPM(m,btn){
 function switchWM(m,btn){
   cWM=m;document.querySelectorAll('#wpmtabs .pmtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
   renderWeeklyCharts();
+}
+
+function renderWeeklyCreativePage(){renderWeekPillsWC();renderWCProdPills();renderWeeklyCreativeCharts();}
+function renderWeekPillsWC(){
+  const pillsEl=document.getElementById('weekPillsWC');
+  const{from,to}=getDateRange();
+  const weeks=weeksInRange(from,to);
+  if(!weeks.length)return;
+  curWeeksWC=new Set([...curWeeksWC].filter(w=>weeks.includes(w)));
+  if(!curWeeksWC.size)curWeeksWC.add(weeks[0]);
+  pillsEl.innerHTML=weeks.map(w=>{
+    const active=curWeeksWC.has(w)?' active':'';
+    return '<button class="fb'+active+'" onclick="toggleWeekWC(\''+w+'\',this)">'+weekLabel(w)+'</button>';
+  }).join('');
+}
+function toggleWeekWC(w,btn){
+  if(curWeeksWC.has(w))curWeeksWC.delete(w);else curWeeksWC.add(w);
+  btn.classList.toggle('active');
+  renderWeeklyCreativeCharts();
+}
+function switchWCM(m,btn){
+  cWCM=m;document.querySelectorAll('#wcpmtabs .pmtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  renderWeeklyCreativeCharts();
+}
+function renderWCProdPills(){
+  const prods=['All',...new Set(RAW.meta.map(r=>r.product).filter(Boolean))];
+  document.getElementById('wcProdPills').innerHTML=prods.map(function(p){
+    const isActive=cFiltersWC.product===p;
+    const bg=isActive?(p==='All'?'var(--surface2)':(PB[p]||'var(--surface2)')):'transparent';
+    const tc=isActive?(p==='All'?'var(--text)':(PT[p]||'var(--text)')):'var(--muted)';
+    const bc=isActive?(p==='All'?'var(--text)':(PC[p]||'var(--text)')):'var(--border)';
+    return '<button class="prod-pill'+(isActive?' active':'')+'" style="background:'+bg+';color:'+tc+';border-color:'+bc+'" onclick="setWCFilter(\'product\',\''+p+'\',this)">'+p+'</button>';
+  }).join('');
+}
+function setWCFilter(key,val,btn){
+  cFiltersWC[key]=val;
+  if(key==='product')renderWCProdPills();
+  else{
+    document.querySelectorAll('#wcCreatorFilter .fb').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  renderWeeklyCreativeCharts();
+}
+function renderWeeklyCreativeCharts(){
+  const myGen=++weeklyCreativeRenderGen;
+  const container=document.getElementById('weeklyCreativeCharts');
+  weeklyCreativeCharts.forEach(c=>c.destroy());
+  weeklyCreativeCharts=[];
+  const days=[...curWeeksWC].sort().flatMap(w=>{const a=[];for(let i=0;i<7;i++)a.push(addDays(w,i));return a;});
+  if(!days.length){container.innerHTML='<div class="no-data">표시할 기간을 선택해주세요.</div>';return;}
+  const{creatives,byCreative}=computeCreativeDaily(days,cFiltersWC.product,cFiltersWC.person);
+  const mLabels={purchases:'Purchases',roas:'ROAS (%)'};
+  const dayLabels=days.map(d=>{const p=d.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);});
+  const rangeLabel=dayLabels[0]+'–'+dayLabels[dayLabels.length-1];
+  if(!creatives.length){container.innerHTML='<div class="no-data">조건에 맞는 소재가 없어요 (광고비 ₩'+f(WC_MIN_SPEND)+' 이상).</div>';return;}
+  const dense=days.length>60;
+  container.innerHTML=creatives.map(function(c,i){
+    return '<div class="ccard"><div class="ctop"><div class="ctitle">'+
+      '<span style="color:'+(PC[c.product]||'var(--text)')+'">'+(c.ad_name||'—')+'</span> '+
+      '<span class="ptag">'+c.product+'</span> '+
+      '<span class="pp" style="background:'+(CB[c.person]||'var(--surface2)')+';color:'+(CT[c.person]||'var(--muted)')+';margin-left:4px">'+c.person+'</span>'+
+      ' — '+mLabels[cWCM]+' ('+rangeLabel+')'+
+      '</div></div><div style="position:relative;width:100%;height:180px;"><canvas id="wcchart-'+i+'"></canvas></div></div>';
+  }).join('');
+  creatives.forEach(function(c,i){
+    setTimeout(function(){
+      if(myGen!==weeklyCreativeRenderGen)return;
+      const canvas=document.getElementById('wcchart-'+i);
+      if(!canvas)return;
+      const color=PC[c.product]||'#378ADD';
+      const data=byCreative[c.key].map(r=>r[cWCM]||0);
+      weeklyCreativeCharts.push(new Chart(canvas.getContext('2d'),{
+        type:'line',
+        data:{labels:dayLabels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:dense?0:3,pointHoverRadius:5,tension:.3,fill:true}]},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          animation:false,
+          plugins:{legend:{display:false}},
+          scales:{
+            x:{ticks:{font:{size:11},color:'#888',maxRotation:45,autoSkip:true,maxTicksLimit:20},grid:{display:false}},
+            y:{ticks:{font:{size:11},color:'#888'},grid:{color:'rgba(128,128,128,.1)'}}
+          }
+        }
+      }));
+    },0);
+  });
 }
 
 function renderProdPills(){
