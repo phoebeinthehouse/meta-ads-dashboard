@@ -412,6 +412,8 @@ function parseCSV(text){
 
 function parsePerson(name){
   if(!name)return null;
+  // Exception: this specific stella-tagged partnership creative should still count
+  if(name==='GPG_vdo_milkydew-p_stella')return'Partner';
   const parts=name.split('_');
   if(parts[0].toLowerCase()==='stella')return null;
   if(PEOPLE.includes(parts[0]))return parts[0];
