@@ -1086,13 +1086,21 @@ function renderWeeklyCreativeCharts(){
   const rangeLabel=dayLabels[0]+'–'+dayLabels[dayLabels.length-1];
   if(!creatives.length){container.innerHTML='<div class="no-data">조건에 맞는 소재가 없어요 (광고비 ₩'+f(WC_MIN_SPEND)+' 이상).</div>';return;}
   const dense=days.length>60;
+  const{from:imgFrom,to:imgTo}=getDateRange();
   container.innerHTML=creatives.map(function(c,i){
-    return '<div class="ccard"><div class="ctop"><div class="ctitle">'+
+    const thumbUrl=getAdImg(c.ad_name,c.product,c.person,imgFrom,imgTo);
+    const thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;" onclick="openImg(\''+thumbUrl+'\')" style="cursor:zoom-in;flex-shrink:0;">':'<div class="ad-thumb" style="flex-shrink:0;"></div>';
+    return '<div class="ccard"><div style="display:flex;gap:12px;align-items:flex-start;">'+
+      thumbHtml+
+      '<div style="flex:1;min-width:0;">'+
+      '<div class="ctitle">'+
       '<span style="color:'+(PC[c.product]||'var(--text)')+'">'+(c.ad_name||'—')+'</span> '+
       '<span class="ptag">'+c.product+'</span> '+
       '<span class="pp" style="background:'+(CB[c.person]||'var(--surface2)')+';color:'+(CT[c.person]||'var(--muted)')+';margin-left:4px">'+c.person+'</span>'+
       ' — '+mLabels[cWCM]+' ('+rangeLabel+')'+
-      '</div></div><div style="position:relative;width:100%;height:180px;"><canvas id="wcchart-'+i+'"></canvas></div></div>';
+      '</div>'+
+      '<div style="position:relative;width:100%;height:180px;"><canvas id="wcchart-'+i+'"></canvas></div>'+
+      '</div></div></div>';
   }).join('');
   creatives.forEach(function(c,i){
     setTimeout(function(){
