@@ -232,7 +232,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     </div>
   </div>
   <div class="slabel">Product summary</div>
-  <div class="note" id="productSpendRecon"></div>
   <div class="psgrid" id="psgrid"></div>
   <div class="slabel">Creator breakdown per product</div>
   <div class="pdgrid" id="pdgrid"></div>
@@ -269,7 +268,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
     </div>
   </div>
-  <div class="note" id="creativeSpendRecon" style="margin-top:12px"></div>
   <!-- Creative table -->
   <div class="ccard" style="padding:0;overflow:hidden;">
     <div class="ad-table-wrap">
@@ -376,15 +374,9 @@ const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','G
 const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9','OTC':'#E3F0FA'};
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A','OTC':'#14395A'};
 const PEOPLE=['Lina','Sarah','Phoebe','Iris'];
-const PROD_OTHER='미분류';
-const AD_OTHER='소재명 미분류';
-const PERSON_OTHER='미분류';
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
 let RAW={meta:[],amz:[]};
-// 총액 대조용. EXCLUDED=의도적 제외(stella), UNDATED=일자 파싱 실패라 어떤 기간에도
-// 넣을 수 없는 행. 이 둘 말고는 meta 행을 버리지 않는다.
-let EXCLUDED=[],UNDATED={rows:0,spend:0};
 const CACHE_TTL=30*60*1000;
 function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
 function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
@@ -433,39 +425,11 @@ function parsePerson(name){
   if(parts[parts.length-1].endsWith('-p'))return'Partner';
   return null;
 }
-// 조인 키는 파싱 결과(ad_name/person/product)가 아니라 원본 소재명에서 만든다.
-// 파싱이 실패해도 조인은 성립해야 하기 때문. meta는 캠페인명이 한국어, amz는 영문
-// 코드라 첫 토큰만 다르므로 그 뒤를 소문자로 정규화해서 키로 쓴다 — 기존 조인도
-// campaign_type을 일부러 뺐으니 캠페인 병합 동작은 그대로다.
-function joinKeyOf(name){
-  const s=String(name||'').trim().toLowerCase();
-  if(!s)return null;
-  const parts=s.split('_');
-  return parts.length>1?parts.slice(1).join('_'):s;
-}
-// stella 소재는 리포팅 대상이 아니라 의도적으로 제외한다 (parsePerson의 stella
-// 체크와 동일 규칙). 담당자를 '못 알아본' 경우와 구분하려고 따로 뺐다 —
-// 후자는 제외 사유가 아니라 그냥 미분류로 집계해야 한다.
-function isExcludedCreative(name){
-  if(!name)return false;
-  // parsePerson이 담당자를 특정할 수 있으면 제외 대상이 아니다. 개별 예외(특정
-  // stella 소재를 Partner로 취급하는 화이트리스트 등)를 parsePerson 한 곳에서만
-  // 관리하기 위해서다 — 여기서 따로 판정하면 그쪽 예외가 조용히 무시된다.
-  // 첫 토큰이 담당자인 Lina_..._stella 형태가 살아남는 것도 이 규칙 덕분.
-  if(parsePerson(name))return false;
-  const parts=name.split('_');
-  return parts[0].toLowerCase()==='stella'||parts[parts.length-1].toLowerCase()==='stella';
-}
 function parseProduct(name){
   if(!name)return null;
   const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS','OTC':'OTC'};
   const parts=name.split('_');
-  const positional=PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||PRODS[parts[0]];
-  if(positional)return positional;
-  // 규칙에서 벗어난 자리에 제품코드가 들어간 소재명 구제.
-  // 여기서 null이 나오면 By Product / By Creative에서 행이 통째로 빠져 광고비가 사라진다.
-  for(const p of parts){const hit=PRODS[p.toUpperCase()];if(hit)return hit;}
-  return null;
+  return PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||PRODS[parts[0]]||null;
 }
 function parseMedia(name){
   if(!name)return null;
@@ -484,9 +448,6 @@ function parseAdName(name){
       return parts[i+1];
     }
   }
-  // 원본 이름을 fallback으로 쓰면 안 된다: Meta는 캠페인명이 한국어, AMZ는 영문
-  // 코드라 첫 토큰이 달라서 Meta-AMZ 조인이 깨진다. null로 두고 computeData에서
-  // 미분류로 묶는다.
   return null;
 }
 
@@ -552,8 +513,7 @@ async function loadData(){
 
     function parseMetaRows(text){
       const rows=arrToObjs(text);
-      const unknownPerson=[];
-      EXCLUDED=[];UNDATED={rows:0,spend:0};
+      const droppedNoPerson=[];
       const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
@@ -561,22 +521,17 @@ async function loadData(){
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
         const spendKey=keys.find(k=>k.includes('광고비'))||'';
         const impKey=keys.find(k=>k.includes('노출'))||'';
-        const spend=parseNum(r[spendKey]);
         const date=parseDateStr(r[dateKey]);
+        if(!date)return null;
         const name=String(r[nameKey]||'');
-        // 날짜가 없으면 어떤 기간에도 넣을 수 없다. 유일하게 불가피한 누락.
-        if(!date){UNDATED.rows++;UNDATED.spend+=spend;return null;}
-        if(isExcludedCreative(name)){EXCLUDED.push({date,spend});return null;}
-        // 담당자를 못 알아봐도 광고비는 집행됐다. 버리지 않고 person=null로 들여보낸 뒤
-        // computeData에서 미분류로 묶는다. 소재명 파싱이 지표 수집을 막으면 안 된다.
         const person=parsePerson(name);
-        if(!person&&name)unknownPerson.push(name);
+        if(!person){if(name)droppedNoPerson.push(name);return null;}
         return{date,month:date.slice(0,7),person,
           product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
-          join_key:joinKeyOf(name),campaign_type:name.split('_')[0]||null,
-          clicks:parseNum(r[clickKey]),spend,impressions:parseNum(r[impKey])};
+          campaign_type:name.split('_')[0]||null,
+          clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
       }).filter(Boolean);
-      if(unknownPerson.length)console.log('[META 미분류 person] 담당자 인식 실패(집계엔 포함됨):',unknownPerson);
+      if(droppedNoPerson.length)console.log('[META DROPPED person] 담당자 인식 실패:',droppedNoPerson);
       const nullAdName=result.filter(r=>!r.ad_name&&r.product&&r.person);
       if(nullAdName.length)console.log('[META NULL ad_name] vdo/img 없는 소재명:',nullAdName.map(r=>r.person+'|'+r.product+'|'+r.raw_name));
       return result;
@@ -596,17 +551,13 @@ async function loadData(){
         if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const rawName=String(r[nameKey]||'').trim();
-        if(isExcludedCreative(rawName))return null;
-        // meta쪽과 동일하게 담당자 미인식이어도 버리지 않는다. 양쪽에 같은 규칙을
-        // 적용해야 computeData의 미분류 버킷끼리 조인이 맞는다.
         const person=parsePerson(rawName);
-        if(!person&&purch>0)dropped.push({reason:'person_unknown(집계엔 포함됨)',rawName,date,purch});
+        if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
         const product=parseProduct(rawName);
         const ad_name=parseAdName(rawName);
-        return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,raw_name:rawName,
-          join_key:joinKeyOf(rawName),campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
+        return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
       }).filter(Boolean);
-      if(dropped.length)console.log('[AMZ 확인필요] 구매있는데 파싱 안 된 행:',dropped);
+      if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
       // 누락 진단: product null인 구매 행
       const nullProd=result.filter(r=>r.purchases>0&&!r.product);
       if(nullProd.length)console.log('[AMZ NULL PRODUCT] 구매있는데 product없는행:',nullProd.map(r=>r.date+'|'+r.person+'|'+r.ad_name+'|purch:'+r.purchases));
@@ -666,16 +617,9 @@ function grp(arr,keys,vals){
 function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
-  // By Creator는 담당자별 카드라 담당자를 못 알아본 행은 뺀다 (Partnership도 마찬가지).
-  // 그래서 By Creator 합계는 원래부터 전체 광고비보다 작을 수 있다 — 의도된 차이.
-  const metaNP=meta.filter(r=>r.person&&r.person!=='Partner');
-  const amzNP=amz.filter(r=>r.person&&r.person!=='Partner');
-  // By Product / By Creative는 반대로 한 행도 버리지 않는다. 소재명 파싱 실패는
-  // 광고비를 없앨 이유가 못 되므로 미분류로 묶는다. Meta/AMZ 양쪽에 같은 규칙을
-  // 적용하므로 조인 키는 그대로 유지된다.
-  const bucket=arr=>arr.map(r=>(r.product&&r.ad_name&&r.person)?r:
-    Object.assign({},r,{product:r.product||PROD_OTHER,ad_name:r.ad_name||AD_OTHER,person:r.person||PERSON_OTHER}));
-  const metaB=bucket(meta),amzB=bucket(amz);
+  // Partnership ads excluded from By Creator (person-based cards); included in By Product and By Creative
+  const metaNP=meta.filter(r=>r.person!=='Partner');
+  const amzNP=amz.filter(r=>r.person!=='Partner');
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
 
@@ -700,54 +644,41 @@ function computeData(from,to){
     return{date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
   });
 
-  const pp_m=grp(metaB,['product','person'],['clicks','spend','impressions']);
-  const pp_a=grp(amzB,['product','person'],['purchases','revenue']);
-  const pp=pp_m.map(m=>{
+  const pp_m=grp(meta,['product','person'],['clicks','spend','impressions']);
+  const pp_a=grp(amz,['product','person'],['purchases','revenue']);
+  const pp=pp_m.filter(m=>m.product).map(m=>{
     const a=pp_a.find(x=>x.product===m.product&&x.person===m.person)||{purchases:0,revenue:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
-  const psum_m=grp(metaB,['product'],['clicks','spend','impressions']);
-  const psum_a=grp(amzB,['product'],['purchases','revenue']);
-  const psum=psum_m.map(m=>{
+  const psum_m=grp(meta,['product'],['clicks','spend','impressions']);
+  const psum_a=grp(amz,['product'],['purchases','revenue']);
+  const psum=psum_m.filter(m=>m.product).map(m=>{
     const a=psum_a.find(x=>x.product===m.product)||{purchases:0,revenue:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
-  const adGroupKeys=splitByCampaign?['ad_name','person','product','media','join_key','campaign_type']:['ad_name','person','product','media','join_key'];
-  const amzGroupKeys=splitByCampaign?['ad_name','person','product','join_key','campaign_type']:['ad_name','person','product','join_key'];
-  const ads_m=grp(metaB,adGroupKeys,['clicks','spend','impressions']);
-  const ads_a=grp(amzB,amzGroupKeys,['purchases']);
-  const parsedKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
-  // 진단: vdo/img 없어서 소재명을 못 뽑은 행 (이제 버리지 않고 미분류로 묶인다)
-  const nullAdNameAds=ads_m.filter(m=>m.ad_name===AD_OTHER);
+  const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
+  const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
+  const ads_m=grp(meta,adGroupKeys,['clicks','spend','impressions']);
+  const ads_a=grp(amz,amzGroupKeys,['purchases']);
+  // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
+  const ads_a_join=splitByCampaign?grp(amz,['ad_name','person','product'],['purchases']):ads_a;
+  const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
+  // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
+  const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
   if(nullAdNameAds.length){
-    const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+r.spend;});
-    console.log('[META 미분류 ad_name] vdo/img 없는 소재의 광고비 per product:',cnt);
+    const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+1;});
+    console.log('[META DROPPED ad_name] vdo/img 없어서 누락된 소재 per product:',cnt);
   }
-  // Meta 기반 rows. 광고비는 meta에서만 오므로 조인 성패와 무관하게 한 행도 빠지지 않는다.
-  const metaAds=ads_m.map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:0}));
-  // 조인은 원본 소재명 키 우선, 실패하면 파싱 키로 한 번 더 시도한다. amz 그룹 하나는
-  // meta 그룹 하나에만 배정한다 — 예전 find 방식은 캠페인 분리 시 같은 구매가 여러
-  // 캠페인 행에 중복 계상됐다.
-  const byNorm=new Map(),byParsed=new Map();
-  [...metaAds].sort((a,b)=>b.spend-a.spend).forEach(m=>{
-    if(m.join_key&&!byNorm.has(m.join_key))byNorm.set(m.join_key,m);
-    if(!byParsed.has(parsedKey(m)))byParsed.set(parsedKey(m),m);
+  // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
+  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
+    const a=ads_a_join.find(x=>joinKey(x)===joinKey(m))||{purchases:0};
+    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
-  const unmatchedAmz=[];
-  ads_a.forEach(a=>{
-    const hit=(a.join_key&&byNorm.get(a.join_key))||byParsed.get(parsedKey(a));
-    if(hit)hit.purchases+=a.purchases;else unmatchedAmz.push(a);
-  });
-  metaAds.forEach(m=>{m.cpa=m.purchases>0?Math.round(m.spend/m.purchases):0;});
-  // 조인 커버리지 진단: 매칭 안 된 구매가 있으면 조인 키 가정이 깨졌다는 신호
-  const amzTotal=ads_a.reduce((s,x)=>s+x.purchases,0);
-  const amzLost=unmatchedAmz.reduce((s,x)=>s+x.purchases,0);
-  if(amzTotal>0&&amzLost>0)console.log('[조인 커버리지] amz 구매 '+(amzTotal-amzLost)+'/'+amzTotal+
-    ' 매칭, 미매칭 '+amzLost+'건:',unmatchedAmz.filter(x=>x.purchases>0).map(x=>x.join_key+'|purch:'+x.purchases));
   // AMZ 전용 rows (Meta에 없지만 구매 있는 소재)
-  const amzOnly=unmatchedAmz.filter(x=>x.purchases>0)
+  const metaKeys=new Set(ads_m.filter(m=>m.ad_name&&m.product).map(m=>joinKey(m)));
+  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
     .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
@@ -988,24 +919,7 @@ function switchM(m,btn){
   renderPCards();renderTrend();renderMedia();
 }
 
-// 집계 광고비와 meta-raw-new 원본 총액을 대조한다. 남은 차액은 stella(의도적 제외)와
-// 일자 파싱 실패뿐이고, 둘 다 금액으로 표시하므로 총액이 전부 설명돼야 한다.
-function renderSpendRecon(){
-  const{from,to}=getDateRange();
-  const inRange=r=>r.date>=from&&r.date<=to;
-  const shown=RAW.meta.filter(inRange).reduce((s,r)=>s+r.spend,0);
-  const stella=EXCLUDED.filter(inRange).reduce((s,r)=>s+r.spend,0);
-  let txt='기간 내 집계 광고비 ₩'+f(shown);
-  if(stella>0)txt+=' · stella 제외 ₩'+f(stella);
-  if(UNDATED.spend>0)txt+=' · 일자 인식 실패 ₩'+f(UNDATED.spend)+'('+UNDATED.rows+'행, 기간 무관)';
-  if(stella<=0&&UNDATED.spend<=0)txt+=' · meta-raw-new 전액 반영됨';
-  ['productSpendRecon','creativeSpendRecon'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.textContent=txt;
-  });
-}
-
-function renderProdPage(){renderSpendRecon();renderPSum();renderPDGrid();}
+function renderProdPage(){renderPSum();renderPDGrid();}
 function renderWeeklyPage(){renderWeekPills();renderWeeklyCharts();}
 
 function renderPSum(){
@@ -1040,8 +954,8 @@ function renderPDGrid(){
       const pct=mx>0&&val>0?Math.round(val/mx*100):0;
       let dv=m==='clicks'?f(val):(m==='ctr'||m==='roas')?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):(val>0?'₩'+f(val):'—');
       html+='<div class="crow">'+
-        '<div class="clabel"><span class="cdot" style="background:'+(C[r.person]||'var(--muted)')+'"></span><span class="cname">'+r.person+'</span></div>'+
-        '<div class="cbw"><div class="cbt"><div class="cbf" style="width:'+pct+'%;background:'+(C[r.person]||'var(--muted)')+'"></div></div></div>'+
+        '<div class="clabel"><span class="cdot" style="background:'+C[r.person]+'"></span><span class="cname">'+r.person+'</span></div>'+
+        '<div class="cbw"><div class="cbt"><div class="cbf" style="width:'+pct+'%;background:'+C[r.person]+'"></div></div></div>'+
         '<div class="cval" style="color:var(--text)">'+dv+'</div>'+
         '</div>';
     });
@@ -1276,7 +1190,6 @@ function setCS(s,btn){
 }
 
 function renderCreativeTable(){
-  renderSpendRecon();
   let ads=[...(D().ads||[])];
   if(cFilters.product!=='All')ads=ads.filter(a=>a.product===cFilters.product);
   if(cFilters.person!=='All')ads=ads.filter(a=>a.person===cFilters.person);
@@ -1330,29 +1243,6 @@ function renderCreativeTable(){
 
 function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
 
-// 콘솔에서 whyUnclassified() 실행하면 현재 기간의 미분류 사유와 광고비를 출력.
-// 어떤 소재명이 어느 규칙에서 걸렸는지 보고 시트 네이밍을 고치면 미분류가 사라진다.
-window.whyUnclassified=function(){
-  const{from,to}=getDateRange();
-  const rows=RAW.meta.filter(r=>r.date>=from&&r.date<=to&&(!r.product||!r.ad_name||!r.person));
-  if(!rows.length){console.log('[미분류] 없음 — '+from+'~'+to+' 전부 인식됨');return[];}
-  const reasonOf=r=>[!r.product?'제품코드 없음':null,!r.ad_name?'vdo/img 토큰 없음':null,
-    !r.person?'담당자 미인식':null].filter(Boolean).join(' + ');
-  const agg={};
-  rows.forEach(r=>{
-    const k=reasonOf(r);
-    if(!agg[k])agg[k]={spend:0,count:0,samples:[]};
-    agg[k].spend+=r.spend;agg[k].count++;
-    if(agg[k].samples.length<5&&agg[k].samples.indexOf(r.raw_name)<0)agg[k].samples.push(r.raw_name);
-  });
-  console.log('[미분류 사유별] '+from+' ~ '+to+' · 총 ₩'+f(rows.reduce((s,r)=>s+r.spend,0)));
-  Object.keys(agg).sort((a,b)=>agg[b].spend-agg[a].spend).forEach(k=>{
-    console.log('  '+k+' — ₩'+f(agg[k].spend)+' ('+agg[k].count+'행)');
-    agg[k].samples.forEach(n=>console.log('      '+n));
-  });
-  return rows;
-};
-
 // 콘솔에서 checkMissingAds() 실행하면 By Creative에 누락된 소재 목록 출력
 window.checkMissingAds=function(){
   const{from,to}=getDateRange();
@@ -1361,7 +1251,7 @@ window.checkMissingAds=function(){
   const adsKeys=new Set(ads.map(a=>a.ad_name+'|||'+a.person+'|||'+a.product));
   const missing=[],seen=new Set();
   meta.forEach(r=>{
-    const k=(r.ad_name||AD_OTHER)+'|||'+r.person+'|||'+(r.product||PROD_OTHER);
+    const k=(r.ad_name||'null')+'|||'+r.person+'|||'+(r.product||'null');
     if(!seen.has(k)&&!adsKeys.has(k)){seen.add(k);missing.push(r);}
   });
   if(!missing.length){console.log('[MISSING ADS] 없음 - 모든 소재 표시중');return[];}
