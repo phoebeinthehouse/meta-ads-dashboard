@@ -437,7 +437,11 @@ function parsePerson(name){
 function isExcludedCreative(name){
   if(!name)return false;
   const parts=name.split('_');
-  return parts[0].toLowerCase()==='stella'||parts[parts.length-1].toLowerCase()==='stella';
+  if(parts[0].toLowerCase()==='stella')return true;
+  // parsePerson과 동일한 우선순위를 지켜야 한다: 첫 토큰이 담당자면 뒤에 stella가
+  // 붙어 있어도 그 담당자의 소재로 집계한다 (Lina_..._stella 등).
+  if(PEOPLE.includes(parts[0]))return false;
+  return parts[parts.length-1].toLowerCase()==='stella';
 }
 function parseProduct(name){
   if(!name)return null;
