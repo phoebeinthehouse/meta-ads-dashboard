@@ -378,11 +378,13 @@ const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','G
 const PEOPLE=['Lina','Sarah','Phoebe','Iris'];
 const PROD_OTHER='미분류';
 const AD_OTHER='소재명 미분류';
+const PERSON_OTHER='미분류';
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
 let RAW={meta:[],amz:[]};
-// 담당자 인식 실패로 대시보드 집계에서 빠진 행의 광고비 (총액 대조용)
-let EXCLUDED=[];
+// 총액 대조용. EXCLUDED=의도적 제외(stella), UNDATED=일자 파싱 실패라 어떤 기간에도
+// 넣을 수 없는 행. 이 둘 말고는 meta 행을 버리지 않는다.
+let EXCLUDED=[],UNDATED={rows:0,spend:0};
 const CACHE_TTL=30*60*1000;
 function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
 function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
@@ -428,6 +430,14 @@ function parsePerson(name){
   // Partnership ads: last underscore-token ends with -p
   if(parts[parts.length-1].endsWith('-p'))return'Partner';
   return null;
+}
+// stella 소재는 리포팅 대상이 아니라 의도적으로 제외한다 (parsePerson의 stella
+// 체크와 동일 규칙). 담당자를 '못 알아본' 경우와 구분하려고 따로 뺐다 —
+// 후자는 제외 사유가 아니라 그냥 미분류로 집계해야 한다.
+function isExcludedCreative(name){
+  if(!name)return false;
+  const parts=name.split('_');
+  return parts[0].toLowerCase()==='stella'||parts[parts.length-1].toLowerCase()==='stella';
 }
 function parseProduct(name){
   if(!name)return null;
@@ -525,8 +535,8 @@ async function loadData(){
 
     function parseMetaRows(text){
       const rows=arrToObjs(text);
-      const droppedNoPerson=[];
-      EXCLUDED=[];
+      const unknownPerson=[];
+      EXCLUDED=[];UNDATED={rows:0,spend:0};
       const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
@@ -534,20 +544,22 @@ async function loadData(){
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
         const spendKey=keys.find(k=>k.includes('광고비'))||'';
         const impKey=keys.find(k=>k.includes('노출'))||'';
+        const spend=parseNum(r[spendKey]);
         const date=parseDateStr(r[dateKey]);
-        if(!date)return null;
         const name=String(r[nameKey]||'');
+        // 날짜가 없으면 어떤 기간에도 넣을 수 없다. 유일하게 불가피한 누락.
+        if(!date){UNDATED.rows++;UNDATED.spend+=spend;return null;}
+        if(isExcludedCreative(name)){EXCLUDED.push({date,spend});return null;}
+        // 담당자를 못 알아봐도 광고비는 집행됐다. 버리지 않고 person=null로 들여보낸 뒤
+        // computeData에서 미분류로 묶는다. 소재명 파싱이 지표 수집을 막으면 안 된다.
         const person=parsePerson(name);
-        if(!person){
-          if(name){droppedNoPerson.push(name);EXCLUDED.push({date,spend:parseNum(r[spendKey])});}
-          return null;
-        }
+        if(!person&&name)unknownPerson.push(name);
         return{date,month:date.slice(0,7),person,
           product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
           campaign_type:name.split('_')[0]||null,
-          clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
+          clicks:parseNum(r[clickKey]),spend,impressions:parseNum(r[impKey])};
       }).filter(Boolean);
-      if(droppedNoPerson.length)console.log('[META DROPPED person] 담당자 인식 실패:',droppedNoPerson);
+      if(unknownPerson.length)console.log('[META 미분류 person] 담당자 인식 실패(집계엔 포함됨):',unknownPerson);
       const nullAdName=result.filter(r=>!r.ad_name&&r.product&&r.person);
       if(nullAdName.length)console.log('[META NULL ad_name] vdo/img 없는 소재명:',nullAdName.map(r=>r.person+'|'+r.product+'|'+r.raw_name));
       return result;
@@ -567,13 +579,16 @@ async function loadData(){
         if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const rawName=String(r[nameKey]||'').trim();
+        if(isExcludedCreative(rawName))return null;
+        // meta쪽과 동일하게 담당자 미인식이어도 버리지 않는다. 양쪽에 같은 규칙을
+        // 적용해야 computeData의 미분류 버킷끼리 조인이 맞는다.
         const person=parsePerson(rawName);
-        if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
+        if(!person&&purch>0)dropped.push({reason:'person_unknown(집계엔 포함됨)',rawName,date,purch});
         const product=parseProduct(rawName);
         const ad_name=parseAdName(rawName);
         return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
       }).filter(Boolean);
-      if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
+      if(dropped.length)console.log('[AMZ 확인필요] 구매있는데 파싱 안 된 행:',dropped);
       // 누락 진단: product null인 구매 행
       const nullProd=result.filter(r=>r.purchases>0&&!r.product);
       if(nullProd.length)console.log('[AMZ NULL PRODUCT] 구매있는데 product없는행:',nullProd.map(r=>r.date+'|'+r.person+'|'+r.ad_name+'|purch:'+r.purchases));
@@ -633,14 +648,15 @@ function grp(arr,keys,vals){
 function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
-  // Partnership ads excluded from By Creator (person-based cards); included in By Product and By Creative
-  const metaNP=meta.filter(r=>r.person!=='Partner');
-  const amzNP=amz.filter(r=>r.person!=='Partner');
-  // 소재명 파싱이 안 된 행도 광고비는 집행됐다. 버리지 말고 미분류로 묶어야
-  // By Product / By Creative 광고비가 Meta 총액과 맞는다. Meta/AMZ 양쪽에 같은
-  // 규칙을 적용하므로 조인 키는 그대로 유지된다.
-  const bucket=arr=>arr.map(r=>(r.product&&r.ad_name)?r:
-    Object.assign({},r,{product:r.product||PROD_OTHER,ad_name:r.ad_name||AD_OTHER}));
+  // By Creator는 담당자별 카드라 담당자를 못 알아본 행은 뺀다 (Partnership도 마찬가지).
+  // 그래서 By Creator 합계는 원래부터 전체 광고비보다 작을 수 있다 — 의도된 차이.
+  const metaNP=meta.filter(r=>r.person&&r.person!=='Partner');
+  const amzNP=amz.filter(r=>r.person&&r.person!=='Partner');
+  // By Product / By Creative는 반대로 한 행도 버리지 않는다. 소재명 파싱 실패는
+  // 광고비를 없앨 이유가 못 되므로 미분류로 묶는다. Meta/AMZ 양쪽에 같은 규칙을
+  // 적용하므로 조인 키는 그대로 유지된다.
+  const bucket=arr=>arr.map(r=>(r.product&&r.ad_name&&r.person)?r:
+    Object.assign({},r,{product:r.product||PROD_OTHER,ad_name:r.ad_name||AD_OTHER,person:r.person||PERSON_OTHER}));
   const metaB=bucket(meta),amzB=bucket(amz);
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
@@ -941,15 +957,17 @@ function switchM(m,btn){
   renderPCards();renderTrend();renderMedia();
 }
 
-// 대시보드 집계 광고비와 Meta 원본 총액을 대조해 보여준다.
-// 둘이 다르면 담당자 인식 실패로 빠진 행이 있다는 뜻.
+// 집계 광고비와 meta-raw-new 원본 총액을 대조한다. 남은 차액은 stella(의도적 제외)와
+// 일자 파싱 실패뿐이고, 둘 다 금액으로 표시하므로 총액이 전부 설명돼야 한다.
 function renderSpendRecon(){
   const{from,to}=getDateRange();
-  const shown=RAW.meta.filter(r=>r.date>=from&&r.date<=to).reduce((s,r)=>s+r.spend,0);
-  const excluded=EXCLUDED.filter(r=>r.date>=from&&r.date<=to).reduce((s,r)=>s+r.spend,0);
-  const txt=excluded>0
-    ?'기간 내 Meta 총 광고비 ₩'+f(shown+excluded)+' · 집계 ₩'+f(shown)+' · 담당자 미인식으로 제외 ₩'+f(excluded)
-    :'기간 내 Meta 총 광고비 ₩'+f(shown)+' · 전액 집계됨';
+  const inRange=r=>r.date>=from&&r.date<=to;
+  const shown=RAW.meta.filter(inRange).reduce((s,r)=>s+r.spend,0);
+  const stella=EXCLUDED.filter(inRange).reduce((s,r)=>s+r.spend,0);
+  let txt='기간 내 집계 광고비 ₩'+f(shown);
+  if(stella>0)txt+=' · stella 제외 ₩'+f(stella);
+  if(UNDATED.spend>0)txt+=' · 일자 인식 실패 ₩'+f(UNDATED.spend)+'('+UNDATED.rows+'행, 기간 무관)';
+  if(stella<=0&&UNDATED.spend<=0)txt+=' · meta-raw-new 전액 반영됨';
   ['productSpendRecon','creativeSpendRecon'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.textContent=txt;
@@ -991,8 +1009,8 @@ function renderPDGrid(){
       const pct=mx>0&&val>0?Math.round(val/mx*100):0;
       let dv=m==='clicks'?f(val):(m==='ctr'||m==='roas')?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):(val>0?'₩'+f(val):'—');
       html+='<div class="crow">'+
-        '<div class="clabel"><span class="cdot" style="background:'+C[r.person]+'"></span><span class="cname">'+r.person+'</span></div>'+
-        '<div class="cbw"><div class="cbt"><div class="cbf" style="width:'+pct+'%;background:'+C[r.person]+'"></div></div></div>'+
+        '<div class="clabel"><span class="cdot" style="background:'+(C[r.person]||'var(--muted)')+'"></span><span class="cname">'+r.person+'</span></div>'+
+        '<div class="cbw"><div class="cbt"><div class="cbf" style="width:'+pct+'%;background:'+(C[r.person]||'var(--muted)')+'"></div></div></div>'+
         '<div class="cval" style="color:var(--text)">'+dv+'</div>'+
         '</div>';
     });
