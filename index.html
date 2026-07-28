@@ -618,6 +618,7 @@ async function loadData(){
 
     RAW.meta=parseMetaRows(mt);
     RAW.amz=parseAmzRows(at);
+    applyMetaAttribution();
     const allDates=[...RAW.meta.map(r=>r.date),...RAW.amz.map(r=>r.date)].filter(Boolean).sort();
     if(allDates.length){
       customFrom=allDates[0];customTo=allDates[allDates.length-1];
@@ -661,6 +662,23 @@ function grp(arr,keys,vals){
     vals.forEach(v=>map[ck][v]+=(r[v]||0));
   }
   return Object.values(map);
+}
+
+// 두 시트는 소재명 첫 토큰이 달라(meta 한국어 캠페인명 / amz 영문 코드) 같은 소재라도
+// 담당자·제품이 다르게 파싱될 수 있다. 그러면 광고비는 A, 매출은 B에 떨어져 ROAS가
+// 양쪽 다 깨진다. 광고비의 출처인 meta를 귀속 기준으로 삼아 조인되는 amz 행에 그대로
+// 입힌다. 조인이 안 되는 amz 행은 자기 파싱값을 유지한다.
+function applyMetaAttribution(){
+  const byKey=new Map();
+  RAW.meta.forEach(r=>{if(r.join_key&&!byKey.has(r.join_key))byKey.set(r.join_key,r);});
+  let realigned=0;
+  RAW.amz.forEach(r=>{
+    const m=r.join_key?byKey.get(r.join_key):null;
+    if(!m)return;
+    if(r.person!==m.person||r.product!==m.product||r.ad_name!==m.ad_name)realigned++;
+    r.person=m.person;r.product=m.product;r.ad_name=m.ad_name;r.media=m.media;
+  });
+  if(realigned)console.log('[귀속 정렬] meta 기준으로 amz '+realigned+'행의 담당자/제품/소재명 보정');
 }
 
 function computeData(from,to){
