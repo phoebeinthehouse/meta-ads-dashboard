@@ -413,11 +413,19 @@ function parseCSV(text){
 function parsePerson(name){
   if(!name)return null;
   const parts=name.split('_');
+  const personFromToken=token=>{
+    const leadingName=String(token||'').trim().match(/^[A-Za-z]+/);
+    if(!leadingName)return null;
+    return PEOPLE.find(person=>person.toLowerCase()===leadingName[0].toLowerCase())||null;
+  };
   if(parts[0].toLowerCase()==='stella')return null;
-  if(PEOPLE.includes(parts[0]))return parts[0];
+  const firstPerson=personFromToken(parts[0]);
+  if(firstPerson)return firstPerson;
   if(parts[parts.length-1].toLowerCase()==='stella')return null;
-  for(const p of PEOPLE){if(parts[parts.length-1].toLowerCase()===p.toLowerCase())return p;}
-  for(const p of PEOPLE){if(parts.includes(p))return p;}
+  // Sheet notes may follow a creator name, e.g. "Phoebe ★라스트데이(0726)".
+  const lastPerson=personFromToken(parts[parts.length-1]);
+  if(lastPerson)return lastPerson;
+  for(const part of parts){const person=personFromToken(part);if(person)return person;}
   if(parts[parts.length-1]==='SB')return'Phoebe';
   // Partnership ads: last underscore-token ends with -p
   if(parts[parts.length-1].endsWith('-p'))return'Partner';
