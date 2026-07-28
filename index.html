@@ -418,9 +418,15 @@ function parseCSV(text){
   });
 }
 
+// U/W may append a reporting note after the four-part identity, separated by
+// whitespace (for example "Phoebe ★라스트데이(0726)"). The note is metadata,
+// not part of the creator token used for attribution or joining.
+function identityToken(token){
+  return String(token||'').normalize('NFKC').trim().split(/\s+/)[0]||'';
+}
 function parsePerson(name){
   if(!name)return null;
-  const parts=name.split('_');
+  const parts=name.split('_').map(identityToken);
   if(parts[0].toLowerCase()==='stella')return null;
   if(PEOPLE.includes(parts[0]))return parts[0];
   if(parts[parts.length-1].toLowerCase()==='stella')return null;
@@ -458,11 +464,15 @@ function parseAdName(name){
 }
 function parseAdKey(name){
   if(!name)return null;
-  const parts=String(name).normalize('NFKC').split('_').map(p=>p.trim().toLowerCase()).filter(Boolean);
+  const parts=String(name).split('_').map(identityToken).filter(Boolean);
   // Columns U/W contain the shared identity in this order:
   // product_media_creative_creator (for example GPG_vdo_orangeB_Phoebe).
-  // Only rows whose complete four-word identity matches may be joined.
-  return parts.length>=4?parts.slice(0,4).join('_'):null;
+  // Product/media/creator are categories and compare case-insensitively. The
+  // creative name is deliberately case-sensitive so e.g. LDcofvs01 and
+  // LDCOFVS01 remain distinct ads.
+  if(parts.length<4)return null;
+  const[product,media,creative,creator]=parts;
+  return[product.toLowerCase(),media.toLowerCase(),creative,creator.toLowerCase()].join('_');
 }
 function makeRowKey(source,name){
   const adKey=parseAdKey(name);
@@ -470,7 +480,7 @@ function makeRowKey(source,name){
   // Keep malformed/incomplete rows visible without ever joining them across
   // sources. The source prefix prevents a partial Meta identity from being
   // mistaken for a partial Amazon identity.
-  return source+':'+String(name||'').trim().toLowerCase();
+  return source+':'+String(name||'').normalize('NFKC').trim();
 }
 function analyzeJoinCoverage(){
   const sumBy=(rows,value)=>{
