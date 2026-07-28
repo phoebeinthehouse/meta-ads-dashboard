@@ -434,7 +434,7 @@ function parsePerson(name){
   for(const p of PEOPLE){if(parts.includes(p))return p;}
   if(parts[parts.length-1]==='SB')return'Phoebe';
   // Partnership ads: last underscore-token ends with -p
-  if(parts[parts.length-1].endsWith('-p'))return'Partner';
+  if(parts[parts.length-1].toLowerCase().endsWith('-p'))return'Partner';
   return null;
 }
 function parseProduct(name){
@@ -456,23 +456,25 @@ function parseAdName(name){
       const rest=parts.slice(i+1);
       const last=rest[rest.length-1];
       // Partnership ads: last token ends with -p → join all tokens and strip -p suffix
-      if(last.endsWith('-p')){rest[rest.length-1]=last.slice(0,-2);return rest.join('_');}
+      if(last.toLowerCase().endsWith('-p')){rest[rest.length-1]=last.slice(0,-2);return rest.join('_');}
       return parts[i+1];
     }
   }
   return null;
+}
+function canonicalAdKey(parts){
+  if(parts.length<4)return null;
+  return parts.slice(0,4).map(p=>p.toLowerCase()).join('_');
 }
 function parseAdKey(name){
   if(!name)return null;
   const parts=String(name).split('_').map(identityToken).filter(Boolean);
   // Columns U/W contain the shared identity in this order:
   // product_media_creative_creator (for example GPG_vdo_orangeB_Phoebe).
-  // Product/media/creator are categories and compare case-insensitively. The
-  // creative name is deliberately case-sensitive so e.g. LDcofvs01 and
-  // LDCOFVS01 remain distinct ads.
-  if(parts.length<4)return null;
-  const[product,media,creative,creator]=parts;
-  return[product.toLowerCase(),media.toLowerCase(),creative,creator.toLowerCase()].join('_');
+  // All four tokens compare case-insensitively. Meta and Amazon sometimes use
+  // different capitalization for the same partnership creative; preserving
+  // case here would leave its purchases unmatched in By Creative.
+  return canonicalAdKey(parts);
 }
 function makeRowKey(source,name){
   const adKey=parseAdKey(name);
@@ -480,7 +482,7 @@ function makeRowKey(source,name){
   // Keep malformed/incomplete rows visible without ever joining them across
   // sources. The source prefix prevents a partial Meta identity from being
   // mistaken for a partial Amazon identity.
-  return source+':'+String(name||'').normalize('NFKC').trim();
+  return source+':'+String(name||'').normalize('NFKC').trim().toLowerCase();
 }
 function analyzeJoinCoverage(){
   const sumBy=(rows,value)=>{
