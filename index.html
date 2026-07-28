@@ -431,6 +431,16 @@ function parsePerson(name){
   if(parts[parts.length-1].endsWith('-p'))return'Partner';
   return null;
 }
+// 조인 키는 파싱 결과(ad_name/person/product)가 아니라 원본 소재명에서 만든다.
+// 파싱이 실패해도 조인은 성립해야 하기 때문. meta는 캠페인명이 한국어, amz는 영문
+// 코드라 첫 토큰만 다르므로 그 뒤를 소문자로 정규화해서 키로 쓴다 — 기존 조인도
+// campaign_type을 일부러 뺐으니 캠페인 병합 동작은 그대로다.
+function joinKeyOf(name){
+  const s=String(name||'').trim().toLowerCase();
+  if(!s)return null;
+  const parts=s.split('_');
+  return parts.length>1?parts.slice(1).join('_'):s;
+}
 // stella 소재는 리포팅 대상이 아니라 의도적으로 제외한다 (parsePerson의 stella
 // 체크와 동일 규칙). 담당자를 '못 알아본' 경우와 구분하려고 따로 뺐다 —
 // 후자는 제외 사유가 아니라 그냥 미분류로 집계해야 한다.
@@ -560,7 +570,7 @@ async function loadData(){
         if(!person&&name)unknownPerson.push(name);
         return{date,month:date.slice(0,7),person,
           product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
-          campaign_type:name.split('_')[0]||null,
+          join_key:joinKeyOf(name),campaign_type:name.split('_')[0]||null,
           clicks:parseNum(r[clickKey]),spend,impressions:parseNum(r[impKey])};
       }).filter(Boolean);
       if(unknownPerson.length)console.log('[META 미분류 person] 담당자 인식 실패(집계엔 포함됨):',unknownPerson);
@@ -590,7 +600,8 @@ async function loadData(){
         if(!person&&purch>0)dropped.push({reason:'person_unknown(집계엔 포함됨)',rawName,date,purch});
         const product=parseProduct(rawName);
         const ad_name=parseAdName(rawName);
-        return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
+        return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,raw_name:rawName,
+          join_key:joinKeyOf(rawName),campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
       }).filter(Boolean);
       if(dropped.length)console.log('[AMZ 확인필요] 구매있는데 파싱 안 된 행:',dropped);
       // 누락 진단: product null인 구매 행
@@ -700,27 +711,40 @@ function computeData(from,to){
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
-  const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
-  const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
+  const adGroupKeys=splitByCampaign?['ad_name','person','product','media','join_key','campaign_type']:['ad_name','person','product','media','join_key'];
+  const amzGroupKeys=splitByCampaign?['ad_name','person','product','join_key','campaign_type']:['ad_name','person','product','join_key'];
   const ads_m=grp(metaB,adGroupKeys,['clicks','spend','impressions']);
   const ads_a=grp(amzB,amzGroupKeys,['purchases']);
-  // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
-  const ads_a_join=splitByCampaign?grp(amzB,['ad_name','person','product'],['purchases']):ads_a;
-  const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
+  const parsedKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
   // 진단: vdo/img 없어서 소재명을 못 뽑은 행 (이제 버리지 않고 미분류로 묶인다)
   const nullAdNameAds=ads_m.filter(m=>m.ad_name===AD_OTHER);
   if(nullAdNameAds.length){
     const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+r.spend;});
     console.log('[META 미분류 ad_name] vdo/img 없는 소재의 광고비 per product:',cnt);
   }
-  // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
-  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
-    const a=ads_a_join.find(x=>joinKey(x)===joinKey(m))||{purchases:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
+  // Meta 기반 rows. 광고비는 meta에서만 오므로 조인 성패와 무관하게 한 행도 빠지지 않는다.
+  const metaAds=ads_m.map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:0}));
+  // 조인은 원본 소재명 키 우선, 실패하면 파싱 키로 한 번 더 시도한다. amz 그룹 하나는
+  // meta 그룹 하나에만 배정한다 — 예전 find 방식은 캠페인 분리 시 같은 구매가 여러
+  // 캠페인 행에 중복 계상됐다.
+  const byNorm=new Map(),byParsed=new Map();
+  [...metaAds].sort((a,b)=>b.spend-a.spend).forEach(m=>{
+    if(m.join_key&&!byNorm.has(m.join_key))byNorm.set(m.join_key,m);
+    if(!byParsed.has(parsedKey(m)))byParsed.set(parsedKey(m),m);
   });
+  const unmatchedAmz=[];
+  ads_a.forEach(a=>{
+    const hit=(a.join_key&&byNorm.get(a.join_key))||byParsed.get(parsedKey(a));
+    if(hit)hit.purchases+=a.purchases;else unmatchedAmz.push(a);
+  });
+  metaAds.forEach(m=>{m.cpa=m.purchases>0?Math.round(m.spend/m.purchases):0;});
+  // 조인 커버리지 진단: 매칭 안 된 구매가 있으면 조인 키 가정이 깨졌다는 신호
+  const amzTotal=ads_a.reduce((s,x)=>s+x.purchases,0);
+  const amzLost=unmatchedAmz.reduce((s,x)=>s+x.purchases,0);
+  if(amzTotal>0&&amzLost>0)console.log('[조인 커버리지] amz 구매 '+(amzTotal-amzLost)+'/'+amzTotal+
+    ' 매칭, 미매칭 '+amzLost+'건:',unmatchedAmz.filter(x=>x.purchases>0).map(x=>x.join_key+'|purch:'+x.purchases));
   // AMZ 전용 rows (Meta에 없지만 구매 있는 소재)
-  const metaKeys=new Set(ads_m.filter(m=>m.ad_name&&m.product).map(m=>joinKey(m)));
-  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
+  const amzOnly=unmatchedAmz.filter(x=>x.purchases>0)
     .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
