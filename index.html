@@ -425,6 +425,14 @@ function parseCSV(text){
 function identityToken(token){
   return String(token||'').normalize('NFKC').trim().split(/\s+/)[0]||'';
 }
+function personFromIdentityParts(parts){
+  for(const person of PEOPLE){
+    if(parts.some(token=>token.toLowerCase()===person.toLowerCase()))return person;
+  }
+  if(parts.some(token=>token.toUpperCase()==='SB'))return'Phoebe';
+  if(parts.some(token=>token.toLowerCase().endsWith('-p')))return'Partner';
+  return null;
+}
 function parsePerson(name){
   if(!name)return null;
   const parts=name.split('_').map(identityToken);
@@ -433,11 +441,8 @@ function parsePerson(name){
   // U/W are four-part identities, but reporting/campaign notes can add more
   // underscore tokens after the creator. Search every token rather than only
   // the last one so those rows are not dropped from creator/product totals.
-  for(const p of PEOPLE){if(parts.some(token=>token.toLowerCase()===p.toLowerCase()))return p;}
-  if(parts.some(token=>token.toUpperCase()==='SB'))return'Phoebe';
   // Partnership markers can likewise appear before an appended note.
-  if(parts.some(token=>token.toLowerCase().endsWith('-p')))return'Partner';
-  return null;
+  return personFromIdentityParts(parts);
 }
 function parseProduct(name){
   if(!name)return null;
