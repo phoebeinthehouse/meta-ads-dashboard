@@ -462,6 +462,10 @@ function parseAdName(name){
   }
   return null;
 }
+function canonicalAdKey(parts){
+  if(parts.length<4)return null;
+  return parts.slice(0,4).map(p=>p.toLowerCase()).join('_');
+}
 function parseAdKey(name){
   if(!name)return null;
   const parts=String(name).split('_').map(identityToken).filter(Boolean);
@@ -470,9 +474,7 @@ function parseAdKey(name){
   // All four tokens compare case-insensitively. Meta and Amazon sometimes use
   // different capitalization for the same partnership creative; preserving
   // case here would leave its purchases unmatched in By Creative.
-  if(parts.length<4)return null;
-  const[product,media,creative,creator]=parts;
-  return[product,media,creative,creator].map(p=>p.toLowerCase()).join('_');
+  return canonicalAdKey(parts);
 }
 function makeRowKey(source,name){
   const adKey=parseAdKey(name);
