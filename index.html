@@ -385,6 +385,8 @@ let RAW={meta:[],amz:[]};
 // 총액 대조용. EXCLUDED=의도적 제외(stella), UNDATED=일자 파싱 실패라 어떤 기간에도
 // 넣을 수 없는 행. 이 둘 말고는 meta 행을 버리지 않는다.
 let EXCLUDED=[],UNDATED={rows:0,spend:0};
+// spendAudit()용 원본 시트 스냅샷 (파싱 전 문자열 그대로)
+let META_SHEET={rows:[],headers:[],keys:{}};
 const CACHE_TTL=30*60*1000;
 function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
 function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
@@ -418,6 +420,31 @@ function parseCSV(text){
   });
 }
 
+// 숫자 파싱. 통화기호·공백 천단위 구분자가 섞여 들어와도 금액이 깎이면 안 되므로
+// 숫자·소수점·앞쪽 마이너스만 남기고 전부 털어낸다. 빈칸이나 '-'는 0.
+// (parseFloat만 쓰면 '₩1,234'는 NaN, '1 234'는 1이 되어 조용히 손실난다.)
+function parseNum(v){
+  const s=String(v==null?'':v).trim();
+  if(!s||s==='-')return 0;
+  const neg=/^\(.*\)$/.test(s)||/^\s*-/.test(s); // 괄호 표기 음수도 처리
+  const cleaned=s.replace(/[^0-9.]/g,'');
+  if(!cleaned)return 0;
+  const n=parseFloat(cleaned);
+  if(isNaN(n))return 0;
+  return neg?-n:n;
+}
+function parseDateStr(raw){
+  const s=String(raw||'').trim();
+  if(!s)return null;
+  if(s.includes('T')){
+    const d=new Date(s);
+    if(isNaN(d))return null;
+    const kst=new Date(d.getTime()+9*60*60*1000);
+    return kst.toISOString().slice(0,10);
+  }
+  const m=s.match(/(\d{4}-\d{2}-\d{2})/);
+  return m?m[1]:null;
+}
 function parsePerson(name){
   if(!name)return null;
   // Exception: this specific stella-tagged partnership creative should still count
@@ -536,24 +563,12 @@ async function loadData(){
       });
     }catch(e){console.warn('[ADS LIST ERROR]',e);}
 
-    function parseNum(v){return parseFloat(String(v||'0').replace(/,/g,'').replace(/-/g,'0'))||0;}
-    function parseDateStr(raw){
-      const s=String(raw||'').trim();
-      if(!s)return null;
-      if(s.includes('T')){
-        const d=new Date(s);
-        if(isNaN(d))return null;
-        const kst=new Date(d.getTime()+9*60*60*1000);
-        return kst.toISOString().slice(0,10);
-      }
-      const m=s.match(/(\d{4}-\d{2}-\d{2})/);
-      return m?m[1]:null;
-    }
-
     function parseMetaRows(text){
       const rows=arrToObjs(text);
       const unknownPerson=[];
       EXCLUDED=[];UNDATED={rows:0,spend:0};
+      // spendAudit()이 시트 원본과 대조할 수 있도록 파싱 전 상태를 남겨둔다
+      META_SHEET={rows,headers:rows.length?Object.keys(rows[0]):[],keys:{}};
       const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
@@ -561,6 +576,7 @@ async function loadData(){
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
         const spendKey=keys.find(k=>k.includes('광고비'))||'';
         const impKey=keys.find(k=>k.includes('노출'))||'';
+        META_SHEET.keys={date:dateKey,name:nameKey,spend:spendKey,clicks:clickKey,imp:impKey};
         const spend=parseNum(r[spendKey]);
         const date=parseDateStr(r[dateKey]);
         const name=String(r[nameKey]||'');
@@ -1347,6 +1363,49 @@ function renderCreativeTable(){
 }
 
 function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
+
+// 콘솔에서 spendAudit() 실행하면 시트 원본 광고비 합계와 대시보드 집계를 대조하고
+// 차액을 사유별로 분해해준다. 어느 단계에서 돈이 새는지 한 번에 확인하는 용도.
+window.spendAudit=function(){
+  const{rows,headers,keys}=META_SHEET;
+  if(!rows.length){console.log('[광고비 감사] 시트 데이터가 없습니다. 새로고침 후 다시 실행하세요.');return;}
+  const{from,to}=getDateRange();
+  console.log('[광고비 감사] '+from+' ~ '+to);
+  console.log('  시트 헤더: '+headers.join(' | '));
+  console.log('  사용 중인 컬럼: 일자="'+keys.date+'"  소재명="'+keys.name+'"  광고비="'+keys.spend+'"');
+  const dup=headers.filter((h,i)=>headers.indexOf(h)!==i);
+  if(dup.length)console.log('  ⚠ 중복 헤더(뒤 컬럼이 앞을 덮어씀): '+[...new Set(dup)].join(', '));
+  const cand=headers.filter(h=>h.includes('광고비'));
+  if(cand.length>1)console.log('  ⚠ 광고비 후보 컬럼이 여럿: '+cand.join(', ')+' → 첫 번째만 사용됨');
+
+  let sheetSum=0,inRangeRows=0,undatedSum=0,stellaSum=0,lossy=[];
+  rows.forEach(r=>{
+    const rawVal=r[keys.spend];
+    const v=parseNum(rawVal);
+    const d=parseDateStr(r[keys.date]);
+    const name=String(r[keys.name]||'');
+    // 원본 문자열에 숫자가 있는데 0으로 읽혔으면 파싱 손실
+    if(v===0&&/[0-9]/.test(String(rawVal||''))&&String(rawVal).replace(/[^0-9]/g,'')!=='0')
+      lossy.push({원본:rawVal,소재명:name});
+    if(!d){undatedSum+=v;return;}
+    if(d<from||d>to)return;
+    inRangeRows++;sheetSum+=v;
+    if(isExcludedCreative(name))stellaSum+=v;
+  });
+  const shown=RAW.meta.filter(r=>r.date>=from&&r.date<=to).reduce((s,r)=>s+r.spend,0);
+  const unexplained=sheetSum-stellaSum-shown;
+  console.log('  ── 기간 내 시트 행수: '+inRangeRows+'행');
+  console.log('  시트 광고비 합계   : ₩'+f(sheetSum));
+  console.log('  대시보드 집계      : ₩'+f(shown));
+  console.log('  ├ stella 제외      : ₩'+f(stellaSum));
+  console.log('  └ 설명 안 되는 차액: ₩'+f(unexplained)+(Math.abs(unexplained)>1?'   ← 원인 미상, 아래 확인':'   ✓'));
+  if(undatedSum)console.log('  (기간 무관) 일자 인식 실패로 빠진 금액: ₩'+f(undatedSum));
+  if(lossy.length){
+    console.log('  ⚠ 숫자로 못 읽은 셀 '+lossy.length+'건 (앞 10건):');
+    lossy.slice(0,10).forEach(x=>console.log('      광고비 원본="'+x.원본+'"  소재명='+x.소재명));
+  }
+  return{sheetSum,shown,stellaSum,unexplained,undatedSum,lossy};
+};
 
 // 콘솔에서 whyUnclassified() 실행하면 현재 기간의 미분류 사유와 광고비를 출력.
 // 어떤 소재명이 어느 규칙에서 걸렸는지 보고 시트 네이밍을 고치면 미분류가 사라진다.
