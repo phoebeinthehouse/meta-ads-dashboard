@@ -381,6 +381,7 @@ const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','G
 const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9','OTC':'#E3F0FA'};
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A','OTC':'#14395A'};
 const PEOPLE=['Lina','Sarah','Phoebe','Iris'];
+const UNASSIGNED='Unassigned';
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
 let RAW={meta:[],amz:[]};
@@ -424,18 +425,24 @@ function parseCSV(text){
 function identityToken(token){
   return String(token||'').normalize('NFKC').trim().split(/\s+/)[0]||'';
 }
+function personFromIdentityParts(parts){
+  for(const person of PEOPLE){
+    if(parts.some(token=>token.toLowerCase()===person.toLowerCase()))return person;
+  }
+  if(parts.some(token=>token.toUpperCase()==='SB'))return'Phoebe';
+  if(parts.some(token=>token.toLowerCase().endsWith('-p')))return'Partner';
+  return null;
+}
 function parsePerson(name){
   if(!name)return null;
   const parts=name.split('_').map(identityToken);
   if(parts[0].toLowerCase()==='stella')return null;
-  if(PEOPLE.includes(parts[0]))return parts[0];
   if(parts[parts.length-1].toLowerCase()==='stella')return null;
-  for(const p of PEOPLE){if(parts[parts.length-1].toLowerCase()===p.toLowerCase())return p;}
-  for(const p of PEOPLE){if(parts.includes(p))return p;}
-  if(parts[parts.length-1]==='SB')return'Phoebe';
-  // Partnership ads: last underscore-token ends with -p
-  if(parts[parts.length-1].toLowerCase().endsWith('-p'))return'Partner';
-  return null;
+  // U/W are four-part identities, but reporting/campaign notes can add more
+  // underscore tokens after the creator. Search every token rather than only
+  // the last one so those rows are not dropped from creator/product totals.
+  // Partnership markers can likewise appear before an appended note.
+  return personFromIdentityParts(parts);
 }
 function parseProduct(name){
   if(!name)return null;
@@ -591,8 +598,9 @@ async function loadData(){
         const date=parseDateStr(r[dateKey]);
         if(!date)return null;
         const name=String(r.__cells[META_AD_KEY_COL]||'');
-        const person=parsePerson(name);
-        if(!person){if(name)droppedNoPerson.push(name);return null;}
+        const parsedPerson=parsePerson(name);
+        if(!parsedPerson&&name)droppedNoPerson.push(name);
+        const person=parsedPerson||UNASSIGNED;
         return{date,month:date.slice(0,7),person,ad_key:parseAdKey(name),row_key:makeRowKey('meta',name),
           product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
           campaign_type:name.split('_')[0]||null,
@@ -616,8 +624,9 @@ async function loadData(){
         const date=parseDateStr(r[dateKey]);
         if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
         const rawName=String(r.__cells[AMZ_AD_KEY_COL]||'').trim();
-        const person=parsePerson(rawName);
-        if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
+        const parsedPerson=parsePerson(rawName);
+        if(!parsedPerson&&purch>0)dropped.push({reason:'person_fail_retained_as_unassigned',rawName,date,purch});
+        const person=parsedPerson||UNASSIGNED;
         const product=parseProduct(rawName);
         const ad_name=parseAdName(rawName);
         return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,raw_name:rawName,ad_key:parseAdKey(rawName),row_key:makeRowKey('amz',rawName),campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
@@ -684,8 +693,8 @@ function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
   // Partnership ads excluded from By Creator (person-based cards); included in By Product and By Creative
-  const metaNP=meta.filter(r=>r.person!=='Partner');
-  const amzNP=amz.filter(r=>r.person!=='Partner');
+  const metaNP=meta.filter(r=>PEOPLE.includes(r.person));
+  const amzNP=amz.filter(r=>PEOPLE.includes(r.person));
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
 
