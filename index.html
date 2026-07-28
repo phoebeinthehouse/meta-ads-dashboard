@@ -1327,6 +1327,29 @@ function renderCreativeTable(){
 
 function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
 
+// 콘솔에서 whyUnclassified() 실행하면 현재 기간의 미분류 사유와 광고비를 출력.
+// 어떤 소재명이 어느 규칙에서 걸렸는지 보고 시트 네이밍을 고치면 미분류가 사라진다.
+window.whyUnclassified=function(){
+  const{from,to}=getDateRange();
+  const rows=RAW.meta.filter(r=>r.date>=from&&r.date<=to&&(!r.product||!r.ad_name||!r.person));
+  if(!rows.length){console.log('[미분류] 없음 — '+from+'~'+to+' 전부 인식됨');return[];}
+  const reasonOf=r=>[!r.product?'제품코드 없음':null,!r.ad_name?'vdo/img 토큰 없음':null,
+    !r.person?'담당자 미인식':null].filter(Boolean).join(' + ');
+  const agg={};
+  rows.forEach(r=>{
+    const k=reasonOf(r);
+    if(!agg[k])agg[k]={spend:0,count:0,samples:[]};
+    agg[k].spend+=r.spend;agg[k].count++;
+    if(agg[k].samples.length<5&&agg[k].samples.indexOf(r.raw_name)<0)agg[k].samples.push(r.raw_name);
+  });
+  console.log('[미분류 사유별] '+from+' ~ '+to+' · 총 ₩'+f(rows.reduce((s,r)=>s+r.spend,0)));
+  Object.keys(agg).sort((a,b)=>agg[b].spend-agg[a].spend).forEach(k=>{
+    console.log('  '+k+' — ₩'+f(agg[k].spend)+' ('+agg[k].count+'행)');
+    agg[k].samples.forEach(n=>console.log('      '+n));
+  });
+  return rows;
+};
+
 // 콘솔에서 checkMissingAds() 실행하면 By Creative에 누락된 소재 목록 출력
 window.checkMissingAds=function(){
   const{from,to}=getDateRange();
