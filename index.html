@@ -232,6 +232,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     </div>
   </div>
   <div class="slabel">Product summary</div>
+  <div class="note" id="productSpendRecon"></div>
   <div class="psgrid" id="psgrid"></div>
   <div class="slabel">Creator breakdown per product</div>
   <div class="pdgrid" id="pdgrid"></div>
@@ -268,6 +269,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
     </div>
   </div>
+  <div class="note" id="creativeSpendRecon" style="margin-top:12px"></div>
   <!-- Creative table -->
   <div class="ccard" style="padding:0;overflow:hidden;">
     <div class="ad-table-wrap">
@@ -374,9 +376,12 @@ const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','G
 const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9','OTC':'#E3F0FA'};
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A','OTC':'#14395A'};
 const PEOPLE=['Lina','Sarah','Phoebe','Iris'];
+const PROD_OTHER='미분류';
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
 let RAW={meta:[],amz:[]};
+// 담당자 인식 실패로 대시보드 집계에서 빠진 행의 광고비 (총액 대조용)
+let EXCLUDED=[];
 const CACHE_TTL=30*60*1000;
 function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
 function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
@@ -427,7 +432,12 @@ function parseProduct(name){
   if(!name)return null;
   const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS','OTC':'OTC'};
   const parts=name.split('_');
-  return PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||PRODS[parts[0]]||null;
+  const positional=PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||PRODS[parts[0]];
+  if(positional)return positional;
+  // 규칙에서 벗어난 자리에 제품코드가 들어간 소재명 구제.
+  // 여기서 null이 나오면 By Product / By Creative에서 행이 통째로 빠져 광고비가 사라진다.
+  for(const p of parts){const hit=PRODS[p.toUpperCase()];if(hit)return hit;}
+  return null;
 }
 function parseMedia(name){
   if(!name)return null;
@@ -446,7 +456,9 @@ function parseAdName(name){
       return parts[i+1];
     }
   }
-  return null;
+  // vdo/img 토큰이 없는 소재명은 원본 이름을 그대로 쓴다.
+  // null로 두면 By Creative에서 행이 빠져 광고비가 누락된다.
+  return name;
 }
 
 async function loadData(){
@@ -512,6 +524,7 @@ async function loadData(){
     function parseMetaRows(text){
       const rows=arrToObjs(text);
       const droppedNoPerson=[];
+      EXCLUDED=[];
       const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
@@ -523,7 +536,10 @@ async function loadData(){
         if(!date)return null;
         const name=String(r[nameKey]||'');
         const person=parsePerson(name);
-        if(!person){if(name)droppedNoPerson.push(name);return null;}
+        if(!person){
+          if(name){droppedNoPerson.push(name);EXCLUDED.push({date,spend:parseNum(r[spendKey])});}
+          return null;
+        }
         return{date,month:date.slice(0,7),person,
           product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
           campaign_type:name.split('_')[0]||null,
@@ -618,6 +634,10 @@ function computeData(from,to){
   // Partnership ads excluded from By Creator (person-based cards); included in By Product and By Creative
   const metaNP=meta.filter(r=>r.person!=='Partner');
   const amzNP=amz.filter(r=>r.person!=='Partner');
+  // 소재명에서 제품코드를 못 찾은 행도 광고비는 집행됐다. 버리지 말고 미분류로
+  // 묶어야 By Product / By Creative 광고비가 Meta 총액과 맞는다.
+  const bucket=arr=>arr.map(r=>r.product?r:Object.assign({},r,{product:PROD_OTHER}));
+  const metaB=bucket(meta),amzB=bucket(amz);
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
 
@@ -642,26 +662,26 @@ function computeData(from,to){
     return{date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
   });
 
-  const pp_m=grp(meta,['product','person'],['clicks','spend','impressions']);
-  const pp_a=grp(amz,['product','person'],['purchases','revenue']);
-  const pp=pp_m.filter(m=>m.product).map(m=>{
+  const pp_m=grp(metaB,['product','person'],['clicks','spend','impressions']);
+  const pp_a=grp(amzB,['product','person'],['purchases','revenue']);
+  const pp=pp_m.map(m=>{
     const a=pp_a.find(x=>x.product===m.product&&x.person===m.person)||{purchases:0,revenue:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
-  const psum_m=grp(meta,['product'],['clicks','spend','impressions']);
-  const psum_a=grp(amz,['product'],['purchases','revenue']);
-  const psum=psum_m.filter(m=>m.product).map(m=>{
+  const psum_m=grp(metaB,['product'],['clicks','spend','impressions']);
+  const psum_a=grp(amzB,['product'],['purchases','revenue']);
+  const psum=psum_m.map(m=>{
     const a=psum_a.find(x=>x.product===m.product)||{purchases:0,revenue:0};
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
   const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
   const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
-  const ads_m=grp(meta,adGroupKeys,['clicks','spend','impressions']);
-  const ads_a=grp(amz,amzGroupKeys,['purchases']);
+  const ads_m=grp(metaB,adGroupKeys,['clicks','spend','impressions']);
+  const ads_a=grp(amzB,amzGroupKeys,['purchases']);
   // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
-  const ads_a_join=splitByCampaign?grp(amz,['ad_name','person','product'],['purchases']):ads_a;
+  const ads_a_join=splitByCampaign?grp(amzB,['ad_name','person','product'],['purchases']):ads_a;
   const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
   // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
@@ -917,7 +937,22 @@ function switchM(m,btn){
   renderPCards();renderTrend();renderMedia();
 }
 
-function renderProdPage(){renderPSum();renderPDGrid();}
+// 대시보드 집계 광고비와 Meta 원본 총액을 대조해 보여준다.
+// 둘이 다르면 담당자 인식 실패로 빠진 행이 있다는 뜻.
+function renderSpendRecon(){
+  const{from,to}=getDateRange();
+  const shown=RAW.meta.filter(r=>r.date>=from&&r.date<=to).reduce((s,r)=>s+r.spend,0);
+  const excluded=EXCLUDED.filter(r=>r.date>=from&&r.date<=to).reduce((s,r)=>s+r.spend,0);
+  const txt=excluded>0
+    ?'기간 내 Meta 총 광고비 ₩'+f(shown+excluded)+' · 집계 ₩'+f(shown)+' · 담당자 미인식으로 제외 ₩'+f(excluded)
+    :'기간 내 Meta 총 광고비 ₩'+f(shown)+' · 전액 집계됨';
+  ['productSpendRecon','creativeSpendRecon'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.textContent=txt;
+  });
+}
+
+function renderProdPage(){renderSpendRecon();renderPSum();renderPDGrid();}
 function renderWeeklyPage(){renderWeekPills();renderWeeklyCharts();}
 
 function renderPSum(){
@@ -1188,6 +1223,7 @@ function setCS(s,btn){
 }
 
 function renderCreativeTable(){
+  renderSpendRecon();
   let ads=[...(D().ads||[])];
   if(cFilters.product!=='All')ads=ads.filter(a=>a.product===cFilters.product);
   if(cFilters.person!=='All')ads=ads.filter(a=>a.person===cFilters.person);
