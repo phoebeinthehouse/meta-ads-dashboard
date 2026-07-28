@@ -446,12 +446,13 @@ function joinKeyOf(name){
 // 후자는 제외 사유가 아니라 그냥 미분류로 집계해야 한다.
 function isExcludedCreative(name){
   if(!name)return false;
+  // parsePerson이 담당자를 특정할 수 있으면 제외 대상이 아니다. 개별 예외(특정
+  // stella 소재를 Partner로 취급하는 화이트리스트 등)를 parsePerson 한 곳에서만
+  // 관리하기 위해서다 — 여기서 따로 판정하면 그쪽 예외가 조용히 무시된다.
+  // 첫 토큰이 담당자인 Lina_..._stella 형태가 살아남는 것도 이 규칙 덕분.
+  if(parsePerson(name))return false;
   const parts=name.split('_');
-  if(parts[0].toLowerCase()==='stella')return true;
-  // parsePerson과 동일한 우선순위를 지켜야 한다: 첫 토큰이 담당자면 뒤에 stella가
-  // 붙어 있어도 그 담당자의 소재로 집계한다 (Lina_..._stella 등).
-  if(PEOPLE.includes(parts[0]))return false;
-  return parts[parts.length-1].toLowerCase()==='stella';
+  return parts[0].toLowerCase()==='stella'||parts[parts.length-1].toLowerCase()==='stella';
 }
 function parseProduct(name){
   if(!name)return null;
