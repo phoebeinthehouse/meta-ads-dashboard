@@ -597,13 +597,18 @@ async function loadData(){
         const impKey=keys.find(k=>k.includes('노출'))||'';
         const date=parseDateStr(r[dateKey]);
         if(!date)return null;
-        const name=String(r.__cells[META_AD_KEY_COL]||'');
-        const parsedPerson=parsePerson(name);
-        if(!parsedPerson&&name)droppedNoPerson.push(name);
+        const identityName=String(r.__cells[META_AD_KEY_COL]||'').trim();
+        const sourceName=String(r[nameKey]||'').trim();
+        // U is authoritative for Meta↔Amazon joining. If U is blank or cannot
+        // classify the row, retain Q and attribute dashboard metrics from the
+        // original 소재명 instead of losing the row from creator/product totals.
+        const attributionName=parsePerson(identityName)?identityName:(sourceName||identityName);
+        const parsedPerson=parsePerson(attributionName);
+        if(!parsedPerson&&attributionName)droppedNoPerson.push(attributionName);
         const person=parsedPerson||UNASSIGNED;
-        return{date,month:date.slice(0,7),person,ad_key:parseAdKey(name),row_key:makeRowKey('meta',name),
-          product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
-          campaign_type:name.split('_')[0]||null,
+        return{date,month:date.slice(0,7),person,ad_key:parseAdKey(identityName),row_key:makeRowKey('meta',identityName||sourceName),
+          product:parseProduct(attributionName),media:parseMedia(attributionName),ad_name:parseAdName(attributionName),raw_name:attributionName,
+          campaign_type:attributionName.split('_')[0]||null,
           clicks:parseNum(r[clickKey]),spend:parseNum(r.__cells[META_SPEND_COL]),impressions:parseNum(r[impKey])};
       }).filter(Boolean);
       if(droppedNoPerson.length)console.log('[META DROPPED person] 담당자 인식 실패:',droppedNoPerson);
@@ -740,20 +745,38 @@ function computeData(from,to){
   // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
   const ads_a_join=splitByCampaign?grp(amz,['row_key','ad_key','ad_name','person','product','media'],['purchases']):ads_a;
   const joinKey=(r)=>r.ad_key;
+  const fallbackJoinKey=(r)=>[r.product,r.media,r.ad_name,r.person].map(v=>String(v||'').trim().toLowerCase()).join('|||');
   // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
   if(nullAdNameAds.length){
     const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+1;});
     console.log('[META DROPPED ad_name] vdo/img 없어서 누락된 소재 per product:',cnt);
   }
-  // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
-  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
-    const a=m.ad_key?ads_a_join.find(x=>x.ad_key&&joinKey(x)===joinKey(m))||{purchases:0}:{purchases:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
+  // Start with every Meta creative so its clicks/spend/impressions are always
+  // visible. Attribute each Amazon group once: exact U↔W key first, then a
+  // unique parsed product/media/name/person fallback for legacy partnership
+  // rows whose identity columns differ but clearly describe the same ad.
+  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product)
+    .map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:0,cpa:0}));
+  const exactMap=new Map(),fallbackMap=new Map();
+  metaAds.forEach(m=>{
+    if(m.ad_key){if(!exactMap.has(m.ad_key))exactMap.set(m.ad_key,[]);exactMap.get(m.ad_key).push(m);}
+    const fk=fallbackJoinKey(m);if(!fallbackMap.has(fk))fallbackMap.set(fk,[]);fallbackMap.get(fk).push(m);
   });
+  const unmatchedAmz=[];
+  ads_a_join.forEach(a=>{
+    let candidates=a.ad_key?(exactMap.get(a.ad_key)||[]):[];
+    if(!candidates.length){
+      const fallback=fallbackMap.get(fallbackJoinKey(a))||[];
+      if(fallback.length===1)candidates=fallback;
+    }
+    if(!candidates.length){unmatchedAmz.push(a);return;}
+    const target=[...candidates].sort((x,y)=>y.spend-x.spend)[0];
+    target.purchases+=a.purchases||0;
+  });
+  metaAds.forEach(m=>{m.cpa=m.purchases>0?Math.round(m.spend/m.purchases):0;});
   // AMZ 전용 rows (Meta에 없지만 구매 있는 소재)
-  const metaKeys=new Set(ads_m.filter(m=>m.ad_key&&m.ad_name&&m.product).map(m=>joinKey(m)));
-  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&(!x.ad_key||!metaKeys.has(joinKey(x))))
+  const amzOnly=unmatchedAmz.filter(x=>x.purchases>0&&x.ad_name&&x.product)
     .map(x=>({row_key:x.row_key,ad_key:x.ad_key,ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:x.media,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
