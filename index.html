@@ -334,13 +334,6 @@ const API_URL='https://script.google.com/macros/s/AKfycbzxCoy9uj0X7IInXAhi4OHjci
 const AMZ_URL=API_URL+'?sheet='+encodeURIComponent('amz-raw-new');
 const META_URL=API_URL+'?sheet='+encodeURIComponent('meta-raw-new');
 const ADS_LIST_URL=API_URL+'?sheet='+encodeURIComponent('meta-ads-list');
-// Source-of-truth columns in Amazon Dashboard(2025~) (zero-based indexes).
-// Do not infer these fields from header text: similarly named columns exist in
-// both exports and can silently produce different dashboard totals.
-const META_SPEND_COL=16;      // meta-raw-new Q
-const META_AD_KEY_COL=20;     // meta-raw-new U
-const AMZ_REVENUE_COL=19;     // amz-raw-new T
-const AMZ_AD_KEY_COL=22;      // amz-raw-new W
 let AD_IMAGES=[];
 function driveUrl(u){const m=u.match(/\/d\/([^/]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]+'=s400':u;}
 function getAdImg(adName,product,person,from,to,media){
@@ -381,11 +374,9 @@ const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','G
 const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9','OTC':'#E3F0FA'};
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A','OTC':'#14395A'};
 const PEOPLE=['Lina','Sarah','Phoebe','Iris'];
-const UNASSIGNED='Unassigned';
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
 let RAW={meta:[],amz:[]};
-let JOIN_AUDIT={unmatchedAmazon:[],metaWithoutAmazon:[]};
 const CACHE_TTL=30*60*1000;
 function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
 function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
@@ -419,30 +410,26 @@ function parseCSV(text){
   });
 }
 
-// U/W may append a reporting note after the four-part identity, separated by
-// whitespace (for example "Phoebe ★라스트데이(0726)"). The note is metadata,
-// not part of the creator token used for attribution or joining.
-function identityToken(token){
-  return String(token||'').normalize('NFKC').trim().split(/\s+/)[0]||'';
-}
-function personFromIdentityParts(parts){
-  for(const person of PEOPLE){
-    if(parts.some(token=>token.toLowerCase()===person.toLowerCase()))return person;
-  }
-  if(parts.some(token=>token.toUpperCase()==='SB'))return'Phoebe';
-  if(parts.some(token=>token.toLowerCase().endsWith('-p')))return'Partner';
-  return null;
-}
 function parsePerson(name){
   if(!name)return null;
-  const parts=name.split('_').map(identityToken);
+  const parts=name.split('_');
+  const personFromToken=token=>{
+    const leadingName=String(token||'').trim().match(/^[A-Za-z]+/);
+    if(!leadingName)return null;
+    return PEOPLE.find(person=>person.toLowerCase()===leadingName[0].toLowerCase())||null;
+  };
   if(parts[0].toLowerCase()==='stella')return null;
+  const firstPerson=personFromToken(parts[0]);
+  if(firstPerson)return firstPerson;
   if(parts[parts.length-1].toLowerCase()==='stella')return null;
-  // U/W are four-part identities, but reporting/campaign notes can add more
-  // underscore tokens after the creator. Search every token rather than only
-  // the last one so those rows are not dropped from creator/product totals.
-  // Partnership markers can likewise appear before an appended note.
-  return personFromIdentityParts(parts);
+  // Sheet notes may follow a creator name, e.g. "Phoebe ★라스트데이(0726)".
+  const lastPerson=personFromToken(parts[parts.length-1]);
+  if(lastPerson)return lastPerson;
+  for(const part of parts){const person=personFromToken(part);if(person)return person;}
+  if(parts[parts.length-1]==='SB')return'Phoebe';
+  // Partnership ads: last underscore-token ends with -p
+  if(parts[parts.length-1].endsWith('-p'))return'Partner';
+  return null;
 }
 function parseProduct(name){
   if(!name)return null;
@@ -463,65 +450,12 @@ function parseAdName(name){
       const rest=parts.slice(i+1);
       const last=rest[rest.length-1];
       // Partnership ads: last token ends with -p → join all tokens and strip -p suffix
-      if(last.toLowerCase().endsWith('-p')){rest[rest.length-1]=last.slice(0,-2);return rest.join('_');}
+      if(last.endsWith('-p')){rest[rest.length-1]=last.slice(0,-2);return rest.join('_');}
       return parts[i+1];
     }
   }
   return null;
 }
-function canonicalAdKey(parts){
-  if(parts.length<4)return null;
-  return parts.slice(0,4).map(p=>p.toLowerCase()).join('_');
-}
-function parseAdKey(name){
-  if(!name)return null;
-  const parts=String(name).split('_').map(identityToken).filter(Boolean);
-  // Columns U/W contain the shared identity in this order:
-  // product_media_creative_creator (for example GPG_vdo_orangeB_Phoebe).
-  // All four tokens compare case-insensitively. Meta and Amazon sometimes use
-  // different capitalization for the same partnership creative; preserving
-  // case here would leave its purchases unmatched in By Creative.
-  return canonicalAdKey(parts);
-}
-function makeRowKey(source,name){
-  const adKey=parseAdKey(name);
-  if(adKey)return adKey;
-  // Keep malformed/incomplete rows visible without ever joining them across
-  // sources. The source prefix prevents a partial Meta identity from being
-  // mistaken for a partial Amazon identity.
-  return source+':'+String(name||'').normalize('NFKC').trim().toLowerCase();
-}
-function analyzeJoinCoverage(){
-  const sumBy=(rows,value)=>{
-    const map=new Map();
-    rows.forEach(r=>{
-      if(!r.ad_key)return;
-      if(!map.has(r.ad_key))map.set(r.ad_key,{key:r.ad_key,rawNames:new Set(),value:0});
-      const item=map.get(r.ad_key);item.rawNames.add(r.raw_name||r.ad_key);item.value+=r[value]||0;
-    });
-    return map;
-  };
-  const meta=sumBy(RAW.meta,'spend'),amz=sumBy(RAW.amz,'revenue');
-  const nearest=(key)=>{
-    const parts=key.split('_');let best=null;
-    meta.forEach((m,mKey)=>{
-      const other=mKey.split('_');
-      const same=parts.reduce((n,p,i)=>n+(p===other[i]?1:0),0);
-      if(!best||same>best.same)best={key:mKey,same,different:parts.map((p,i)=>p===other[i]?null:{position:['product','media','creative','creator'][i],amazon:p,meta:other[i]}).filter(Boolean)};
-    });
-    return best;
-  };
-  JOIN_AUDIT={
-    unmatchedAmazon:[...amz.values()].filter(a=>a.value>0&&!meta.has(a.key)).map(a=>({ad_key:a.key,revenue:a.value,raw_names:[...a.rawNames],nearest_meta:nearest(a.key)})),
-    metaWithoutAmazon:[...meta.values()].filter(m=>m.value>0&&!amz.has(m.key)).map(m=>({ad_key:m.key,spend:m.value,raw_names:[...m.rawNames]}))
-  };
-  if(JOIN_AUDIT.unmatchedAmazon.length){
-    console.warn('[JOIN AUDIT] Amazon revenue rows without an exact Meta U↔W match:');
-    console.table(JOIN_AUDIT.unmatchedAmazon.map(x=>({amazon_key:x.ad_key,revenue:x.revenue,nearest_meta:x.nearest_meta&&x.nearest_meta.key,matching_words:x.nearest_meta&&x.nearest_meta.same,difference:x.nearest_meta&&x.nearest_meta.different.map(d=>d.position+': '+d.amazon+' ≠ '+d.meta).join(', ')})));
-  }
-  return JOIN_AUDIT;
-}
-window.joinAudit=analyzeJoinCoverage;
 
 async function loadData(){
   showLoading(true);
@@ -540,10 +474,6 @@ async function loadData(){
       return rows.slice(hIdx+1).map(row=>{
         const obj={};
         headers.forEach((h,i)=>obj[h]=String(row[i]||'').trim());
-        // Retain the original column positions even when Sheets contains
-        // duplicate/renamed headers. Keep this non-enumerable so the existing
-        // header discovery logic continues to inspect headers only.
-        Object.defineProperty(obj,'__cells',{value:row.map(v=>String(v??'').trim())});
         return obj;
       });
     }
@@ -593,23 +523,19 @@ async function loadData(){
       const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
+        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
+        const spendKey=keys.find(k=>k.includes('광고비'))||'';
         const impKey=keys.find(k=>k.includes('노출'))||'';
         const date=parseDateStr(r[dateKey]);
         if(!date)return null;
-        const identityName=String(r.__cells[META_AD_KEY_COL]||'').trim();
-        const sourceName=String(r[nameKey]||'').trim();
-        // U is authoritative for Meta↔Amazon joining. If U is blank or cannot
-        // classify the row, retain Q and attribute dashboard metrics from the
-        // original 소재명 instead of losing the row from creator/product totals.
-        const attributionName=parsePerson(identityName)?identityName:(sourceName||identityName);
-        const parsedPerson=parsePerson(attributionName);
-        if(!parsedPerson&&attributionName)droppedNoPerson.push(attributionName);
-        const person=parsedPerson||UNASSIGNED;
-        return{date,month:date.slice(0,7),person,ad_key:parseAdKey(identityName),row_key:makeRowKey('meta',identityName||sourceName),
-          product:parseProduct(attributionName),media:parseMedia(attributionName),ad_name:parseAdName(attributionName),raw_name:attributionName,
-          campaign_type:attributionName.split('_')[0]||null,
-          clicks:parseNum(r[clickKey]),spend:parseNum(r.__cells[META_SPEND_COL]),impressions:parseNum(r[impKey])};
+        const name=String(r[nameKey]||'');
+        const person=parsePerson(name);
+        if(!person){if(name)droppedNoPerson.push(name);return null;}
+        return{date,month:date.slice(0,7),person,
+          product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
+          campaign_type:name.split('_')[0]||null,
+          clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
       }).filter(Boolean);
       if(droppedNoPerson.length)console.log('[META DROPPED person] 담당자 인식 실패:',droppedNoPerson);
       const nullAdName=result.filter(r=>!r.ad_name&&r.product&&r.person);
@@ -625,16 +551,17 @@ async function loadData(){
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
         const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
         const purch=parseNum(r[purchKey]);
-        const revenue=parseNum(r.__cells[AMZ_REVENUE_COL]);
+        const revKey=keys.find(k=>k.includes('매출')||k.toLowerCase().includes('revenue'))||keys[19]||'';
+        const revenue=parseNum(r[revKey]);
         const date=parseDateStr(r[dateKey]);
         if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
-        const rawName=String(r.__cells[AMZ_AD_KEY_COL]||'').trim();
-        const parsedPerson=parsePerson(rawName);
-        if(!parsedPerson&&purch>0)dropped.push({reason:'person_fail_retained_as_unassigned',rawName,date,purch});
-        const person=parsedPerson||UNASSIGNED;
+        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
+        const rawName=String(r[nameKey]||'').trim();
+        const person=parsePerson(rawName);
+        if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
         const product=parseProduct(rawName);
         const ad_name=parseAdName(rawName);
-        return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,raw_name:rawName,ad_key:parseAdKey(rawName),row_key:makeRowKey('amz',rawName),campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
+        return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
       }).filter(Boolean);
       if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
       // 누락 진단: product null인 구매 행
@@ -648,7 +575,6 @@ async function loadData(){
 
     RAW.meta=parseMetaRows(mt);
     RAW.amz=parseAmzRows(at);
-    analyzeJoinCoverage();
     const allDates=[...RAW.meta.map(r=>r.date),...RAW.amz.map(r=>r.date)].filter(Boolean).sort();
     if(allDates.length){
       customFrom=allDates[0];customTo=allDates[allDates.length-1];
@@ -698,8 +624,8 @@ function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
   // Partnership ads excluded from By Creator (person-based cards); included in By Product and By Creative
-  const metaNP=meta.filter(r=>PEOPLE.includes(r.person));
-  const amzNP=amz.filter(r=>PEOPLE.includes(r.person));
+  const metaNP=meta.filter(r=>r.person!=='Partner');
+  const amzNP=amz.filter(r=>r.person!=='Partner');
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
 
@@ -738,46 +664,28 @@ function computeData(from,to){
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
-  const adGroupKeys=splitByCampaign?['row_key','ad_key','ad_name','person','product','media','campaign_type']:['row_key','ad_key','ad_name','person','product','media'];
-  const amzGroupKeys=splitByCampaign?['row_key','ad_key','ad_name','person','product','media','campaign_type']:['row_key','ad_key','ad_name','person','product','media'];
+  const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
+  const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
   const ads_m=grp(meta,adGroupKeys,['clicks','spend','impressions']);
   const ads_a=grp(amz,amzGroupKeys,['purchases']);
   // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
-  const ads_a_join=splitByCampaign?grp(amz,['row_key','ad_key','ad_name','person','product','media'],['purchases']):ads_a;
-  const joinKey=(r)=>r.ad_key;
-  const fallbackJoinKey=(r)=>[r.product,r.media,r.ad_name,r.person].map(v=>String(v||'').trim().toLowerCase()).join('|||');
+  const ads_a_join=splitByCampaign?grp(amz,['ad_name','person','product'],['purchases']):ads_a;
+  const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
   // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
   if(nullAdNameAds.length){
     const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+1;});
     console.log('[META DROPPED ad_name] vdo/img 없어서 누락된 소재 per product:',cnt);
   }
-  // Start with every Meta creative so its clicks/spend/impressions are always
-  // visible. Attribute each Amazon group once: exact U↔W key first, then a
-  // unique parsed product/media/name/person fallback for legacy partnership
-  // rows whose identity columns differ but clearly describe the same ad.
-  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product)
-    .map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:0,cpa:0}));
-  const exactMap=new Map(),fallbackMap=new Map();
-  metaAds.forEach(m=>{
-    if(m.ad_key){if(!exactMap.has(m.ad_key))exactMap.set(m.ad_key,[]);exactMap.get(m.ad_key).push(m);}
-    const fk=fallbackJoinKey(m);if(!fallbackMap.has(fk))fallbackMap.set(fk,[]);fallbackMap.get(fk).push(m);
+  // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
+  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
+    const a=ads_a_join.find(x=>joinKey(x)===joinKey(m))||{purchases:0};
+    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
   });
-  const unmatchedAmz=[];
-  ads_a_join.forEach(a=>{
-    let candidates=a.ad_key?(exactMap.get(a.ad_key)||[]):[];
-    if(!candidates.length){
-      const fallback=fallbackMap.get(fallbackJoinKey(a))||[];
-      if(fallback.length===1)candidates=fallback;
-    }
-    if(!candidates.length){unmatchedAmz.push(a);return;}
-    const target=[...candidates].sort((x,y)=>y.spend-x.spend)[0];
-    target.purchases+=a.purchases||0;
-  });
-  metaAds.forEach(m=>{m.cpa=m.purchases>0?Math.round(m.spend/m.purchases):0;});
   // AMZ 전용 rows (Meta에 없지만 구매 있는 소재)
-  const amzOnly=unmatchedAmz.filter(x=>x.purchases>0&&x.ad_name&&x.product)
-    .map(x=>({row_key:x.row_key,ad_key:x.ad_key,ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:x.media,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
+  const metaKeys=new Set(ads_m.filter(m=>m.ad_name&&m.product).map(m=>joinKey(m)));
+  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
+    .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
   return{ps,pm,daily,pp,psum,ads};
@@ -848,14 +756,14 @@ function computeProductDaily(days){
 function computeCreativeDaily(days,productFilter,personFilter){
   if(!days.length)return{days,creatives:[],byCreative:{}};
   const daySet=new Set(days);
-  const passFilter=r=>r.row_key&&r.ad_name&&r.product&&daySet.has(r.date)&&(productFilter==='All'||r.product===productFilter)&&(personFilter==='All'||r.person===personFilter);
+  const passFilter=r=>r.ad_name&&r.product&&daySet.has(r.date)&&(productFilter==='All'||r.product===productFilter)&&(personFilter==='All'||r.person===personFilter);
   const meta=RAW.meta.filter(passFilter);
   const amz=RAW.amz.filter(passFilter);
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
-  const m_g=grp(meta,['date','row_key','ad_key','ad_name','person','product','media'],['clicks','spend','impressions']);
-  const a_g=grp(amz,['date','row_key','ad_key','ad_name','person','product','media'],['purchases','revenue']);
-  const keyOf=r=>r.row_key;
+  const m_g=grp(meta,['date','ad_name','person','product'],['clicks','spend','impressions']);
+  const a_g=grp(amz,['date','ad_name','person','product'],['purchases','revenue']);
+  const keyOf=r=>r.ad_name+'|||'+r.person+'|||'+r.product;
   const mMap=new Map(m_g.map(r=>[r.date+'|||'+keyOf(r),r]));
   const aMap=new Map(a_g.map(r=>[r.date+'|||'+keyOf(r),r]));
   const keySet=new Set([...m_g.map(keyOf),...a_g.map(keyOf)]);
@@ -870,8 +778,8 @@ function computeCreativeDaily(days,productFilter,personFilter){
     totalSpend[key]=byCreative[key].reduce((s,r)=>s+r.spend,0);
   });
   const creatives=[...keySet].filter(key=>totalSpend[key]>WC_MIN_SPEND).map(key=>{
-    const source=m_g.find(r=>keyOf(r)===key)||a_g.find(r=>keyOf(r)===key);
-    return{key,ad_name:source.ad_name,person:source.person,product:source.product,totalSpend:totalSpend[key]};
+    const[ad_name,person,product]=key.split('|||');
+    return{key,ad_name,person,product,totalSpend:totalSpend[key]};
   }).sort((a,b)=>b.totalSpend-a.totalSpend);
   return{days,creatives,byCreative};
 }
