@@ -593,7 +593,6 @@ async function loadData(){
       const result=rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
-        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
         const impKey=keys.find(k=>k.includes('노출'))||'';
         const date=parseDateStr(r[dateKey]);
