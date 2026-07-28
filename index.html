@@ -470,7 +470,9 @@ function parseAdKey(name){
   // Product/media/creator are categories and compare case-insensitively. The
   // creative name is deliberately case-sensitive so e.g. LDcofvs01 and
   // LDCOFVS01 remain distinct ads.
-  return parts.length>=4?[parts[0].toLowerCase(),parts[1].toLowerCase(),parts[2],parts[3].toLowerCase()].join('_'):null;
+  if(parts.length<4)return null;
+  const[product,media,creative,creator]=parts;
+  return[product.toLowerCase(),media.toLowerCase(),creative,creator.toLowerCase()].join('_');
 }
 function makeRowKey(source,name){
   const adKey=parseAdKey(name);
