@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Ads Dashboard · Japan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bg:#F7F6F2;--surface:#FFF;--surface2:#F1EFE8;--border:rgba(0,0,0,0.08);--text:#1a1a18;--muted:#888780;--good:#0F6E56;--bad:#B3402B;--radius:12px;--radius-sm:8px;}
+@media(prefers-color-scheme:dark){:root{--bg:#18181A;--surface:#232325;--surface2:#2C2C2E;--border:rgba(255,255,255,0.08);--text:#F1EFE8;--good:#3FBF9B;--bad:#E8836B;}}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:.5px solid var(--border);padding:0 1.5rem;}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;flex-wrap:wrap;}
+.nav-logo{font-size:14px;font-weight:600;padding:14px 0;margin-right:1.5rem;white-space:nowrap;}
+.nav-logo span{color:var(--muted);font-weight:400;}
+.nav-tab{padding:14px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:transparent;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+.nav-tab.active{color:var(--text);border-bottom-color:var(--text);}
+.nav-link{padding:14px 12px;font-size:12px;color:var(--muted);text-decoration:none;white-space:nowrap;}
+.nav-link:hover{color:var(--text);}
+
+/* DATE FILTER BAR */
+.date-bar{background:var(--surface);border-bottom:.5px solid var(--border);padding:8px 1.5rem;}
+.date-bar-inner{max-width:1200px;margin:0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.date-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;white-space:nowrap;}
+.mpill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:.5px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;transition:all .15s;}
+.mpill.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.date-sep{width:1px;height:18px;background:var(--border);margin:0 4px;}
+.custom-range{display:flex;align-items:center;gap:6px;}
+.date-input{padding:4px 10px;border-radius:var(--radius-sm);border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-family:inherit;outline:none;}
+.date-input:focus{border-color:var(--text);}
+.apply-btn{padding:4px 14px;border-radius:var(--radius-sm);background:var(--text);color:var(--bg);font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.date-mode-tabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:2px;}
+.dmt{padding:3px 12px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;transition:all .15s;text-transform:uppercase;letter-spacing:.04em;}
+.dmt.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+.pg{max-width:1200px;margin:0 auto;padding:1.75rem 1.5rem;display:none;}
+.pg.active{display:block;}
+.top-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px;}
+.top-bar h1{font-size:22px;font-weight:600;letter-spacing:-.02em;}
+.top-meta{font-size:12px;color:var(--muted);margin-top:4px;}
+.slabel{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.note{font-size:11px;color:var(--muted);margin-bottom:12px;}
+.notice{background:#FAEEDA;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#633806;margin-bottom:1.25rem;}
+
+/* KPI TILES */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.75rem;}
+@media(max-width:700px){.kgrid{grid-template-columns:repeat(2,1fr);}}
+.kcard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;}
+.klabel{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.kval{font-size:19px;font-weight:600;letter-spacing:-.02em;}
+.kdelta{font-size:11px;margin-top:4px;color:var(--muted);}
+.kdelta.up{color:var(--good);}.kdelta.down{color:var(--bad);}
+
+/* CHART CARD */
+.ccard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
+.ctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px;}
+.ctitle{font-size:14px;font-weight:600;}
+.leg{display:flex;gap:14px;flex-wrap:wrap;}
+.li{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);}
+.ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* METRIC TABS */
+.pmtabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;flex-wrap:wrap;}
+.pmtab{padding:4px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all .15s;}
+.pmtab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+/* FILTERS */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center;}
+.filter-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+.fb{padding:4px 13px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;border:.5px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all .15s;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fb.active{background:var(--surface2);color:var(--text);border-color:rgba(0,0,0,.15);}
+.search-input{width:260px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;}
+
+/* CAMPAIGN CARDS */
+.pdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:1.25rem;}
+.pdcard{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;}
+.pdname{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.pdsub{font-size:11px;color:var(--muted);margin-bottom:12px;}
+.srow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;}
+.st{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;}
+.stl{font-size:10px;color:var(--muted);margin-bottom:2px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
+.stv{font-size:15px;font-weight:600;}.stv.sm{font-size:12px;}
+.crow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:.5px solid var(--border);}
+.crow:last-child{border-bottom:none;padding-bottom:0;}
+.clabel{display:flex;align-items:center;gap:7px;min-width:126px;max-width:126px;}
+.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cname{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cbw{flex:1;}.cbt{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;}
+.cbf{height:100%;border-radius:4px;transition:width .5s ease;}
+.cval{min-width:90px;text-align:right;font-size:12px;font-weight:600;}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto;}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{text-align:left;padding:8px 10px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:.5px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+.tbl th:hover{color:var(--text);}
+.tbl th.sorted{color:var(--text);}
+.tbl th .sort-arrow{margin-left:4px;opacity:.5;}
+.tbl td{padding:8px 10px;border-bottom:.5px solid var(--border);color:var(--text);white-space:nowrap;}
+.tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.tbl th.num{text-align:right;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover td{background:var(--surface2);}
+.tbl tfoot td{font-weight:700;border-top:.5px solid var(--border);background:var(--surface2);}
+.nm{max-width:280px;overflow:hidden;text-overflow:ellipsis;}
+.bdg{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;}
+.pagination{display:flex;gap:4px;justify-content:center;padding:16px 0;align-items:center;flex-wrap:wrap;}
+.pg-btn{padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-weight:500;transition:all .15s;}
+.pg-btn:hover{background:var(--surface2);}
+.pg-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.pg-btn:disabled{opacity:.3;cursor:default;}
+.pg-info{font-size:12px;color:var(--muted);margin:0 8px;}
+.empty{padding:2rem;text-align:center;color:var(--muted);font-size:13px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">Meta Ads <span>· Japan</span></div>
+    <button class="nav-tab active" onclick="goPage('overview',this)">Overview</button>
+    <button class="nav-tab" onclick="goPage('campaign',this)">By Campaign</button>
+    <button class="nav-tab" onclick="goPage('adset',this)">By Ad Set</button>
+    <button class="nav-tab" onclick="goPage('creative',this)">By Creative</button>
+    <button class="nav-tab" onclick="goPage('trend',this)">Daily Trend</button>
+    <a class="nav-link" style="margin-left:auto" href="index.html">Amazon US →</a>
+    <button class="nav-tab" style="font-size:12px;color:var(--muted)" onclick="clearCache();location.reload();" title="데이터 새로고침">↻ Refresh</button>
+  </div>
+</nav>
+
+<!-- DATE FILTER BAR -->
+<div class="date-bar">
+  <div class="date-bar-inner">
+    <div class="date-mode-tabs">
+      <button class="dmt active" id="dmt-monthly" onclick="setDateMode('monthly',this)">Monthly</button>
+      <button class="dmt" id="dmt-custom" onclick="setDateMode('custom',this)">Custom</button>
+    </div>
+    <div class="date-sep"></div>
+    <div id="monthly-pills" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"></div>
+    <div id="custom-range" style="display:none;" class="custom-range">
+      <span class="date-label">From</span>
+      <input type="date" class="date-input" id="dateFrom">
+      <span class="date-label">To</span>
+      <input type="date" class="date-input" id="dateTo">
+      <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading / Error -->
+<div id="loadingBar" style="display:flex;align-items:center;justify-content:center;padding:2rem;gap:12px;color:var(--muted);font-size:14px;">
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="animation:spin 1s linear infinite">
+    <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" stroke-dasharray="25 13" opacity=".6"/>
+  </svg>
+  Google Sheets에서 데이터 불러오는 중...
+</div>
+<div id="loadError" style="display:none;max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:#FAEEDA;border-radius:8px;font-size:13px;color:#633806;"></div>
+
+<!-- PAGE 1: OVERVIEW -->
+<div class="pg active" id="pg-overview">
+  <div class="top-bar">
+    <div><h1>Japan overview</h1><div class="top-meta" id="overviewMeta"></div></div>
+    <div class="pmtabs" id="ovtabs"></div>
+  </div>
+  <div class="slabel">Key metrics <span style="text-transform:none;letter-spacing:0">· 직전 동일 기간 대비</span></div>
+  <div class="kgrid" id="kpigrid"></div>
+  <div class="ccard">
+    <div class="ctop">
+      <div class="ctitle" id="ovTrendT">Daily trend</div>
+      <div class="note" style="margin:0">전체 합계 · 선택 지표</div>
+    </div>
+    <div style="position:relative;width:100%;height:230px;"><canvas id="ovTrendC"></canvas></div>
+  </div>
+  <div class="ccard">
+    <div class="ctop">
+      <div class="ctitle" id="ovCampT">Campaign comparison</div>
+      <div class="note" style="margin:0">캠페인별 선택 지표</div>
+    </div>
+    <div style="position:relative;width:100%;" id="ovCampWrap"><canvas id="ovCampC"></canvas></div>
+  </div>
+</div>
+
+<!-- PAGE 2: BY CAMPAIGN -->
+<div class="pg" id="pg-campaign">
+  <div class="top-bar">
+    <div><h1>Campaign performance</h1><div class="top-meta" id="campaignMeta"></div></div>
+    <div class="pmtabs" id="cmtabs"></div>
+  </div>
+  <div class="slabel">Campaign summary</div>
+  <div class="ccard" style="padding:0;overflow:hidden;">
+    <div class="tbl-wrap"><table class="tbl" id="campTable"><thead id="campThead"></thead><tbody id="campTbody"></tbody><tfoot id="campTfoot"></tfoot></table></div>
+  </div>
+  <div class="slabel">Ad set breakdown per campaign</div>
+  <div class="note">캠페인별 상위 8개 광고 세트 · 선택 지표 기준</div>
+  <div class="pdgrid" id="campBreakdown"></div>
+</div>
+
+<!-- PAGE 3: BY AD SET -->
+<div class="pg" id="pg-adset">
+  <div class="top-bar">
+    <div><h1>Ad set performance</h1><div class="top-meta" id="adsetMeta"></div></div>
+  </div>
+  <div class="slabel">Filter by campaign</div>
+  <div class="filter-bar" id="asCampPills"></div>
+  <div style="margin-bottom:12px"><input id="asSearch" class="search-input" type="text" placeholder="광고 세트 검색..." oninput="asSearch=this.value.toLowerCase();renderAdsetTable()"></div>
+  <div class="ccard" style="padding:0;overflow:hidden;">
+    <div class="tbl-wrap"><table class="tbl" id="adsetTable"><thead id="adsetThead"></thead><tbody id="adsetTbody"></tbody><tfoot id="adsetTfoot"></tfoot></table></div>
+  </div>
+</div>
+
+<!-- PAGE 4: BY CREATIVE -->
+<div class="pg" id="pg-creative">
+  <div class="top-bar">
+    <div><h1>Creative performance</h1><div class="top-meta" id="creativeMeta"></div></div>
+  </div>
+  <div class="slabel">Filter by campaign</div>
+  <div class="filter-bar" id="adCampPills"></div>
+  <div class="filter-bar">
+    <span class="filter-label">Ad set</span>
+    <select id="adAdsetSelect" class="date-input" style="max-width:320px" onchange="adAdsetFilter=this.value;adPage=0;renderAdTable()"></select>
+    <input id="adSearch" class="search-input" type="text" placeholder="광고 이름 검색..." oninput="adSearch=this.value.toLowerCase();adPage=0;renderAdTable()">
+    <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-left:8px">
+      <input type="checkbox" id="adSplitAdset" onchange="adSplitByAdset=this.checked;adPage=0;renderAdTable()"> 광고 세트별 분리
+    </label>
+  </div>
+  <div class="ccard" style="padding:0;overflow:hidden;">
+    <div class="tbl-wrap"><table class="tbl" id="adTable"><thead id="adThead"></thead><tbody id="adTbody"></tbody><tfoot id="adTfoot"></tfoot></table></div>
+    <div class="pagination" id="adPagination"></div>
+  </div>
+</div>
+
+<!-- PAGE 5: DAILY TREND -->
+<div class="pg" id="pg-trend">
+  <div class="top-bar">
+    <div><h1>Daily trend</h1><div class="top-meta" id="trendMeta"></div></div>
+    <div class="pmtabs" id="tmtabs"></div>
+  </div>
+  <div class="filter-bar" id="trendDimBar">
+    <span class="filter-label">Group by</span>
+    <button class="fb active" onclick="setTrendDim('campaign',this)">Campaign</button>
+    <button class="fb" onclick="setTrendDim('adset',this)">Ad set</button>
+    <button class="fb" onclick="setTrendDim('ad',this)">Ad</button>
+  </div>
+  <div class="note">지출 상위 항목 기준 · 중복 선택 가능 (최대 10개)</div>
+  <div class="filter-bar" id="trendPills" style="margin-bottom:1.25rem"></div>
+  <div class="ccard">
+    <div class="ctop"><div class="ctitle" id="trendT">Daily trend</div></div>
+    <div style="position:relative;width:100%;height:320px;"><canvas id="trendC"></canvas></div>
+  </div>
+  <div class="ccard" style="padding:0;overflow:hidden;">
+    <div class="tbl-wrap"><table class="tbl" id="trendTable"><thead id="trendThead"></thead><tbody id="trendTbody"></tbody></table></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DATA SOURCE
+   Spreadsheet: Amazon Dashboard (2025년~)
+     key 12IC6YbDR8s8lMEeUY69c5tejXbfnbdadbpugPkAGxT0
+   Sheet tab : "JP meta raw" (KST 10:00에 D-1 적재, 1행 헤더)
+   Columns A~Q:
+     YYMMDD | 일 | 캠페인 이름 | 광고 세트 이름 | 광고 이름 | 지출 금액(원화) |
+     노출 | 링크 클릭 | 조회 | 동영상 3초 이상 재생 | 게시물 공감 | 게시물 댓글 |
+     게시물 공유 | 게시물 저장 | ShopNowClick | 보고 시작 | 보고 종료
+   CTR/CPC/CPM 등 계산 지표는 시트에 없고 여기서 계산한다.
+   ============================================================ */
+const API_URL='https://script.google.com/macros/s/AKfycbzxCoy9uj0X7IInXAhi4OHjciZBC1vq3mqC3q0O5uwfdytufvEfIl7y8Ci-RV8pnl7t/exec';
+const JP_SHEET='JP meta raw';
+const JP_URL=API_URL+'?sheet='+encodeURIComponent(JP_SHEET);
+
+/* ---------- metric definitions ---------- */
+const SUMS=['spend','impressions','clicks','views','video3s','reactions','comments','shares','saves','shopnow'];
+const MLABEL={spend:'Spend',impressions:'Impressions',clicks:'Link clicks',ctr:'CTR',cpc:'CPC',cpm:'CPM',
+  views:'Views',video3s:'3s plays',vtr:'3s play rate',engagement:'Engagement',er:'Engagement rate',
+  shopnow:'ShopNowClick',cpsn:'Cost / ShopNow',snr:'ShopNow / click',cpe:'Cost / engagement'};
+const MONEY={spend:1,cpc:1,cpm:1,cpsn:1,cpe:1};
+const PCT={ctr:1,vtr:1,er:1,snr:1};
+const LOWER_BETTER={cpc:1,cpm:1,cpsn:1,cpe:1};
+/* metric tabs shown on Overview / Campaign / Trend pages */
+const TAB_METRICS=['spend','impressions','clicks','ctr','cpc','cpm','shopnow','cpsn','video3s','engagement'];
+/* numeric columns used by every table */
+const TBL_COLS=['spend','impressions','clicks','ctr','cpc','cpm','views','video3s','vtr','shopnow','cpsn','snr','engagement','er'];
+const COL_SHORT={spend:'Spend',impressions:'Impr',clicks:'Clicks',ctr:'CTR',cpc:'CPC',cpm:'CPM',views:'Views',
+  video3s:'3s',vtr:'VTR',shopnow:'ShopNow',cpsn:'CP/SN',snr:'SN%',engagement:'Engage',er:'ER'};
+
+const PALETTE=['#378ADD','#D4537E','#1D9E75','#9B59B6','#D85A30','#BA7517','#2A7AB5','#5C6570','#7F77DD','#D9A006','#C45782','#0F6E56'];
+const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthLabel(m){const p=m.split('-');return(MONTH_NAMES[parseInt(p[1],10)-1]||p[1])+' '+p[0];}
+
+const f=n=>Math.round(n||0).toLocaleString('ko-KR');
+const fd=(n,d=2)=>Number(n||0).toFixed(d);
+function fmtM(k,v){
+  if(v===null||v===undefined)return'—';
+  if(MONEY[k])return'₩'+f(v);
+  if(PCT[k])return fd(v)+'%';
+  return f(v);
+}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* 캠페인/세트 이름은 접두어가 겹치는 경우가 많아 가운데를 줄인다 */
+function shortName(s,n){s=String(s||'');if(s.length<=n)return s;const head=Math.ceil((n-1)*0.55),tail=n-1-head;return s.slice(0,head)+'…'+(tail>0?s.slice(s.length-tail):'');}
+
+/* ---------- state ---------- */
+let RAW=[];                       /* 일 × 캠페인 × 광고세트 × 광고 단위 행 */
+let CAMPAIGNS=[],COLOR={};
+let curPage='overview';
+let dateMode='monthly',curMonth='',customFrom='',customTo='',dataFrom='',dataTo='';
+let ovM='spend',campM='spend',trendM='spend';
+let campSort={k:'spend',dir:-1},adsetSort={k:'spend',dir:-1},adSort={k:'spend',dir:-1};
+let asCampFilter='All',asSearch='';
+let adCampFilter='All',adAdsetFilter='All',adSearch='',adSplitByAdset=false,adPage=0;
+const ADS_PER_PAGE=30;
+let trendDim='campaign',trendSel=new Set();
+let ovTrendChart,ovCampChart,trendChart;
+
+/* ---------- cache ---------- */
+const CACHE_KEY='jp_meta_raw',CACHE_TTL=30*60*1000;
+function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const o=JSON.parse(i);if(Date.now()-o.ts>CACHE_TTL){localStorage.removeItem(k);return null;}return o.d;}catch(e){return null;}}
+function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
+function clearCache(){try{localStorage.removeItem(CACHE_KEY);}catch(e){}}
+
+/* ---------- parsing ---------- */
+function parseNum(v){
+  const s=String(v==null?'':v).replace(/[,₩\s%]/g,'').trim();
+  if(!s||s==='-'||s==='—')return 0;
+  const n=parseFloat(s);
+  return isNaN(n)?0:n;
+}
+function pad2(v){return String(v).padStart(2,'0');}
+function parseDateStr(raw){
+  const s=String(raw==null?'':raw).trim();
+  if(!s)return null;
+  if(s.includes('T')){                       /* Apps Script Date → ISO(UTC) */
+    const d=new Date(s);
+    if(isNaN(d))return null;
+    return new Date(d.getTime()+9*60*60*1000).toISOString().slice(0,10);  /* KST */
+  }
+  let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if(m)return m[1]+'-'+pad2(m[2])+'-'+pad2(m[3]);
+  m=s.match(/^(\d{2})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if(m)return'20'+m[1]+'-'+pad2(m[2])+'-'+pad2(m[3]);
+  if(/^\d{8}$/.test(s))return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+  if(/^\d{6}$/.test(s))return'20'+s.slice(0,2)+'-'+s.slice(2,4)+'-'+s.slice(4,6);   /* YYMMDD */
+  return null;
+}
+/* Apps Script는 [[헤더...],[행...]] 형태의 array-of-arrays JSON을 돌려준다. */
+function toRows(text){
+  const parsed=JSON.parse(text);
+  if(!Array.isArray(parsed)||!parsed.length)return[];
+  return parsed;
+}
+/* 헤더 이름으로 컬럼 위치를 찾고, 못 찾으면 A~Q 고정 위치로 대체 */
+function resolveCols(header){
+  const h=(header||[]).map(x=>String(x==null?'':x).replace(/\s/g,''));
+  const find=(re,fallback)=>{const i=h.findIndex(x=>re.test(x));return i>=0?i:fallback;};
+  return{
+    date:find(/YYMMDD|일자|날짜/i,0),
+    campaign:find(/캠페인/,2),
+    adset:find(/광고세트/,3),
+    ad:(function(){const i=h.findIndex(x=>/광고이름|광고명/.test(x));return i>=0?i:4;})(),
+    spend:find(/지출|광고비/,5),
+    impressions:find(/^노출/,6),
+    clicks:find(/링크클릭/,7),
+    views:find(/^조회/,8),
+    video3s:find(/3초/,9),
+    reactions:find(/공감/,10),
+    comments:find(/댓글/,11),
+    shares:find(/공유/,12),
+    saves:find(/저장/,13),
+    shopnow:find(/shopnow/i,14)
+  };
+}
+function parseJpRows(text){
+  const rows=toRows(text);
+  if(!rows.length)return[];
+  /* 헤더 행 찾기 (보통 1행) */
+  let hIdx=0;
+  for(let i=0;i<Math.min(5,rows.length);i++){
+    if(rows[i]&&rows[i].some(c=>{const s=String(c==null?'':c);return s.includes('캠페인')||s.includes('YYMMDD')||s.includes('지출');})){hIdx=i;break;}
+  }
+  const cols=resolveCols(rows[hIdx]);
+  const dropped=[];
+  const out=[];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i];
+    if(!r||!r.length)continue;
+    const date=parseDateStr(r[cols.date]);
+    if(!date){if(String(r[cols.date]||'').trim())dropped.push(r[cols.date]);continue;}
+    const rec={
+      date:date,month:date.slice(0,7),
+      campaign:String(r[cols.campaign]==null?'':r[cols.campaign]).trim()||'(캠페인 없음)',
+      adset:String(r[cols.adset]==null?'':r[cols.adset]).trim()||'(세트 없음)',
+      ad:String(r[cols.ad]==null?'':r[cols.ad]).trim()||'(광고 없음)',
+      spend:parseNum(r[cols.spend]),impressions:parseNum(r[cols.impressions]),clicks:parseNum(r[cols.clicks]),
+      views:parseNum(r[cols.views]),video3s:parseNum(r[cols.video3s]),
+      reactions:parseNum(r[cols.reactions]),comments:parseNum(r[cols.comments]),
+      shares:parseNum(r[cols.shares]),saves:parseNum(r[cols.saves]),shopnow:parseNum(r[cols.shopnow])
+    };
+    out.push(rec);
+  }
+  if(dropped.length)console.log('[JP DROPPED] 날짜 인식 실패 '+dropped.length+'행:',dropped.slice(0,20));
+  return out;
+}
+
+/* ---------- aggregation ---------- */
+function blank(){const o={};SUMS.forEach(k=>o[k]=0);return o;}
+function derive(m){
+  m.engagement=m.reactions+m.comments+m.shares+m.saves;
+  m.ctr=m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
+  m.cpc=m.clicks>0?Math.round(m.spend/m.clicks):0;
+  m.cpm=m.impressions>0?Math.round(m.spend/m.impressions*1000):0;
+  m.vtr=m.impressions>0?+(m.video3s/m.impressions*100).toFixed(2):0;
+  m.er=m.impressions>0?+(m.engagement/m.impressions*100).toFixed(2):0;
+  m.cpsn=m.shopnow>0?Math.round(m.spend/m.shopnow):0;
+  m.snr=m.clicks>0?+(m.shopnow/m.clicks*100).toFixed(2):0;
+  m.cpe=m.engagement>0?Math.round(m.spend/m.engagement):0;
+  return m;
+}
+function grp(arr,keys){
+  const map=new Map();
+  for(const r of arr){
+    const ck=keys.map(k=>r[k]).join('|||');
+    let o=map.get(ck);
+    if(!o){o=blank();keys.forEach(k=>o[k]=r[k]);map.set(ck,o);}
+    for(const v of SUMS)o[v]+=r[v]||0;
+  }
+  return[...map.values()].map(derive);
+}
+function total(arr){const o=blank();for(const r of arr)for(const v of SUMS)o[v]+=r[v]||0;return derive(o);}
+
+function getDateRange(){
+  if(dateMode==='monthly')return{from:curMonth+'-01',to:curMonth+'-31'};
+  return{from:customFrom,to:customTo};
+}
+function getDateLabel(){return dateMode==='monthly'?monthLabel(curMonth):customFrom+' ~ '+customTo;}
+function inRange(from,to){return RAW.filter(r=>r.date>=from&&r.date<=to);}
+function R(){const d=getDateRange();return inRange(d.from,d.to);}
+
+function fmtLocalDate(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function addDays(s,n){const d=new Date(s+'T00:00:00');d.setDate(d.getDate()+n);return fmtLocalDate(d);}
+function daysBetween(from,to){const out=[];let c=from;let guard=0;while(c<=to&&guard++<800){out.push(c);c=addDays(c,1);}return out;}
+/* 직전 동일 길이 기간 (KPI 비교용) */
+function prevRange(){
+  const d=getDateRange();
+  const from=d.from,to=d.to>dataTo?dataTo:d.to;
+  const len=daysBetween(from,to).length||1;
+  const pTo=addDays(from,-1);
+  return{from:addDays(pTo,-(len-1)),to:pTo};
+}
+
+/* ---------- loading ---------- */
+async function loadData(){
+  showLoading(true);
+  try{
+    let text=getCached(CACHE_KEY);
+    if(!text){
+      const res=await fetch(JP_URL,{redirect:'follow'});
+      text=await res.text();
+      setCached(CACHE_KEY,text);
+    }
+    RAW=parseJpRows(text);
+    if(!RAW.length)throw new Error('"'+JP_SHEET+'" 시트에서 읽은 데이터가 없습니다. Apps Script가 이 탭을 서빙하는지 확인해 주세요.');
+
+    const dates=RAW.map(r=>r.date).sort();
+    dataFrom=dates[0];dataTo=dates[dates.length-1];
+    customFrom=dataFrom;customTo=dataTo;
+    const df=document.getElementById('dateFrom'),dt=document.getElementById('dateTo');
+    df.min=dataFrom;df.max=dataTo;df.value=dataFrom;
+    dt.min=dataFrom;dt.max=dataTo;dt.value=dataTo;
+
+    const months=[...new Set(RAW.map(r=>r.month))].sort();
+    curMonth=months[months.length-1];
+    renderMonthPills(months);
+
+    CAMPAIGNS=[...new Set(RAW.map(r=>r.campaign))].sort();
+    CAMPAIGNS.forEach((c,i)=>COLOR[c]=PALETTE[i%PALETTE.length]);
+
+    renderMetricTabs();
+    showLoading(false);
+    refresh();
+  }catch(e){
+    showLoading(false);
+    const el=document.getElementById('loadError');
+    el.style.display='block';
+    el.textContent='데이터 로드 실패: '+e.message;
+    console.error(e);
+  }
+}
+function showLoading(s){document.getElementById('loadingBar').style.display=s?'flex':'none';}
+
+/* ---------- shared UI ---------- */
+function renderMonthPills(months){
+  document.getElementById('monthly-pills').innerHTML=months.map(m=>
+    '<button class="mpill'+(m===curMonth?' active':'')+'" onclick="switchMonth(\''+m+'\',this)">'+monthLabel(m)+'</button>').join('');
+}
+function switchMonth(m,btn){
+  curMonth=m;dateMode='monthly';
+  document.querySelectorAll('#monthly-pills .mpill').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  trendSel.clear();refresh();
+}
+function setDateMode(mode,btn){
+  dateMode=mode;
+  document.querySelectorAll('.dmt').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('monthly-pills').style.display=mode==='monthly'?'flex':'none';
+  document.getElementById('custom-range').style.display=mode==='custom'?'flex':'none';
+  trendSel.clear();refresh();
+}
+function applyCustomRange(){
+  customFrom=document.getElementById('dateFrom').value||dataFrom;
+  customTo=document.getElementById('dateTo').value||dataTo;
+  if(customFrom>customTo){const t=customFrom;customFrom=customTo;customTo=t;}
+  dateMode='custom';trendSel.clear();refresh();
+}
+function renderMetricTabs(){
+  const mk=(id,cur,fn)=>document.getElementById(id).innerHTML=TAB_METRICS.map(k=>
+    '<button class="pmtab'+(k===cur?' active':'')+'" onclick="'+fn+'(\''+k+'\',this)">'+MLABEL[k]+'</button>').join('');
+  mk('ovtabs',ovM,'switchOvM');mk('cmtabs',campM,'switchCampM');mk('tmtabs',trendM,'switchTrendM');
+}
+function switchOvM(m,btn){ovM=m;setActive('#ovtabs .pmtab',btn);renderOverview();}
+function switchCampM(m,btn){campM=m;setActive('#cmtabs .pmtab',btn);renderCampaignPage();}
+function switchTrendM(m,btn){trendM=m;setActive('#tmtabs .pmtab',btn);renderTrendPage();}
+function setActive(sel,btn){document.querySelectorAll(sel).forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');}
+
+function goPage(pg,btn){
+  curPage=pg;
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pg-'+pg).classList.add('active');
+  refresh();
+}
+function refresh(){
+  if(!RAW.length)return;
+  const label=getDateLabel(),rows=R();
+  const meta=label+' · '+rows.length.toLocaleString('ko-KR')+'행 · 데이터 '+dataFrom+' ~ '+dataTo;
+  ['overviewMeta','campaignMeta','adsetMeta','creativeMeta','trendMeta'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.textContent=meta;});
+  if(curPage==='overview')renderOverview();
+  else if(curPage==='campaign')renderCampaignPage();
+  else if(curPage==='adset')renderAdsetPage();
+  else if(curPage==='creative')renderAdPage();
+  else if(curPage==='trend')renderTrendPage();
+}
+
+/* ---------- PAGE 1: OVERVIEW ---------- */
+const KPI_LIST=['spend','impressions','clicks','ctr','cpc','cpm','shopnow','cpsn','snr','video3s','vtr','engagement'];
+function renderOverview(){
+  const cur=total(R());
+  const p=prevRange();
+  const prev=total(inRange(p.from,p.to));
+  document.getElementById('kpigrid').innerHTML=KPI_LIST.map(k=>{
+    const v=cur[k],pv=prev[k];
+    let delta='';
+    if(pv>0){
+      const pct=(v-pv)/pv*100;
+      const better=LOWER_BETTER[k]?pct<0:pct>0;
+      const cls=Math.abs(pct)<0.05?'':(better?'up':'down');
+      delta='<div class="kdelta '+cls+'">'+(pct>=0?'▲':'▼')+' '+fd(Math.abs(pct),1)+'% <span style="color:var(--muted)">vs '+fmtM(k,pv)+'</span></div>';
+    }else{
+      delta='<div class="kdelta">직전 기간 데이터 없음</div>';
+    }
+    return'<div class="kcard"><div class="klabel">'+MLABEL[k]+'</div><div class="kval">'+fmtM(k,v)+'</div>'+delta+'</div>';
+  }).join('');
+
+  /* daily trend (total) */
+  const d=getDateRange();
+  const days=daysBetween(d.from>dataFrom?d.from:dataFrom,(d.to<dataTo?d.to:dataTo));
+  const byDay=new Map(grp(R(),['date']).map(r=>[r.date,r]));
+  document.getElementById('ovTrendT').textContent='Daily '+MLABEL[ovM].toLowerCase();
+  const vals=days.map(dt=>{const r=byDay.get(dt);return r?r[ovM]:0;});
+  const ctx=document.getElementById('ovTrendC').getContext('2d');
+  if(ovTrendChart)ovTrendChart.destroy();
+  ovTrendChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:days,datasets:[{label:MLABEL[ovM],data:vals,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.14)',
+      borderWidth:2,pointRadius:2,pointHoverRadius:5,tension:.3,fill:true}]},
+    options:baseOpts(ovM,days)
+  });
+
+  /* campaign comparison (horizontal bars) */
+  const camps=grp(R(),['campaign']).sort((a,b)=>b[ovM]-a[ovM]);
+  document.getElementById('ovCampT').textContent='Campaign · '+MLABEL[ovM];
+  document.getElementById('ovCampWrap').style.height=Math.max(140,camps.length*34+40)+'px';
+  const cctx=document.getElementById('ovCampC').getContext('2d');
+  if(ovCampChart)ovCampChart.destroy();
+  ovCampChart=new Chart(cctx,{
+    type:'bar',
+    data:{labels:camps.map(c=>shortName(c.campaign,34)),datasets:[{data:camps.map(c=>c[ovM]),
+      backgroundColor:camps.map(c=>COLOR[c.campaign]||'#888'),borderRadius:4,barPercentage:.7}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>' '+fmtM(ovM,it.raw)}}},
+      scales:{x:{ticks:{font:{size:11},color:'#888',callback:v=>fmtM(ovM,v)},grid:{color:'rgba(128,128,128,.1)'}},
+              y:{ticks:{font:{size:11},color:'#888'},grid:{display:false}}}}
+  });
+}
+function baseOpts(metric,days){
+  return{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:it=>' '+it.dataset.label+': '+fmtM(metric,it.raw)}}},
+    scales:{
+      x:{ticks:{font:{size:11},color:'#888',maxRotation:45,autoSkip:true,maxTicksLimit:18,
+        callback:function(v,i){const s=days[i];if(!s)return s;const p=s.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);}},grid:{display:false}},
+      y:{ticks:{font:{size:11},color:'#888',callback:v=>fmtM(metric,v)},grid:{color:'rgba(128,128,128,.1)'}}}};
+}
+
+/* ---------- generic sortable table ---------- */
+function thead(nameCols,sort,setFn){
+  const head=nameCols.map(c=>'<th'+(sort.k===c.k?' class="sorted"':'')+' onclick="'+setFn+'(\''+c.k+'\')">'+c.t+' <span class="sort-arrow">'+arrow(sort,c.k)+'</span></th>').join('');
+  const nums=TBL_COLS.map(k=>'<th class="num'+(sort.k===k?' sorted':'')+'" onclick="'+setFn+'(\''+k+'\')">'+COL_SHORT[k]+' <span class="sort-arrow">'+arrow(sort,k)+'</span></th>').join('');
+  return'<tr><th style="width:36px;padding-left:14px">#</th>'+head+nums+'</tr>';
+}
+function arrow(sort,k){return sort.k===k?(sort.dir<0?'↓':'↑'):'↕';}
+function numCells(r){return TBL_COLS.map(k=>'<td class="num">'+fmtM(k,r[k])+'</td>').join('');}
+function footCells(t,span){return'<tr><td colspan="'+span+'">합계 · '+getDateLabel()+'</td>'+TBL_COLS.map(k=>'<td class="num">'+fmtM(k,t[k])+'</td>').join('')+'</tr>';}
+const TEXT_KEYS={campaign:1,adset:1,ad:1};
+function sortRows(rows,sort){
+  const k=sort.k,dir=sort.dir;
+  return rows.slice().sort((a,b)=>{
+    if(TEXT_KEYS[k])return String(a[k]).localeCompare(String(b[k]),'ko')*(dir<0?-1:1);
+    return(b[k]-a[k])*(dir<0?1:-1);
+  });
+}
+function toggleSort(sort,k){
+  if(sort.k===k)sort.dir=-sort.dir;
+  else{sort.k=k;sort.dir=TEXT_KEYS[k]?1:-1;}   /* 이름=A→Z, 숫자=큰 값부터 */
+}
+
+/* ---------- PAGE 2: BY CAMPAIGN ---------- */
+function setCampSort(k){toggleSort(campSort,k);renderCampaignPage();}
+function renderCampaignPage(){
+  const rows=grp(R(),['campaign']);
+  const t=total(R());
+  document.getElementById('campThead').innerHTML=thead([{k:'campaign',t:'Campaign'}],campSort,'setCampSort');
+  const sorted=sortRows(rows,campSort);
+  document.getElementById('campTbody').innerHTML=sorted.length?sorted.map((r,i)=>
+    '<tr><td>'+(i+1)+'</td><td class="nm" title="'+esc(r.campaign)+'"><span class="cdot" style="display:inline-block;background:'+(COLOR[r.campaign]||'#888')+';margin-right:6px"></span>'+esc(shortName(r.campaign,44))+'</td>'+numCells(r)+'</tr>').join('')
+    :'<tr><td colspan="'+(TBL_COLS.length+2)+'" class="empty">해당 기간 데이터 없음</td></tr>';
+  document.getElementById('campTfoot').innerHTML=sorted.length?footCells(t,2):'';
+
+  /* ad set breakdown per campaign */
+  const sets=grp(R(),['campaign','adset']);
+  const bySpend=sortRows(rows,{k:'spend',dir:-1});
+  document.getElementById('campBreakdown').innerHTML=bySpend.map(c=>{
+    const mine=sets.filter(s=>s.campaign===c.campaign).sort((a,b)=>b[campM]-a[campM]).slice(0,8);
+    const max=Math.max.apply(null,[1].concat(mine.map(s=>s[campM]||0)));
+    const col=COLOR[c.campaign]||'#888';
+    return'<div class="pdcard">'+
+      '<div class="pdname" title="'+esc(c.campaign)+'"><span class="cdot" style="background:'+col+'"></span>'+esc(shortName(c.campaign,30))+'</div>'+
+      '<div class="pdsub">'+MLABEL[campM]+' · 광고 세트 '+sets.filter(s=>s.campaign===c.campaign).length+'개</div>'+
+      '<div class="srow">'+
+        '<div class="st"><div class="stl">Spend</div><div class="stv sm">'+fmtM('spend',c.spend)+'</div></div>'+
+        '<div class="st"><div class="stl">CTR</div><div class="stv">'+fmtM('ctr',c.ctr)+'</div></div>'+
+        '<div class="st"><div class="stl">CPC</div><div class="stv sm">'+fmtM('cpc',c.cpc)+'</div></div>'+
+      '</div>'+
+      '<div class="srow">'+
+        '<div class="st"><div class="stl">ShopNow</div><div class="stv">'+fmtM('shopnow',c.shopnow)+'</div></div>'+
+        '<div class="st"><div class="stl">CP/SN</div><div class="stv sm">'+fmtM('cpsn',c.cpsn)+'</div></div>'+
+        '<div class="st"><div class="stl">Engage</div><div class="stv">'+fmtM('engagement',c.engagement)+'</div></div>'+
+      '</div>'+
+      mine.map(s=>'<div class="crow"><div class="clabel" title="'+esc(s.adset)+'"><span class="cdot" style="background:'+col+'"></span><span class="cname">'+esc(shortName(s.adset,18))+'</span></div>'+
+        '<div class="cbw"><div class="cbt"><div class="cbf" style="width:'+Math.round((s[campM]||0)/max*100)+'%;background:'+col+'"></div></div></div>'+
+        '<div class="cval">'+fmtM(campM,s[campM])+'</div></div>').join('')+
+      '</div>';
+  }).join('')||'<div class="empty">해당 기간 데이터 없음</div>';
+}
+
+/* ---------- PAGE 3: BY AD SET ---------- */
+function setAdsetSort(k){toggleSort(adsetSort,k);renderAdsetTable();}
+function setAsCamp(c,btn){asCampFilter=c;setActive('#asCampPills .fb',btn);renderAdsetTable();}
+function renderAdsetPage(){
+  const camps=grp(R(),['campaign']).sort((a,b)=>b.spend-a.spend).map(r=>r.campaign);
+  document.getElementById('asCampPills').innerHTML=
+    '<button class="fb'+(asCampFilter==='All'?' active':'')+'" onclick="setAsCamp(\'All\',this)">All</button>'+
+    camps.map(c=>'<button class="fb'+(asCampFilter===c?' active':'')+'" title="'+esc(c)+'" onclick="setAsCamp('+JSON.stringify(c).replace(/"/g,'&quot;')+',this)">'+esc(shortName(c,28))+'</button>').join('');
+  renderAdsetTable();
+}
+function renderAdsetTable(){
+  let src=R();
+  if(asCampFilter!=='All')src=src.filter(r=>r.campaign===asCampFilter);
+  if(asSearch)src=src.filter(r=>r.adset.toLowerCase().includes(asSearch));
+  const rows=sortRows(grp(src,['campaign','adset']),adsetSort);
+  document.getElementById('adsetThead').innerHTML=thead([{k:'campaign',t:'Campaign'},{k:'adset',t:'Ad set'}],adsetSort,'setAdsetSort');
+  document.getElementById('adsetTbody').innerHTML=rows.length?rows.map((r,i)=>
+    '<tr><td>'+(i+1)+'</td>'+
+    '<td><span class="bdg" style="background:'+(COLOR[r.campaign]||'#888')+'22;color:'+(COLOR[r.campaign]||'#888')+'" title="'+esc(r.campaign)+'">'+esc(shortName(r.campaign,22))+'</span></td>'+
+    '<td class="nm" title="'+esc(r.adset)+'">'+esc(shortName(r.adset,40))+'</td>'+numCells(r)+'</tr>').join('')
+    :'<tr><td colspan="'+(TBL_COLS.length+3)+'" class="empty">조건에 맞는 광고 세트 없음</td></tr>';
+  document.getElementById('adsetTfoot').innerHTML=rows.length?footCells(total(src),3):'';
+}
+
+/* ---------- PAGE 4: BY CREATIVE ---------- */
+function setAdSort(k){toggleSort(adSort,k);adPage=0;renderAdTable();}
+function setAdCamp(c,btn){adCampFilter=c;adAdsetFilter='All';adPage=0;setActive('#adCampPills .fb',btn);renderAdsetSelect();renderAdTable();}
+function renderAdPage(){
+  const camps=grp(R(),['campaign']).sort((a,b)=>b.spend-a.spend).map(r=>r.campaign);
+  document.getElementById('adCampPills').innerHTML=
+    '<button class="fb'+(adCampFilter==='All'?' active':'')+'" onclick="setAdCamp(\'All\',this)">All</button>'+
+    camps.map(c=>'<button class="fb'+(adCampFilter===c?' active':'')+'" title="'+esc(c)+'" onclick="setAdCamp('+JSON.stringify(c).replace(/"/g,'&quot;')+',this)">'+esc(shortName(c,28))+'</button>').join('');
+  renderAdsetSelect();
+  renderAdTable();
+}
+function renderAdsetSelect(){
+  let src=R();
+  if(adCampFilter!=='All')src=src.filter(r=>r.campaign===adCampFilter);
+  const sets=[...new Set(src.map(r=>r.adset))].sort();
+  if(adAdsetFilter!=='All'&&!sets.includes(adAdsetFilter))adAdsetFilter='All';
+  document.getElementById('adAdsetSelect').innerHTML='<option value="All">All ad sets</option>'+
+    sets.map(s=>'<option value="'+esc(s)+'"'+(adAdsetFilter===s?' selected':'')+'>'+esc(shortName(s,44))+'</option>').join('');
+}
+function renderAdTable(){
+  let src=R();
+  if(adCampFilter!=='All')src=src.filter(r=>r.campaign===adCampFilter);
+  if(adAdsetFilter!=='All')src=src.filter(r=>r.adset===adAdsetFilter);
+  if(adSearch)src=src.filter(r=>r.ad.toLowerCase().includes(adSearch));
+  const keys=adSplitByAdset?['campaign','adset','ad']:['campaign','ad'];
+  const rows=sortRows(grp(src,keys),adSort);
+  const nameCols=adSplitByAdset
+    ?[{k:'campaign',t:'Campaign'},{k:'adset',t:'Ad set'},{k:'ad',t:'Ad name'}]
+    :[{k:'campaign',t:'Campaign'},{k:'ad',t:'Ad name'}];
+  document.getElementById('adThead').innerHTML=thead(nameCols,adSort,'setAdSort');
+  const totalPages=Math.max(1,Math.ceil(rows.length/ADS_PER_PAGE));
+  if(adPage>=totalPages)adPage=totalPages-1;
+  const start=adPage*ADS_PER_PAGE,page=rows.slice(start,start+ADS_PER_PAGE);
+  document.getElementById('adTbody').innerHTML=page.length?page.map((r,i)=>{
+    const col=COLOR[r.campaign]||'#888';
+    let cells='<td><span class="bdg" style="background:'+col+'22;color:'+col+'" title="'+esc(r.campaign)+'">'+esc(shortName(r.campaign,20))+'</span></td>';
+    if(adSplitByAdset)cells+='<td class="nm" title="'+esc(r.adset)+'">'+esc(shortName(r.adset,26))+'</td>';
+    cells+='<td class="nm" title="'+esc(r.ad)+'">'+esc(shortName(r.ad,40))+'</td>';
+    return'<tr><td>'+(start+i+1)+'</td>'+cells+numCells(r)+'</tr>';
+  }).join(''):'<tr><td colspan="'+(TBL_COLS.length+nameCols.length+1)+'" class="empty">조건에 맞는 광고 없음</td></tr>';
+  document.getElementById('adTfoot').innerHTML=rows.length?footCells(total(src),nameCols.length+1):'';
+  renderPagination(rows.length,totalPages);
+}
+function renderPagination(count,totalPages){
+  const el=document.getElementById('adPagination');
+  if(count<=ADS_PER_PAGE){el.innerHTML='<span class="pg-info">'+count+'개</span>';return;}
+  let h='<button class="pg-btn" onclick="goAdPage(0)"'+(adPage===0?' disabled':'')+'>«</button>';
+  h+='<button class="pg-btn" onclick="goAdPage('+(adPage-1)+')"'+(adPage===0?' disabled':'')+'>‹</button>';
+  const from=Math.max(0,adPage-3),to=Math.min(totalPages,from+7);
+  for(let p=from;p<to;p++)h+='<button class="pg-btn'+(p===adPage?' active':'')+'" onclick="goAdPage('+p+')">'+(p+1)+'</button>';
+  h+='<button class="pg-btn" onclick="goAdPage('+(adPage+1)+')"'+(adPage>=totalPages-1?' disabled':'')+'>›</button>';
+  h+='<button class="pg-btn" onclick="goAdPage('+(totalPages-1)+')"'+(adPage>=totalPages-1?' disabled':'')+'>»</button>';
+  h+='<span class="pg-info">'+(adPage*ADS_PER_PAGE+1)+'–'+Math.min((adPage+1)*ADS_PER_PAGE,count)+' / '+count+'개</span>';
+  el.innerHTML=h;
+}
+function goAdPage(p){adPage=p;renderAdTable();document.getElementById('adTable').scrollIntoView({behavior:'smooth',block:'start'});}
+
+/* ---------- PAGE 5: DAILY TREND ---------- */
+function setTrendDim(dim,btn){trendDim=dim;trendSel.clear();setActive('#trendDimBar .fb',btn);renderTrendPage();}
+function toggleTrendSel(name){
+  if(trendSel.has(name))trendSel.delete(name);
+  else{if(trendSel.size>=10)return;trendSel.add(name);}
+  renderTrendPage();
+}
+function renderTrendPage(){
+  const src=R();
+  const key=trendDim;
+  const entities=grp(src,[key]).sort((a,b)=>b.spend-a.spend);
+  const names=entities.map(e=>e[key]);
+  if(!trendSel.size)names.slice(0,5).forEach(n=>trendSel.add(n));
+  [...trendSel].forEach(n=>{if(!names.includes(n))trendSel.delete(n);});
+  document.getElementById('trendPills').innerHTML=entities.slice(0,40).map(e=>{
+    const n=e[key];
+    return'<button class="fb'+(trendSel.has(n)?' active':'')+'" title="'+esc(n)+'" onclick="toggleTrendSel('+JSON.stringify(n).replace(/"/g,'&quot;')+')">'+esc(shortName(n,26))+'</button>';
+  }).join('');
+
+  const d=getDateRange();
+  const days=daysBetween(d.from>dataFrom?d.from:dataFrom,(d.to<dataTo?d.to:dataTo));
+  const daily=grp(src.filter(r=>trendSel.has(r[key])),['date',key]);
+  const map=new Map(daily.map(r=>[r.date+'|||'+r[key],r]));
+  const sel=[...trendSel];
+  const colorOf=n=>trendDim==='campaign'?(COLOR[n]||'#888'):PALETTE[sel.indexOf(n)%PALETTE.length];
+  document.getElementById('trendT').textContent='Daily '+MLABEL[trendM].toLowerCase()+' · by '+(trendDim==='adset'?'ad set':trendDim);
+  const ctx=document.getElementById('trendC').getContext('2d');
+  if(trendChart)trendChart.destroy();
+  trendChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:days,datasets:sel.map(n=>({label:shortName(n,28),
+      data:days.map(dt=>{const r=map.get(dt+'|||'+n);return r?r[trendM]:0;}),
+      borderColor:colorOf(n),backgroundColor:colorOf(n)+'22',borderWidth:2,pointRadius:1.5,pointHoverRadius:5,tension:.3,fill:false}))},
+    options:Object.assign(baseOpts(trendM,days),{plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,boxHeight:10,font:{size:11},color:'#888'}},
+      tooltip:{callbacks:{label:it=>' '+it.dataset.label+': '+fmtM(trendM,it.raw)}}}})
+  });
+
+  /* summary table for the selected entities */
+  const rows=entities.filter(e=>trendSel.has(e[key]));
+  const label=trendDim==='campaign'?'Campaign':(trendDim==='adset'?'Ad set':'Ad name');
+  document.getElementById('trendThead').innerHTML='<tr><th style="width:36px;padding-left:14px">#</th><th>'+label+'</th>'+
+    TBL_COLS.map(k=>'<th class="num">'+COL_SHORT[k]+'</th>').join('')+'</tr>';
+  document.getElementById('trendTbody').innerHTML=rows.length?rows.map((r,i)=>
+    '<tr><td>'+(i+1)+'</td><td class="nm" title="'+esc(r[key])+'"><span class="cdot" style="display:inline-block;background:'+colorOf(r[key])+';margin-right:6px"></span>'+esc(shortName(r[key],40))+'</td>'+numCells(r)+'</tr>').join('')
+    :'<tr><td colspan="'+(TBL_COLS.length+2)+'" class="empty">항목을 선택해 주세요</td></tr>';
+}
+
+/* 콘솔 진단: 원본 행 확인 */
+window.jpDebug=function(){
+  const d=getDateRange();
+  console.log('range',d,'rows',R().length,'campaigns',CAMPAIGNS);
+  console.log('sample',RAW.slice(0,3));
+  return{RAW:RAW,range:d};
+};
+
+loadData();
+</script>
+</body>
+</html>
