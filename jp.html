@@ -112,6 +112,19 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
 .pg-btn:disabled{opacity:.3;cursor:default;}
 .pg-info{font-size:12px;color:var(--muted);margin:0 8px;}
 .empty{padding:2rem;text-align:center;color:var(--muted);font-size:13px;}
+/* METHOD BOX */
+.method{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:.7rem 1.1rem;margin-bottom:1.25rem;font-size:12px;}
+.method summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:6px;}
+.method summary::-webkit-details-marker{display:none;}
+.method summary::before{content:'▸';color:var(--muted);font-size:11px;}
+.method[open] summary::before{content:'▾';}
+.method-body{margin-top:12px;color:var(--muted);line-height:1.75;}
+.mstep{display:flex;gap:10px;padding:5px 0;align-items:baseline;flex-wrap:wrap;}
+.mnum{width:18px;flex-shrink:0;font-weight:700;color:var(--text);}
+.mform{color:var(--text);font-weight:600;}
+.mnote{font-size:11px;}
+.method-body code{background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:11px;color:var(--text);}
+
 /* ESTIMATE SETTINGS BAR */
 .set-bar{background:var(--surface2);border-bottom:.5px solid var(--border);padding:7px 1.5rem;}
 .set-bar-inner{max-width:1200px;margin:0 auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted);}
@@ -164,7 +177,7 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
     <span class="date-label">추정 설정</span>
     <label class="setf">CVR <input type="number" id="setCvr" step="0.1" min="0" max="100"> %</label>
     <label class="setf">판매가 <input type="number" id="setPrice" step="1" min="0"> 엔</label>
-    <label class="setf">환율 <input type="number" id="setFx" step="0.01" min="0"> 원/엔</label>
+    <label class="setf">환율 <input type="number" id="setFx" step="0.01" min="0"> 원/100엔</label>
     <button class="apply-btn" onclick="applySettings()">적용</button>
     <span class="set-status" id="setStatus"></span>
   </div>
@@ -185,6 +198,10 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
     <div><h1>Japan overview</h1><div class="top-meta" id="overviewMeta"></div></div>
     <div class="pmtabs" id="ovtabs"></div>
   </div>
+  <details class="method" id="methodBox">
+    <summary>추정 구매수 · 추정 매출 · 추정 ROAS는 이렇게 계산합니다</summary>
+    <div class="method-body" id="methodBody"></div>
+  </details>
   <div class="notice" id="rateNotice" style="display:none"></div>
   <div class="slabel">Key metrics <span style="text-transform:none;letter-spacing:0">· 직전 동일 기간 대비</span></div>
   <div class="kgrid" id="kpigrid"></div>
@@ -325,6 +342,7 @@ const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','
 function monthLabel(m){const p=m.split('-');return(MONTH_NAMES[parseInt(p[1],10)-1]||p[1])+' '+p[0];}
 
 const f=n=>Math.round(n||0).toLocaleString('ko-KR');
+const fFx=n=>Number(n||0).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fd=(n,d=2)=>Number(n||0).toFixed(d);
 function fmtM(k,v){
   if(v===null||v===undefined||(typeof v==='number'&&!isFinite(v)))return'—';
@@ -340,7 +358,9 @@ function shortName(s,n){s=String(s||'');if(s.length<=n)return s;const head=Math.
 /* ---------- estimate settings ----------
    판매가·환율은 시트 탭에서 읽고(월평균), 못 읽으면 아래 수동 입력값으로 대체한다. */
 const SET_KEY='jp_settings';
-const DEFAULT_SETTINGS={cvr:5,priceJpy:2700,fx:null};
+/* 환율은 100엔 기준으로 입력·저장한다 (시트에서 쓰는 표기와 동일).
+   판매가·환율 탭이 연결되면 그쪽 값이 우선하고, 여기 값은 폴백으로만 쓰인다. */
+const DEFAULT_SETTINGS={cvr:5,priceJpy:2700,fxPer100:1406.30};
 let SETTINGS=Object.assign({},DEFAULT_SETTINGS);
 let FX_BY_MONTH={},FX_DEF=null,FX_SOURCE=null;          /* 환율 탭 (원/엔) */
 let PRICE_BY_MONTH={},PRICE_DEF=null,PRICE_SOURCE=null; /* 판매가 탭 (엔) */
@@ -481,9 +501,9 @@ function applyRates(){
 /* 해당 월의 구매 1건당 원화 금액 = 판매가(엔) × 환율(원/엔) */
 function krwPerPurchase(month){
   const p=PRICE_BY_MONTH[month]!=null?PRICE_BY_MONTH[month]:(PRICE_DEF!=null?PRICE_DEF:SETTINGS.priceJpy);
-  const fx=FX_BY_MONTH[month]!=null?FX_BY_MONTH[month]:(FX_DEF!=null?FX_DEF:SETTINGS.fx);
-  if(!(p>0)||!(fx>0))return null;
-  return p*fx;
+  const per100=FX_BY_MONTH[month]!=null?FX_BY_MONTH[month]:(FX_DEF!=null?FX_DEF:SETTINGS.fxPer100);
+  if(!(p>0)||!(per100>0))return null;
+  return p*per100/100;
 }
 function missingRateMonths(){
   const months=[...new Set(R().filter(r=>r.shopnow>0).map(r=>r.month))].sort();
@@ -585,12 +605,17 @@ async function loadAux(){
   let aux=getCached(AUX_KEY);
   if(!aux){
     const [fx,price]=await Promise.all([
-      tryTabs(FX_SHEETS,/환율|엔화|rate|fx/i,1000),          /* 원/엔 */
+      tryTabs(FX_SHEETS,/환율|엔화|rate|fx/i,100000),        /* 원/100엔 (10 미만이면 원/엔으로 보고 환산) */
       tryTabs(PRICE_SHEETS,/판매가|가격|price/i,1000000)]);   /* 엔 */
     aux={fx:fx,price:price};
     setCached(AUX_KEY,aux);
   }
-  if(aux.fx){FX_BY_MONTH=aux.fx.byMonth||{};FX_DEF=aux.fx.def;FX_SOURCE=aux.fx.sheet;}
+  if(aux.fx){
+    /* 시트가 원/엔(예: 14.06)으로 적혀 있으면 100엔 기준으로 맞춘다 */
+    const to100=v=>(v!=null&&v<100)?v*100:v;
+    FX_BY_MONTH={};for(const k in(aux.fx.byMonth||{}))FX_BY_MONTH[k]=to100(aux.fx.byMonth[k]);
+    FX_DEF=to100(aux.fx.def);FX_SOURCE=aux.fx.sheet;
+  }
   if(aux.price){PRICE_BY_MONTH=aux.price.byMonth||{};PRICE_DEF=aux.price.def;PRICE_SOURCE=aux.price.sheet;}
   console.log('[JP AUX] 환율:',FX_SOURCE||'없음',FX_BY_MONTH,'기본',FX_DEF,'| 판매가:',PRICE_SOURCE||'없음',PRICE_BY_MONTH,'기본',PRICE_DEF);
 }
@@ -605,26 +630,27 @@ function renderSettings(){
   const pIn=document.getElementById('setPrice'),fIn=document.getElementById('setFx');
   const sheetPrice=PRICE_SOURCE!=null,sheetFx=FX_SOURCE!=null;
   pIn.value=sheetPrice?'':(SETTINGS.priceJpy==null?'':SETTINGS.priceJpy);
-  fIn.value=sheetFx?'':(SETTINGS.fx==null?'':SETTINGS.fx);
+  fIn.value=sheetFx?'':(SETTINGS.fxPer100==null?'':SETTINGS.fxPer100);
   pIn.disabled=sheetPrice;fIn.disabled=sheetFx;
-  pIn.placeholder=sheetPrice?'시트':'2700';
-  fIn.placeholder=sheetFx?'시트':'미설정';
-  const src=(label,sheet,map,def,manual,unit)=>{
+  pIn.placeholder=sheetPrice?'시트':DEFAULT_SETTINGS.priceJpy;
+  fIn.placeholder=sheetFx?'시트':DEFAULT_SETTINGS.fxPer100;
+  const src=(label,sheet,map,manual,unit)=>{
     if(sheet)return label+' <b>시트 \''+esc(sheet)+'\'</b> 월별 '+Object.keys(map).length+'개';
-    if(manual>0)return label+' <b>수동 '+manual.toLocaleString('ko-KR')+unit+'</b>';
+    if(manual>0)return label+' <b>'+(unit.indexOf('엔')===0||unit==='엔'?f(manual):fFx(manual))+unit+' 고정</b>';
     return label+' <b style="color:#B3402B">미설정</b>';
   };
+  const unit=krwPerPurchase(curMonth||(RAW.length?RAW[RAW.length-1].month:''));
   document.getElementById('setStatus').innerHTML=
-    src('판매가',PRICE_SOURCE,PRICE_BY_MONTH,PRICE_DEF,SETTINGS.priceJpy,'엔')+' · '+
-    src('환율',FX_SOURCE,FX_BY_MONTH,FX_DEF,SETTINGS.fx,'원/엔')+
-    ' · 추정 구매수 = ShopNowClick × CVR';
+    src('판매가',PRICE_SOURCE,PRICE_BY_MONTH,SETTINGS.priceJpy,'엔')+' · '+
+    src('환율',FX_SOURCE,FX_BY_MONTH,SETTINGS.fxPer100,'원/100엔')+
+    (unit?' · 구매 1건 = <b>₩'+f(unit)+'</b>':'');
 }
 function applySettings(){
   const num=id=>{const v=document.getElementById(id).value;return v===''?null:parseFloat(v);};
   const cvr=num('setCvr');
   SETTINGS.cvr=(cvr!=null&&cvr>=0)?cvr:DEFAULT_SETTINGS.cvr;
   if(!PRICE_SOURCE){const p=num('setPrice');SETTINGS.priceJpy=(p!=null&&p>0)?p:null;}
-  if(!FX_SOURCE){const x=num('setFx');SETTINGS.fx=(x!=null&&x>0)?x:null;}
+  if(!FX_SOURCE){const x=num('setFx');SETTINGS.fxPer100=(x!=null&&x>0)?x:null;}
   saveSettings();applyRates();renderSettings();refresh();
 }
 
@@ -730,6 +756,7 @@ function refresh(){
 /* ---------- PAGE 1: OVERVIEW ---------- */
 const KPI_LIST=['spend','impressions','clicks','ctr','cpc','cpm','shopnow','cpa','est_purch','est_rev','roas','cvr','views','vtr','video3s','vtr3s','engagement','er'];
 function renderOverview(){
+  renderMethod();
   renderRateNotice();
   const cur=total(R());
   const p=prevRange();
@@ -778,6 +805,33 @@ function renderOverview(){
       scales:{x:{ticks:{font:{size:11},color:'#888',callback:v=>fmtM(ovM,v)},grid:{color:'rgba(128,128,128,.1)'}},
               y:{ticks:{font:{size:11},color:'#888'},grid:{display:false}}}}
   });
+}
+function renderMethod(){
+  const el=document.getElementById('methodBody');
+  if(!el)return;
+  const cvr=SETTINGS.cvr;
+  const price=PRICE_SOURCE?null:SETTINGS.priceJpy;
+  const fx=FX_SOURCE?null:SETTINGS.fxPer100;
+  const unit=krwPerPurchase(curMonth||(RAW.length?RAW[RAW.length-1].month:''));
+  const priceTxt=price?f(price)+'엔':'시트 \''+esc(PRICE_SOURCE)+'\' 탭의 월별 판매가';
+  const fxTxt=fx?fFx(fx)+'원/100엔':'시트 \''+esc(FX_SOURCE)+'\' 탭의 월평균 환율';
+  el.innerHTML=
+    '<div class="mstep"><span class="mnum">1</span><span><span class="mform">추정 구매수 = ShopNowClick × CVR '+fd(cvr,1)+'%</span>'+
+      '<div class="mnote">JP는 구매 데이터가 없어서, <b>US 메타에서 산출한 「ShopNowClick → 어트리뷰션 구매」 전환율</b>을 JP ShopNowClick에 그대로 적용합니다.</div></span></div>'+
+    '<div class="mstep"><span class="mnum">2</span><span><span class="mform">추정 매출 = 추정 구매수 × 판매가 × 환율</span>'+
+      '<div class="mnote">판매가 '+priceTxt+' × 환율 '+fxTxt+
+      (unit?' → <b>구매 1건당 ₩'+f(unit)+'</b>':'')+'</div></span></div>'+
+    '<div class="mstep"><span class="mnum">3</span><span><span class="mform">추정 ROAS = 추정 매출 ÷ 광고비</span>'+
+      '<div class="mnote">광고비는 시트의 실제 지출 금액(원화)입니다. 100%면 광고비만큼 벌었다는 뜻.</div></span></div>'+
+    '<div class="mnote" style="margin-top:10px;padding-top:10px;border-top:.5px solid var(--border)">'+
+      '함께 쓰는 지표 — <code>CVR = 추정 구매수 ÷ 링크 클릭</code> <code>CPA = 광고비 ÷ ShopNowClick</code> '+
+      '<code>VTR = 조회 ÷ 노출</code> <code>3S VTR = 3초 이상 재생 ÷ 노출</code> <code>ER = (공감+댓글+공유+저장) ÷ 노출</code></div>'+
+    '<div class="mnote" style="margin-top:8px">'+
+      '<b>해석 주의</b> — 실제 구매 데이터가 아니라 US 전환율을 빌려온 <b>추정치</b>입니다. '+
+      (FX_SOURCE?'':'환율')+(!FX_SOURCE&&!PRICE_SOURCE?'·':'')+(PRICE_SOURCE?'':'판매가')+
+      ((!FX_SOURCE||!PRICE_SOURCE)?'를 고정값으로 쓰고 있어 ':'')+
+      '절대 금액보다 <b>캠페인·소재 간 비교</b>에 쓰는 편이 안전합니다. '+
+      'CVR·판매가·환율은 상단 「추정 설정」에서 바꿀 수 있고, 바꾸면 과거 기간 수치도 함께 다시 계산됩니다.</div>';
 }
 function renderRateNotice(){
   const el=document.getElementById('rateNotice');
