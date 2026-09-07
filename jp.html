@@ -320,7 +320,9 @@ const JP_URL=API_URL+'?sheet='+encodeURIComponent(JP_SHEET);
    CPA         = 광고비 ÷ ShopNowClick
    VTR         = 조회 ÷ 노출        /  3S VTR = 3초 이상 재생 ÷ 노출
    ER          = (공감+댓글+공유+저장) ÷ 노출                                   */
-const SUMS=['spend','impressions','clicks','views','video3s','reactions','comments','shares','saves','shopnow','snrev','snmiss'];
+const SUMS=['spend','impressions','clicks','views','video3s','reactions','comments','shares','saves','shopnow','snrev','snmiss','sheet_purch','sheet_rev'];
+/* 시트에 '추정 구매수' / '추정 매출' 컬럼이 있으면 대시보드 계산 대신 그 값을 쓴다 */
+let SHEET_EST={purch:false,rev:false};
 const MLABEL={spend:'Spend',impressions:'Impressions',clicks:'Link clicks',ctr:'CTR',cpc:'CPC',cpm:'CPM',
   views:'Views',vtr:'VTR',video3s:'3s plays',vtr3s:'3S VTR',engagement:'Engagement',er:'ER',
   shopnow:'ShopNowClick',cpa:'CPA',est_purch:'추정 구매수',est_rev:'추정 매출',roas:'추정 ROAS',cvr:'CVR',
@@ -432,7 +434,10 @@ function resolveCols(header){
     comments:find(/댓글/,11),
     shares:find(/공유/,12),
     saves:find(/저장/,13),
-    shopnow:find(/shopnow/i,14)
+    shopnow:find(/shopnow/i,14),
+    /* 아래 둘은 없을 수도 있는 선택 컬럼 (시트에서 직접 계산해 넣는 경우) */
+    estPurch:h.findIndex(x=>/추정.*구매/.test(x)),
+    estRev:h.findIndex(x=>/추정.*매출/.test(x))
   };
 }
 function parseJpRows(text){
@@ -444,6 +449,8 @@ function parseJpRows(text){
     if(rows[i]&&rows[i].some(c=>{const s=String(c==null?'':c);return s.includes('캠페인')||s.includes('YYMMDD')||s.includes('지출');})){hIdx=i;break;}
   }
   const cols=resolveCols(rows[hIdx]);
+  SHEET_EST={purch:cols.estPurch>=0,rev:cols.estRev>=0};
+  if(SHEET_EST.purch||SHEET_EST.rev)console.log('[JP] 시트 추정 컬럼 사용 →',SHEET_EST);
   const dropped=[];
   const out=[];
   for(let i=hIdx+1;i<rows.length;i++){
@@ -459,7 +466,9 @@ function parseJpRows(text){
       spend:parseNum(r[cols.spend]),impressions:parseNum(r[cols.impressions]),clicks:parseNum(r[cols.clicks]),
       views:parseNum(r[cols.views]),video3s:parseNum(r[cols.video3s]),
       reactions:parseNum(r[cols.reactions]),comments:parseNum(r[cols.comments]),
-      shares:parseNum(r[cols.shares]),saves:parseNum(r[cols.saves]),shopnow:parseNum(r[cols.shopnow])
+      shares:parseNum(r[cols.shares]),saves:parseNum(r[cols.saves]),shopnow:parseNum(r[cols.shopnow]),
+      sheet_purch:cols.estPurch>=0?parseNum(r[cols.estPurch]):0,
+      sheet_rev:cols.estRev>=0?parseNum(r[cols.estRev]):0
     };
     out.push(rec);
   }
@@ -480,14 +489,14 @@ function derive(m){
   m.er=m.impressions>0?+(m.engagement/m.impressions*100).toFixed(2):0;
   m.cpa=m.shopnow>0?Math.round(m.spend/m.shopnow):0;
   m.cpe=m.engagement>0?Math.round(m.spend/m.engagement):0;
-  /* 추정 지표 */
-  m.est_purch=m.shopnow*frac;
+  /* 추정 지표 — 시트에 컬럼이 있으면 그 값을 합산해 쓰고, 없으면 여기서 계산한다.
+     ROAS 같은 비율은 행마다 합칠 수 없으므로 항상 합계끼리 나눠서 다시 구한다. */
+  m.est_purch=SHEET_EST.purch?m.sheet_purch:m.shopnow*frac;
   m.cvr=m.clicks>0?+(m.est_purch/m.clicks*100).toFixed(2):0;
-  if(m.snmiss>0){m.est_rev=null;m.roas=null;}   /* 판매가·환율 모르는 달이 섞이면 계산하지 않는다 */
-  else{
-    m.est_rev=Math.round(m.snrev*frac);
-    m.roas=m.spend>0?+(m.est_rev/m.spend*100).toFixed(2):0;
-  }
+  if(SHEET_EST.rev)m.est_rev=Math.round(m.sheet_rev);
+  else if(m.snmiss>0)m.est_rev=null;            /* 판매가·환율 모르는 달이 섞이면 계산하지 않는다 */
+  else m.est_rev=Math.round(m.snrev*frac);
+  m.roas=(m.est_rev==null)?null:(m.spend>0?+(m.est_rev/m.spend*100).toFixed(2):0);
   return m;
 }
 /* 행마다 판매가×환율(원)을 미리 곱해둔다 — 기간이 여러 달에 걸쳐도 달마다 다른 값이 적용된다 */
@@ -640,7 +649,18 @@ function renderSettings(){
     return label+' <b style="color:#B3402B">미설정</b>';
   };
   const unit=krwPerPurchase(curMonth||(RAW.length?RAW[RAW.length-1].month:''));
+  const bar=document.querySelector('.set-bar');
+  if(SHEET_EST.purch&&SHEET_EST.rev){
+    /* 추정 구매수·매출을 시트에서 그대로 받으므로 설정값이 쓰이지 않는다 */
+    ['setCvr','setPrice','setFx'].forEach(id=>document.getElementById(id).disabled=true);
+    document.getElementById('setStatus').innerHTML=
+      '추정 구매수·추정 매출 <b>시트 컬럼 사용</b> · 추정 ROAS는 합계끼리 다시 계산 (추정 매출 ÷ 광고비)';
+    return;
+  }
+  if(bar)bar.style.display='';
   document.getElementById('setStatus').innerHTML=
+    (SHEET_EST.purch?'추정 구매수 <b>시트 컬럼</b> · ':'')+
+    (SHEET_EST.rev?'추정 매출 <b>시트 컬럼</b> · ':'')+
     src('판매가',PRICE_SOURCE,PRICE_BY_MONTH,SETTINGS.priceJpy,'엔')+' · '+
     src('환율',FX_SOURCE,FX_BY_MONTH,SETTINGS.fxPer100,'원/100엔')+
     (unit?' · 구매 1건 = <b>₩'+f(unit)+'</b>':'');
@@ -815,6 +835,21 @@ function renderMethod(){
   const unit=krwPerPurchase(curMonth||(RAW.length?RAW[RAW.length-1].month:''));
   const priceTxt=price?f(price)+'엔':'시트 \''+esc(PRICE_SOURCE)+'\' 탭의 월별 판매가';
   const fxTxt=fx?fFx(fx)+'원/100엔':'시트 \''+esc(FX_SOURCE)+'\' 탭의 월평균 환율';
+  if(SHEET_EST.purch&&SHEET_EST.rev){
+    el.innerHTML=
+      '<div class="mstep"><span class="mnum">1</span><span><span class="mform">추정 구매수 · 추정 매출 = 시트에서 계산된 값</span>'+
+        '<div class="mnote">「JP meta raw」 탭의 <code>추정 구매수</code> · <code>추정 매출</code> 컬럼을 그대로 합산합니다. '+
+        '기준(US 메타 ShopNowClick → 어트리뷰션 구매 전환율, 판매가, 환율)은 시트 수식에서 관리합니다.</div></span></div>'+
+      '<div class="mstep"><span class="mnum">2</span><span><span class="mform">추정 ROAS = 추정 매출 합계 ÷ 광고비 합계</span>'+
+        '<div class="mnote">ROAS·CVR 같은 비율은 행마다 평균 내지 않고 <b>합계끼리 나눠서</b> 다시 계산합니다. '+
+        '캠페인·소재·기간 어느 단위로 묶어도 값이 맞습니다.</div></span></div>'+
+      '<div class="mnote" style="margin-top:10px;padding-top:10px;border-top:.5px solid var(--border)">'+
+        '함께 쓰는 지표 — <code>CVR = 추정 구매수 ÷ 링크 클릭</code> <code>CPA = 광고비 ÷ ShopNowClick</code> '+
+        '<code>VTR = 조회 ÷ 노출</code> <code>3S VTR = 3초 이상 재생 ÷ 노출</code> <code>ER = (공감+댓글+공유+저장) ÷ 노출</code></div>'+
+      '<div class="mnote" style="margin-top:8px"><b>해석 주의</b> — 실제 구매 데이터가 아니라 US 전환율을 빌려온 <b>추정치</b>입니다. '+
+        '절대 금액보다 캠페인·소재 간 비교에 쓰는 편이 안전합니다.</div>';
+    return;
+  }
   el.innerHTML=
     '<div class="mstep"><span class="mnum">1</span><span><span class="mform">추정 구매수 = ShopNowClick × CVR '+fd(cvr,1)+'%</span>'+
       '<div class="mnote">JP는 구매 데이터가 없어서, <b>US 메타에서 산출한 「ShopNowClick → 어트리뷰션 구매」 전환율</b>을 JP ShopNowClick에 그대로 적용합니다.</div></span></div>'+
@@ -835,7 +870,7 @@ function renderMethod(){
 }
 function renderRateNotice(){
   const el=document.getElementById('rateNotice');
-  const miss=missingRateMonths();
+  const miss=SHEET_EST.rev?[]:missingRateMonths();
   if(!miss.length){el.style.display='none';return;}
   el.style.display='block';
   el.innerHTML='추정 매출·ROAS를 계산할 수 없는 기간이 있습니다 ('+miss.join(', ')+
