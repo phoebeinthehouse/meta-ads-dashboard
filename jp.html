@@ -322,7 +322,7 @@ const API_URL='https://script.google.com/macros/s/AKfycbzxCoy9uj0X7IInXAhi4OHjci
 const JP_SHEET='JP meta raw';
 const JP_URL=API_URL+'?sheet='+encodeURIComponent(JP_SHEET);
 /* 이미지 목록 탭 후보 — 실제 탭을 만들면 이름이 여기 있는지만 확인하면 된다 */
-const ADS_LIST_SHEETS=['JP meta ads list','JP meta ads-list','jp-meta-ads-list','JP 소재 이미지','JP ads list'];
+const ADS_LIST_SHEETS=['JP meta ads list','JP meta ads-list','jp-meta-ads-list','JP 소재 이미지','JP ads list','meta-ads-list'];
 const FX_SHEETS=['환율','엔화 환율','엔화환율','JP 환율','엔화','FX'];
 const PRICE_SHEETS=['판매가','JP 판매가','판매 가격','판매가격','price'];
 
@@ -374,7 +374,7 @@ let FX_BY_MONTH={},FX_DEF=null,FX_SOURCE=null;
 let PRICE_BY_MONTH={},PRICE_DEF=null,PRICE_SOURCE=null;
 
 /* ---------- 상태 ---------- */
-let RAW=[],AD_IMAGES=[],ADS_LIST_SOURCE=null;
+let RAW=[],AD_IMAGES=[],ADS_LIST_SOURCE=null,ADS_LIST_COL=null;
 let curPage='creator';
 let dateMode='monthly',curMonth='',customFrom='',customTo='',dataFrom='',dataTo='';
 let cM='clicks',cPM='clicks',cWM='est_purch',cWCM='est_purch';
@@ -580,43 +580,68 @@ async function tryTabs(names,re,max){
   }
   return null;
 }
-/* 소재 이미지 목록: A열 광고 이름 / B열 이미지 URL (헤더 이름으로도 찾는다) */
+/* 소재 이미지 목록 (US meta-ads-list 와 같은 구조를 따른다)
+   URL 열이 여러 개인 시트를 전제로 한다 — 회사 내부 드라이브 열은 권한 때문에 대시보드에서
+   안 열리므로, "링크가 있는 모든 사용자"로 공개된 열(US 시트에서는 13번째 열 M)을 골라야 한다.
+   고르는 순서: 헤더에 개인/공개 표시가 있는 열 → 13번째 열(M, US 시트) → 마지막 URL 열 */
+function pickAdsListCols(rows){
+  const h=(rows[0]||[]).map(x=>String(x==null?'':x).replace(/\s/g,''));
+  let ni=h.findIndex(x=>/ad_name|소재명|광고이름|파일명/i.test(x));
+  if(ni<0)ni=0;
+  const di=h.findIndex(x=>/일자|날짜|생성일/.test(x));
+  const width=Math.max(h.length,...rows.slice(1,50).map(r=>(r||[]).length),0);
+  const cand=[];
+  for(let c=0;c<width;c++){
+    let hit=0;
+    for(let i=1;i<Math.min(rows.length,60);i++)
+      if(/^https?:/i.test(String((rows[i]||[])[c]==null?'':rows[i][c]).trim()))hit++;
+    if(hit)cand.push(c);
+  }
+  if(!cand.length)return null;
+  let ui=cand[cand.length-1];
+  const personal=cand.find(c=>/개인|personal|공개|public|외부/i.test(h[c]||''));
+  if(personal!=null)ui=personal;
+  else if(cand.indexOf(12)>=0)ui=12;                 /* US 시트와 같은 자리 */
+  return{name:ni,url:ui,date:di,urlHeader:h[ui]||('col'+(ui+1)),candidates:cand};
+}
 async function loadAdsList(){
   let cached=getCached(IMG_KEY);
   if(!cached){
-    cached={sheet:null,items:[]};
+    cached={sheet:null,items:[],col:null};
     for(const n of ADS_LIST_SHEETS){
       try{
         const rows=await fetchSheet(n);
-        const h=(rows[0]||[]).map(x=>String(x==null?'':x).replace(/\s/g,''));
-        let ni=h.findIndex(x=>/광고이름|소재명|adname|파일명|이름/i.test(x));
-        let ui=h.findIndex(x=>/이미지|url|링크|썸네일/i.test(x));
-        if(ni<0)ni=0;
-        if(ui<0)ui=1;
+        const c=pickAdsListCols(rows);
+        if(!c)continue;
         const items=[];
         for(let i=1;i<rows.length;i++){
-          const name=String((rows[i]||[])[ni]==null?'':rows[i][ni]).trim();
-          const url=String((rows[i]||[])[ui]==null?'':rows[i][ui]).trim();
-          if(name&&/^https?:/i.test(url))items.push({n:name,u:url});
+          const row=rows[i]||[];
+          const name=String(row[c.name]==null?'':row[c.name]).trim();
+          const url=String(row[c.url]==null?'':row[c.url]).trim();
+          if(!name||!/^https?:/i.test(url))continue;
+          items.push({n:name,u:url,d:c.date>=0?(parseDateStr(row[c.date])||''):''});
         }
-        if(items.length){cached={sheet:n,items:items};break;}
+        if(items.length){cached={sheet:n,items:items,col:{i:c.url,h:c.urlHeader,all:c.candidates}};break;}
       }catch(e){}
     }
     setCached(IMG_KEY,cached);
   }
-  ADS_LIST_SOURCE=cached.sheet;AD_IMAGES=cached.items||[];
-  console.log('[JP IMG] 소재 이미지 탭:',ADS_LIST_SOURCE||'없음','· 항목',AD_IMAGES.length);
+  ADS_LIST_SOURCE=cached.sheet;AD_IMAGES=cached.items||[];ADS_LIST_COL=cached.col;
+  if(ADS_LIST_COL)console.log('[JP IMG] 탭 \''+ADS_LIST_SOURCE+'\' · URL 열 후보',ADS_LIST_COL.all.map(c=>c+1),'→ 사용 열',ADS_LIST_COL.i+1,'('+ADS_LIST_COL.h+') · 항목',AD_IMAGES.length);
+  else console.log('[JP IMG] 소재 이미지 탭 없음');
 }
 function driveUrl(u){const m=String(u).match(/\/d\/([^/?]+)/);return m?'https://lh3.googleusercontent.com/d/'+m[1]+'=s400':u;}
 /* 광고 전체 이름 → 소재명+Creator+미디어 → 소재명 순으로 매칭 */
 function getAdImg(row){
   if(!AD_IMAGES.length)return'';
+  const latest=a=>a.reduce((x,y)=>((y.d||'')>(x.d||'')?y:x));   /* 같은 이름이 여러 번이면 최신 */
+  const pick=fn=>{const m=AD_IMAGES.filter(fn);return m.length?latest(m):null;};
   const raw=(row.raw_name||'').toLowerCase();
-  let hit=AD_IMAGES.find(x=>x.n.toLowerCase()===raw);
-  if(!hit&&raw)hit=AD_IMAGES.find(x=>x.n.toLowerCase().includes(raw));
   const name=(row.ad_name||'').toLowerCase(),cr=(row.creator||'').toLowerCase(),md=(row.media||'').toLowerCase();
-  if(!hit&&name)hit=AD_IMAGES.find(x=>{const l=x.n.toLowerCase();return l.includes(name)&&(!cr||l.includes(cr))&&(!md||l.includes(md));});
-  if(!hit&&name)hit=AD_IMAGES.find(x=>x.n.toLowerCase().includes(name));
+  let hit=raw?pick(x=>x.n.toLowerCase()===raw):null;
+  if(!hit&&raw)hit=pick(x=>x.n.toLowerCase().includes(raw));
+  if(!hit&&name)hit=pick(x=>{const l=x.n.toLowerCase();return l.includes(name)&&(!cr||l.includes(cr))&&(!md||l.includes(md));});
+  if(!hit&&name)hit=pick(x=>x.n.toLowerCase().includes(name));
   return hit?driveUrl(hit.u):'';
 }
 async function loadAux(){
@@ -766,7 +791,8 @@ function renderSettings(){
   st.innerHTML=src('판매가',PRICE_SOURCE,PRICE_BY_MONTH,SETTINGS.priceJpy,'엔',true)+' · '+
     src('환율',FX_SOURCE,FX_BY_MONTH,SETTINGS.fxPer100,'원/100엔',false)+
     (unit?' · 구매 1건 = <b>₩'+f(unit)+'</b>':'')+
-    (ADS_LIST_SOURCE?' · 이미지 <b>'+esc(ADS_LIST_SOURCE)+'</b>':' · 이미지 <b style="color:var(--bad)">탭 없음</b>');
+    (ADS_LIST_SOURCE?' · 이미지 <b>'+esc(ADS_LIST_SOURCE)+'</b>'+(ADS_LIST_COL?' '+(ADS_LIST_COL.i+1)+'번째 열':'')+' '+AD_IMAGES.length+'건'
+      :' · 이미지 <b style="color:var(--bad)">탭 없음</b>');
 }
 function applySettings(){
   const num=id=>{const v=document.getElementById(id).value;return v===''?null:parseFloat(v);};
