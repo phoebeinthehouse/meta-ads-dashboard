@@ -32,15 +32,6 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
 .dmt{padding:3px 12px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;transition:all .15s;text-transform:uppercase;letter-spacing:.04em;}
 .dmt.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
 
-/* ESTIMATE SETTINGS BAR */
-.set-bar{background:var(--surface2);border-bottom:.5px solid var(--border);padding:6px 1.5rem;}
-.set-bar-inner{max-width:1200px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--muted);}
-.setf{display:flex;align-items:center;gap:4px;white-space:nowrap;}
-.setf input{width:70px;text-align:right;padding:3px 7px;border-radius:6px;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;font-family:inherit;outline:none;}
-.setf input:disabled{opacity:.45;}
-.set-bar .apply-btn{padding:3px 11px;font-size:11px;}
-.set-status b{font-weight:600;color:var(--text);}
-
 .pg{max-width:1200px;margin:0 auto;padding:1.75rem 1.5rem;display:none;}
 .pg.active{display:block;}
 .top-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px;}
@@ -123,9 +114,9 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
 .search-input{width:240px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;}
 
 /* CREATIVE TABLE */
-.ad-thumb{width:72px;height:72px;object-fit:cover;border-radius:6px;background:var(--surface2);display:block;cursor:zoom-in;}
-.ad-thumb-cell{width:84px;padding:6px 6px 6px 8px!important;}
-.thumb-none{width:72px;height:72px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);}
+.ad-thumb{width:96px;height:96px;object-fit:cover;border-radius:6px;background:var(--surface2);display:block;cursor:zoom-in;}
+.ad-thumb-cell{width:106px;padding:6px 4px 6px 10px!important;}
+.thumb-none{width:96px;height:96px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);}
 /* 가로 스크롤이 생겨도 소재명은 항상 보이도록 왼쪽 두 열을 고정한다 */
 .ad-tbl th.stick,.ad-tbl td.stick{position:sticky;background:var(--surface);z-index:2;}
 .ad-tbl th.stick{z-index:3;}
@@ -137,6 +128,9 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
 .chips{display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;}
 .chip{font-size:10px;padding:1px 6px;border-radius:8px;white-space:nowrap;}
 .ad-table-wrap{overflow-x:auto;}
+/* 테이블 위쪽에도 같은 가로 스크롤바를 둬서 아래까지 내려가지 않아도 옆으로 넘길 수 있다 */
+.scroll-top{overflow-x:auto;overflow-y:hidden;display:none;}
+.scroll-top>div{height:1px;}
 .ad-tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .ad-tbl th{text-align:left;padding:6px 10px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:.5px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
 .ad-tbl th:hover{color:var(--text);}
@@ -151,7 +145,6 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
 .bvdo{background:#E6F1FB;color:#0C447C;}.bimg{background:#FAEEDA;color:#633806;}
 .pp{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:500;}
 .adname{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.adsub{font-size:10px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pagination{display:flex;gap:4px;justify-content:center;padding:16px 0;align-items:center;flex-wrap:wrap;}
 .pg-btn{padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;border:.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-weight:500;transition:all .15s;}
 .pg-btn:hover{background:var(--surface2);}
@@ -190,18 +183,6 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
       <span class="date-label">To</span><input type="date" class="date-input" id="dateTo">
       <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
     </div>
-  </div>
-</div>
-
-<!-- ESTIMATE SETTINGS -->
-<div class="set-bar">
-  <div class="set-bar-inner">
-    <span class="date-label">추정 설정</span>
-    <label class="setf">CVR <input type="number" id="setCvr" step="0.1" min="0" max="100">%</label>
-    <label class="setf">판매가 <input type="number" id="setPrice" step="1" min="0">엔</label>
-    <label class="setf">환율 <input type="number" id="setFx" step="0.01" min="0">원/100엔</label>
-    <button class="apply-btn" onclick="applySettings()">적용</button>
-    <span class="set-status" id="setStatus"></span>
   </div>
 </div>
 
@@ -278,7 +259,8 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
     <button id="splitCampaignBtn" class="fb" onclick="toggleSplitCampaign()">캠페인 분리</button>
   </div>
   <div class="ccard" style="padding:0;overflow:hidden;">
-    <div class="ad-table-wrap">
+    <div class="scroll-top" id="adScrollTop"><div id="adScrollTopInner"></div></div>
+    <div class="ad-table-wrap" id="adTableWrap">
       <table class="ad-tbl" id="creativeTable">
         <thead id="creativeThead"></thead>
         <tbody id="creativeTbody"></tbody>
@@ -347,13 +329,13 @@ const PCT={ctr:1,vtr:1,vtr3s:1,er:1,roas:1,cvr:1};
 const LOWER_BETTER={cpc:1,cpm:1,cpa:1};
 /* 소재 테이블: 지표 탭으로 열 묶음을 전환한다 */
 const COL_GROUPS=[
-  {k:'basic',label:'기본',cols:['clicks','spend','ctr','cpc','cpm','impressions']},
+  {k:'basic',label:'기본',cols:['clicks','spend','ctr','cpc','cpm']},
   {k:'conv', label:'전환',cols:['shopnow','cpa','est_purch','cvr','est_rev','roas']},
   {k:'eng',  label:'참여',cols:['views','vtr','video3s','vtr3s','engagement','er']}
 ];
-const CREATOR_METRICS=['clicks','ctr','cpc','shopnow','est_purch','roas'];
-const PRODUCT_METRICS=['clicks','ctr','cpc','spend','shopnow','cpa','est_purch','est_rev','roas','vtr','vtr3s','er'];
-const WEEKLY_METRICS=['clicks','spend','shopnow','est_purch','roas'];
+const CREATOR_METRICS=['clicks','ctr','cpc','shopnow','est_purch','est_rev','roas','cvr'];
+const PRODUCT_METRICS=['clicks','ctr','cpc','spend','shopnow','cpa','est_purch','est_rev','roas','cvr','vtr','vtr3s','er'];
+const WEEKLY_METRICS=['clicks','spend','shopnow','est_purch','est_rev','roas','cvr'];
 
 /* ---------- 색 ---------- */
 const CREATOR_C={Lina:'#378ADD',Phoebe:'#D4537E',Sarah:'#1D9E75',Iris:'#9B59B6',Partner:'#5C6570'};
@@ -699,7 +681,7 @@ async function loadData(){
 
     await Promise.all([loadAux().catch(e=>console.warn('[JP AUX]',e)),loadAdsList().catch(e=>console.warn('[JP IMG]',e))]);
     applyRates();
-    renderSettings();renderTabs();renderFilters();
+    renderTabs();renderFilters();
     showLoading(false);
     refresh();
   }catch(e){
@@ -782,41 +764,9 @@ function refresh(){
   else if(curPage==='weeklycreative')renderWeeklyCreativePage();
 }
 
-/* ---------- 추정 설정 ---------- */
+/* 추정 설정 입력칸은 없앴다. 시트 R~U 컬럼이 정상이면 쓰이지 않고,
+   컬럼이 빠졌을 때만 아래 기본값(CVR 5% / 2,700엔 / 1,406.30원)으로 대신 계산한다. */
 function loadSettings(){try{const v=JSON.parse(localStorage.getItem(SET_KEY));if(v)SETTINGS=Object.assign({},DEFAULT_SETTINGS,v);}catch(e){}}
-function saveSettings(){try{localStorage.setItem(SET_KEY,JSON.stringify(SETTINGS));}catch(e){}}
-function renderSettings(){
-  const cIn=document.getElementById('setCvr'),pIn=document.getElementById('setPrice'),fIn=document.getElementById('setFx');
-  cIn.value=SETTINGS.cvr;
-  pIn.value=PRICE_SOURCE?'':(SETTINGS.priceJpy==null?'':SETTINGS.priceJpy);
-  fIn.value=FX_SOURCE?'':(SETTINGS.fxPer100==null?'':SETTINGS.fxPer100);
-  pIn.disabled=!!PRICE_SOURCE;fIn.disabled=!!FX_SOURCE;
-  const st=document.getElementById('setStatus');
-  if(SHEET_EST.purch&&SHEET_EST.rev){
-    [cIn,pIn,fIn].forEach(el=>el.disabled=true);
-    st.innerHTML='추정 구매수·추정 매출 <b>시트 컬럼 사용</b> · ROAS는 합계끼리 재계산';
-    return;
-  }
-  const unit=krwPerPurchase(curMonth||(RAW.length?RAW[RAW.length-1].month:''));
-  const src=(label,sheet,map,manual,unit2,money)=>{
-    if(sheet)return label+' <b>시트 \''+esc(sheet)+'\'</b> 월별 '+Object.keys(map).length+'개';
-    if(manual>0)return label+' <b>'+(money?f(manual):fFx(manual))+unit2+'</b>';
-    return label+' <b style="color:var(--bad)">미설정</b>';
-  };
-  st.innerHTML=src('판매가',PRICE_SOURCE,PRICE_BY_MONTH,SETTINGS.priceJpy,'엔',true)+' · '+
-    src('환율',FX_SOURCE,FX_BY_MONTH,SETTINGS.fxPer100,'원/100엔',false)+
-    (unit?' · 구매 1건 = <b>₩'+f(unit)+'</b>':'')+
-    (ADS_LIST_SOURCE?' · 이미지 <b>'+esc(ADS_LIST_SOURCE)+'</b>'+(ADS_LIST_COL?' '+(ADS_LIST_COL.i+1)+'번째 열':'')+' '+AD_IMAGES.length+'건'
-      :' · 이미지 <b style="color:var(--bad)">탭 없음</b>');
-}
-function applySettings(){
-  const num=id=>{const v=document.getElementById(id).value;return v===''?null:parseFloat(v);};
-  const cvr=num('setCvr');
-  SETTINGS.cvr=(cvr!=null&&cvr>=0)?cvr:DEFAULT_SETTINGS.cvr;
-  if(!PRICE_SOURCE){const p=num('setPrice');SETTINGS.priceJpy=(p!=null&&p>0)?p:null;}
-  if(!FX_SOURCE){const x=num('setFx');SETTINGS.fxPer100=(x!=null&&x>0)?x:null;}
-  saveSettings();applyRates();renderSettings();refresh();
-}
 
 /* ---------- PAGE 1: BY CREATOR ---------- */
 function renderCreatorPage(){renderMethod();renderRateNotice();renderPCards();renderTrend();renderMedia();}
@@ -990,12 +940,11 @@ function renderCreativeTable(){
     '<th class="ad-thumb-cell"></th>'+
     '<th>Creator</th>'+
     (splitByCampaign?'<th>Campaign</th>':'')+
-    '<th onclick="setCS(\'live\')"'+(cSort==='live'?' class="sorted"':'')+'>Live <span class="sort-arrow">'+ar('live')+'</span></th>'+
     cols.map(k=>'<th class="num'+(cSort===k?' sorted':'')+'" onclick="setCS(\''+k+'\')">'+MLABEL[k]+' <span class="sort-arrow">'+ar(k)+'</span></th>').join('')+'</tr>';
   const totalPages=Math.max(1,Math.ceil(rows.length/ADS_PER_PAGE));
   if(adPage>=totalPages)adPage=totalPages-1;
   const start=adPage*ADS_PER_PAGE,page=rows.slice(start,start+ADS_PER_PAGE);
-  const span=5+(splitByCampaign?1:0)+cols.length;
+  const span=4+(splitByCampaign?1:0)+cols.length;
   document.getElementById('creativeTbody').innerHTML=page.length?page.map((r,i)=>{
     const img=getAdImg(r);
     const ccol=CCOL[r.creator]||'#888',pcol=PCOL[r.product]||'#888';
@@ -1011,16 +960,25 @@ function renderCreativeTable(){
       '<td class="ad-thumb-cell">'+(img?'<img class="ad-thumb" src="'+esc(img)+'" loading="lazy" onclick="openImg(this.src)" onerror="this.parentElement.innerHTML=\'<div class=&quot;thumb-none&quot;>no image</div>\'">':'<div class="thumb-none">no image</div>')+'</td>'+
       '<td><span class="pp" style="background:'+hexBg(ccol)+';color:'+ccol+'">'+esc(r.creator||'—')+'</span></td>'+
       (splitByCampaign?'<td>'+esc((r.campaign||'').slice(0,24))+'</td>':'')+
-      '<td>'+esc(r.live||'—')+'</td>'+
       cols.map(k=>'<td class="num">'+fmtM(k,r[k])+'</td>').join('')+'</tr>';
   }).join(''):'<tr><td colspan="'+span+'" class="no-data">조건에 맞는 소재가 없어요.</td></tr>';
   const t=total(src);
   document.getElementById('creativeTfoot').innerHTML=rows.length?
     '<tr><td class="stick c0" style="padding-left:12px"></td><td class="stick c1">합계 · '+getDateLabel()+'</td>'+
-    '<td colspan="'+(3+(splitByCampaign?1:0))+'"></td>'+
+    '<td colspan="'+(2+(splitByCampaign?1:0))+'"></td>'+
     cols.map(k=>'<td class="num">'+fmtM(k,t[k])+'</td>').join('')+'</tr>':'';
   renderPagination(rows.length,totalPages);
+  syncTopScroll();
 }
+function syncTopScroll(){
+  const wrap=document.getElementById('adTableWrap'),top=document.getElementById('adScrollTop'),inner=document.getElementById('adScrollTopInner');
+  if(!wrap||!top)return;
+  inner.style.width=wrap.scrollWidth+'px';
+  top.style.display=wrap.scrollWidth>wrap.clientWidth+1?'block':'none';
+  top.onscroll=function(){wrap.scrollLeft=top.scrollLeft;};
+  wrap.onscroll=function(){top.scrollLeft=wrap.scrollLeft;};
+}
+window.addEventListener('resize',function(){if(curPage==='creative')syncTopScroll();});
 function renderPagination(count,totalPages){
   const el=document.getElementById('adPagination');
   if(count<=ADS_PER_PAGE){el.innerHTML='<span class="pg-info">'+count+'개</span>';return;}
