@@ -16,28 +16,30 @@ Google Sheets(Apps Script Web App)를 데이터 소스로 쓰는 정적 대시�
 - 단위: 일 × 캠페인 × 광고세트 × 광고 / 1행 헤더, 2행부터 데이터
 - 원본 컬럼 A~Q (17개): YYMMDD, 일, 캠페인 이름, 광고 세트 이름, 광고 이름, 지출 금액(원화),
   노출, 링크 클릭, 조회, 동영상 3초 이상 재생, 게시물 공감/댓글/공유/저장, ShopNowClick, 보고 시작, 보고 종료
-- 페이지: Overview · By Campaign · By Ad Set · By Creative · Daily Trend
-- 계산 지표는 시트에 없고 프런트에서 계산
+- 페이지 구성은 US 대시보드와 동일: By Creator · By Product · By Creative · Weekly Trend · Weekly Trend by Creative
 
-### 지표 정의
+### 광고 이름 규칙 (US와 순서가 다름)
 
-| 지표 | 계산식 |
+```
+GS_F1864_img_JP1review0902_Phoebe_260904
+[0] 제품코드  [1] 타겟(파싱만 하고 사용 안 함)  [2] img|vdo
+[3] 소재명    [4] Creator                      [5] 소재 live 날짜(YYMMDD)
+```
+
+`img`/`vdo` 토큰을 기준점으로 잡아 그 뒤를 소재명·Creator·live 날짜로 읽는다.
+Creator와 제품 목록은 데이터에서 자동으로 뽑으므로 새 사람·새 제품이 생겨도 코드 수정이 필요 없다.
+
+### 소재 이미지 (`JP meta ads list` 탭)
+
+| A열 | B열 |
 |---|---|
-| CTR | 링크 클릭 ÷ 노출 |
-| CPC | 광고비 ÷ 링크 클릭 |
-| CPM | 광고비 ÷ 노출 × 1000 |
-| CPA | 광고비 ÷ ShopNowClick |
-| VTR | 조회 ÷ 노출 |
-| 3S VTR | 동영상 3초 이상 재생 ÷ 노출 |
-| ER | (공감+댓글+공유+저장) ÷ 노출 |
-| 추정 구매수 | ShopNowClick × CVR |
-| 추정 매출 | 추정 구매수 × 판매가(엔) × 환율(원/엔) |
-| 추정 ROAS | 추정 매출 ÷ 광고비 |
-| CVR(표시) | 추정 구매수 ÷ 링크 클릭 |
+| 광고 이름 (또는 소재 파일명) | 이미지 URL (구글 드라이브 링크 가능) |
 
-CVR은 **US 메타 기준 ShopNowClick → 어트리뷰션 구매 전환율**이며 기본값 5%.
-상단 `추정 설정` 바에서 CVR·판매가·환율을 바꿀 수 있고 값은 브라우저에 저장된다.
-Overview 상단의 `산출 방식` 패널에 현재 설정값이 들어간 계산식이 그대로 표시된다.
+- 탭 이름 후보: `JP meta ads list`, `JP meta ads-list`, `jp-meta-ads-list`, `JP 소재 이미지`, `JP ads list`
+- 매칭 순서: 광고 전체 이름 완전 일치 → 부분 일치 → 소재명+Creator+미디어 → 소재명
+- 드라이브 링크(`/d/<id>`)는 `lh3.googleusercontent.com` 썸네일로 자동 변환한다
+- 탭이 없으면 썸네일 자리에 `no image`만 표시되고 나머지는 정상 동작한다
+- **드라이브 파일이 "링크가 있는 모든 사용자 - 뷰어"로 공유되어 있어야 이미지가 보인다**
 
 ### 시트에서 계산한 값 쓰기 (우선순위 1순위)
 
