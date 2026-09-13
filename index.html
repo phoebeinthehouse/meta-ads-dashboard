@@ -411,6 +411,13 @@ function parseCSV(text){
   });
 }
 
+function isPartnershipName(name){
+  if(!name)return false;
+  const parts=name.split('_');
+  const first=String(parts[0]||'').trim().toLowerCase();
+  const last=String(parts[parts.length-1]||'').trim().toLowerCase();
+  return first==='파트너십'||first==='partnership'||last.endsWith('-p');
+}
 function parsePerson(name){
   if(!name)return null;
   const parts=name.split('_');
@@ -420,6 +427,8 @@ function parsePerson(name){
     return PEOPLE.find(person=>person.toLowerCase()===leadingName[0].toLowerCase())||null;
   };
   if(parts[0].toLowerCase()==='stella')return null;
+  // Partnership prefix/suffix takes priority over creator-like handle names.
+  if(isPartnershipName(name))return'Partner';
   const firstPerson=personFromToken(parts[0]);
   if(firstPerson)return firstPerson;
   if(parts[parts.length-1].toLowerCase()==='stella')return null;
@@ -428,15 +437,25 @@ function parsePerson(name){
   if(lastPerson)return lastPerson;
   for(const part of parts){const person=personFromToken(part);if(person)return person;}
   if(parts[parts.length-1]==='SB')return'Phoebe';
-  // Partnership ads: last underscore-token ends with -p
-  if(parts[parts.length-1].endsWith('-p'))return'Partner';
   return null;
 }
 function parseProduct(name){
   if(!name)return null;
   const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS','OTC':'OTC','PCB':'PCB'};
   const parts=name.split('_');
-  return PRODS[parts[3]]||PRODS[parts[4]]||PRODS[parts[1]]||PRODS[parts[0]]||null;
+  // Partnership naming: the token after Alwz/Promotion is the product or deal group (e.g. GS, GSP, BD).
+  if(isPartnershipName(name)){
+    const markerIndex=parts.findIndex(p=>['alwz','promotion'].includes(String(p||'').trim().toLowerCase()));
+    if(markerIndex>=0&&parts[markerIndex+1]){
+      const token=String(parts[markerIndex+1]).trim().toUpperCase();
+      return PRODS[token]||token;
+    }
+  }
+  for(const part of parts){
+    const token=String(part||'').trim().toUpperCase();
+    if(PRODS[token])return PRODS[token];
+  }
+  return null;
 }
 function parseMedia(name){
   if(!name)return null;
@@ -449,9 +468,11 @@ function parseAdName(name){
   for(let i=0;i<parts.length;i++){
     if((parts[i]==='vdo'||parts[i]==='img')&&i+1<parts.length){
       const rest=parts.slice(i+1);
-      const last=rest[rest.length-1];
-      // Partnership ads: last token ends with -p → join all tokens and strip -p suffix
-      if(last.endsWith('-p')){rest[rest.length-1]=last.slice(0,-2);return rest.join('_');}
+      if(isPartnershipName(name)){
+        const last=rest[rest.length-1];
+        if(last.toLowerCase().endsWith('-p'))rest[rest.length-1]=last.slice(0,-2);
+        return rest.join('_');
+      }
       return parts[i+1];
     }
   }
@@ -1167,7 +1188,7 @@ function setProdFilter(p,btn){cFilters.product=p;adPage=0;renderProdPills();rend
 
 function setCF(key,val,btn){
   cFilters[key]=val;
-  const group=key==='person'?['All','Lina','Phoebe','Sarah','Iris','Partner']:['All','vdo','img'];
+  const group=key==='person'?['All','Lina','Phoebe','Sarah','Iris','Partnership']:['All','vdo','img'];
   document.querySelectorAll('.filter-bar .fb').forEach(function(b){
     const txt=b.textContent.trim();
     const inGroup=group.some(g=>g===txt||(g==='vdo'&&txt==='Video')||(g==='img'&&txt==='Image'));
