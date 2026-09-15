@@ -379,10 +379,10 @@ const WC_MIN_SPEND=30000;
 let tC,mC,weeklyCharts=[],weeklyRenderGen=0,weeklyCreativeCharts=[],weeklyCreativeRenderGen=0;
 
 /* ---------- 캐시 ---------- */
-const CACHE_KEY='jp_meta_raw',AUX_KEY='jp_aux',IMG_KEY='jp_ads_list',CACHE_TTL=30*60*1000;
+const CACHE_KEY='jp_meta_raw',AUX_KEY='jp_aux',IMG_KEY='jp_ads_list_v2',CACHE_TTL=30*60*1000;
 function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const o=JSON.parse(i);if(Date.now()-o.ts>CACHE_TTL){localStorage.removeItem(k);return null;}return o.d;}catch(e){return null;}}
 function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
-function clearCache(){[CACHE_KEY,AUX_KEY,IMG_KEY].forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});}
+function clearCache(){[CACHE_KEY,AUX_KEY,IMG_KEY,'jp_ads_list'].forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});}
 
 /* ---------- 파싱 ---------- */
 function parseNum(v){
@@ -582,15 +582,21 @@ async function tryTabs(names,re,max){
    안 열리므로, "링크가 있는 모든 사용자"로 공개된 열(US 시트에서는 13번째 열 M)을 골라야 한다.
    고르는 순서: 헤더에 개인/공개 표시가 있는 열 → 13번째 열(M, US 시트) → 마지막 URL 열 */
 function pickAdsListCols(rows){
-  const h=(rows[0]||[]).map(x=>String(x==null?'':x).replace(/\s/g,''));
-  let ni=h.findIndex(x=>/ad_name|소재명|광고이름|파일명/i.test(x));
-  if(ni<0)ni=0;
-  const di=h.findIndex(x=>/일자|날짜|생성일/.test(x));
-  const width=Math.max(h.length,...rows.slice(1,50).map(r=>(r||[]).length),0);
+  /* 워크플로가 1행을 비워두는 경우가 있어 실제 헤더를 앞 10행에서 찾는다 */
+  let hi=-1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    const probe=(rows[i]||[]).map(x=>String(x==null?'':x).replace(/\s/g,''));
+    if(probe.some(x=>/ad_name|소재명|광고이름|파일명/i.test(x))){hi=i;break;}
+  }
+  if(hi<0)return null;
+  const h=(rows[hi]||[]).map(x=>String(x==null?'':x).replace(/\s/g,''));
+  const ni=h.findIndex(x=>/ad_name|소재명|광고이름|파일명/i.test(x));
+  const di=h.findIndex(x=>/일자|날짜|생성일|스냅샷/i.test(x));
+  const width=Math.max(h.length,...rows.slice(hi+1,hi+50).map(r=>(r||[]).length),0);
   const cand=[];
   for(let c=0;c<width;c++){
     let hit=0;
-    for(let i=1;i<Math.min(rows.length,60);i++)
+    for(let i=hi+1;i<Math.min(rows.length,hi+60);i++)
       if(/^https?:/i.test(String((rows[i]||[])[c]==null?'':rows[i][c]).trim()))hit++;
     if(hit)cand.push(c);
   }
@@ -599,7 +605,7 @@ function pickAdsListCols(rows){
   const personal=cand.find(c=>/개인|personal|공개|public|외부/i.test(h[c]||''));
   if(personal!=null)ui=personal;
   else if(cand.indexOf(12)>=0)ui=12;                 /* US 시트와 같은 자리 */
-  return{name:ni,url:ui,date:di,urlHeader:h[ui]||('col'+(ui+1)),candidates:cand};
+  return{header:hi,name:ni,url:ui,date:di,urlHeader:h[ui]||('col'+(ui+1)),candidates:cand};
 }
 async function loadAdsList(){
   let cached=getCached(IMG_KEY);
@@ -611,7 +617,7 @@ async function loadAdsList(){
         const c=pickAdsListCols(rows);
         if(!c)continue;
         const items=[];
-        for(let i=1;i<rows.length;i++){
+        for(let i=c.header+1;i<rows.length;i++){
           const row=rows[i]||[];
           const name=String(row[c.name]==null?'':row[c.name]).trim();
           const url=String(row[c.url]==null?'':row[c.url]).trim();
