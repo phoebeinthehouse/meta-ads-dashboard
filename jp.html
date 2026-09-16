@@ -42,19 +42,6 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
 .notice{background:#FAEEDA;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#633806;margin-bottom:1.25rem;}
 .no-data{padding:2rem;text-align:center;color:var(--muted);font-size:13px;}
 
-/* METHOD BOX */
-.method{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);padding:.7rem 1.1rem;margin-bottom:1.25rem;font-size:12px;}
-.method summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--text);list-style:none;display:flex;align-items:center;gap:6px;}
-.method summary::-webkit-details-marker{display:none;}
-.method summary::before{content:'▸';color:var(--muted);font-size:11px;}
-.method[open] summary::before{content:'▾';}
-.method-body{margin-top:12px;color:var(--muted);line-height:1.7;}
-.mstep{display:flex;gap:10px;padding:5px 0;align-items:baseline;flex-wrap:wrap;}
-.mnum{width:18px;flex-shrink:0;font-weight:700;color:var(--text);}
-.mform{color:var(--text);font-weight:600;}
-.mnote{font-size:11px;}
-.method-body code{background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:11px;color:var(--text);}
-
 /* CREATOR CARDS */
 .mtabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;flex-wrap:wrap;}
 .tab{padding:5px 14px;border-radius:6px;font-size:13px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all .15s;}
@@ -200,10 +187,6 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
     <div><h1>Creator performance</h1><div class="top-meta" id="creatorMeta"></div></div>
     <div class="mtabs" id="mtabs"></div>
   </div>
-  <details class="method" id="methodBox">
-    <summary>추정 구매수 · 추정 매출 · 추정 ROAS는 이렇게 계산합니다</summary>
-    <div class="method-body" id="methodBody"></div>
-  </details>
   <div class="notice" id="rateNotice" style="display:none"></div>
   <div class="slabel">Overview</div>
   <div class="pgrid3" id="pcards"></div>
@@ -775,27 +758,7 @@ function refresh(){
 function loadSettings(){try{const v=JSON.parse(localStorage.getItem(SET_KEY));if(v)SETTINGS=Object.assign({},DEFAULT_SETTINGS,v);}catch(e){}}
 
 /* ---------- PAGE 1: BY CREATOR ---------- */
-function renderCreatorPage(){renderMethod();renderRateNotice();renderPCards();renderTrend();renderMedia();}
-function renderMethod(){
-  const el=document.getElementById('methodBody');
-  if(SHEET_EST.purch&&SHEET_EST.rev){
-    el.innerHTML='<div class="mstep"><span class="mnum">1</span><span><span class="mform">추정 구매수 · 추정 매출 = 시트 계산값</span>'+
-      '<div class="mnote">「JP meta raw」의 <code>추정 구매수</code>·<code>추정 매출</code> 컬럼을 합산합니다.</div></span></div>'+
-      '<div class="mstep"><span class="mnum">2</span><span><span class="mform">추정 ROAS = 추정 매출 합계 ÷ 광고비 합계</span>'+
-      '<div class="mnote">비율은 행끼리 더할 수 없어 어느 단위로 묶든 합계끼리 나눠 다시 계산합니다.</div></span></div>';
-    return;
-  }
-  const unit=krwPerPurchase(curMonth||(RAW.length?RAW[RAW.length-1].month:''));
-  el.innerHTML=
-    '<div class="mstep"><span class="mnum">1</span><span><span class="mform">추정 구매수 = ShopNow × CVR '+fd(SETTINGS.cvr,1)+'%</span>'+
-      '<div class="mnote">JP는 구매 데이터가 없어 <b>US 메타의 ShopNowClick → 어트리뷰션 구매 전환율</b>을 그대로 적용합니다.</div></span></div>'+
-    '<div class="mstep"><span class="mnum">2</span><span><span class="mform">추정 매출 = 추정 구매수 × 판매가 × 환율</span>'+
-      '<div class="mnote">'+(PRICE_SOURCE?'시트 판매가':f(SETTINGS.priceJpy)+'엔')+' × '+(FX_SOURCE?'시트 환율':fFx(SETTINGS.fxPer100)+'원/100엔')+
-      (unit?' → <b>구매 1건당 ₩'+f(unit)+'</b>':'')+'</div></span></div>'+
-    '<div class="mstep"><span class="mnum">3</span><span><span class="mform">추정 ROAS = 추정 매출 ÷ 광고비</span>'+
-      '<div class="mnote">CPA = 광고비 ÷ ShopNow · CVR = 추정 구매수 ÷ 클릭 · VTR = 조회 ÷ 노출 · 3S VTR = 3초 재생 ÷ 노출 · ER = 참여 ÷ 노출</div></span></div>'+
-    '<div class="mnote" style="margin-top:8px"><b>해석 주의</b> — US 전환율을 빌려온 추정치입니다. 절대 금액보다 소재·Creator 간 비교에 쓰세요.</div>';
-}
+function renderCreatorPage(){renderRateNotice();renderPCards();renderTrend();renderMedia();}
 function renderRateNotice(){
   const el=document.getElementById('rateNotice'),miss=missingRateMonths();
   if(!miss.length){el.style.display='none';return;}
