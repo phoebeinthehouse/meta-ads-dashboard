@@ -267,6 +267,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
       <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
       <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
+      <button class="sort-btn" onclick="setCS('roas',this)">ROAS</button>
     </div>
   </div>
   <!-- Creative table -->
@@ -284,6 +285,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
           <th onclick="setCS('ctr',null)">CTR <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('cpc',null)">CPC <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('purchases',null)" class="sorted">Purchases <span class="sort-arrow">↓</span></th>
+          <th onclick="setCS('roas',null)">ROAS <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody id="creativeTbody"></tbody>
       </table>
@@ -525,17 +527,30 @@ async function loadData(){
       });
     }catch(e){console.warn('[ADS LIST ERROR]',e);}
 
-    function parseNum(v){return parseFloat(String(v||'0').replace(/,/g,'').replace(/-/g,'0'))||0;}
+    // '-'·'—' 빈칸 표시만 0으로 보고, 음수(환불·조정)는 부호를 살린다
+    function parseNum(v){
+      const s=String(v==null?'':v).replace(/[,₩$\s%]/g,'').trim();
+      if(!s||s==='-'||s==='—')return 0;
+      const n=parseFloat(s);
+      return isNaN(n)?0:n;
+    }
     function parseDateStr(raw){
-      const s=String(raw||'').trim();
+      const s=String(raw==null?'':raw).trim();
       if(!s)return null;
+      const pad2=x=>String(x).padStart(2,'0');
       if(s.includes('T')){
         const d=new Date(s);
         if(isNaN(d))return null;
         const kst=new Date(d.getTime()+9*60*60*1000);
         return kst.toISOString().slice(0,10);
       }
-      const m=s.match(/(\d{4}-\d{2}-\d{2})/);
+      let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+      if(m)return m[1]+'-'+pad2(m[2])+'-'+pad2(m[3]);
+      m=s.match(/^(\d{2})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+      if(m)return'20'+m[1]+'-'+pad2(m[2])+'-'+pad2(m[3]);
+      if(/^\d{8}$/.test(s))return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+      if(/^\d{6}$/.test(s))return'20'+s.slice(0,2)+'-'+s.slice(2,4)+'-'+s.slice(4,6);
+      m=s.match(/(\d{4}-\d{2}-\d{2})/);
       return m?m[1]:null;
     }
 
@@ -573,7 +588,10 @@ async function loadData(){
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
         const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
         const purch=parseNum(r[purchKey]);
-        const revKey=keys.find(k=>k.includes('매출')||k.toLowerCase().includes('revenue'))||keys[19]||'';
+        // 매출은 반드시 원화 컬럼(한화매출 · T열)을 쓴다. 달러 컬럼(상품판매)을 잡으면 ROAS가 1/1400로 나온다.
+        // 예전 fallback(keys[19])은 위험했다 — arrToObjs가 이름 같은 빈 헤더를 합치므로
+        // keys[19]가 T열이라는 보장이 없고, 실제로는 엉뚱한 컬럼을 집었다.
+        const revKey=keys.find(k=>k.includes('한화'))||keys.find(k=>k.includes('매출')||k.toLowerCase().includes('revenue'))||'';
         const revenue=parseNum(r[revKey]);
         const date=parseDateStr(r[dateKey]);
         if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
@@ -585,6 +603,16 @@ async function loadData(){
         const ad_name=parseAdName(rawName);
         return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
       }).filter(Boolean);
+      if(rows.length){
+        const k0=Object.keys(rows[0]);
+        const rk=k0.find(k=>k.includes('한화'))||k0.find(k=>k.includes('매출')||k.toLowerCase().includes('revenue'));
+        if(!rk)console.warn('[AMZ] 매출 컬럼(한화매출)을 못 찾았습니다 — ROAS가 전부 — 로 나옵니다. 헤더:',k0);
+        else{
+          const filled=result.filter(r=>r.revenue>0).length;
+          console.log('[AMZ] 매출 컬럼:',rk,'· 값이 채워진 행',filled+'/'+result.length);
+          if(!filled&&result.length)console.warn('[AMZ] 매출이 전부 비어 있습니다 — 시트의 한화매출 열을 확인하세요. ROAS는 — 로 나옵니다.');
+        }
+      }
       if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
       // 누락 진단: product null인 구매 행
       const nullProd=result.filter(r=>r.purchases>0&&!r.product);
@@ -642,6 +670,37 @@ function grp(arr,keys,vals){
   return Object.values(map);
 }
 
+/* 한 소재의 AMZ 구매·매출을 그 소재의 Meta 행들에 나눠 붙인다.
+   1) AMZ 행과 media가 같은 Meta 행이 있으면 그쪽에만 붙인다 (정확 매칭)
+   2) 매칭되는 행이 없거나 후보가 여럿이면 광고비 비중으로 나눈다
+   구매수는 정수를 유지하되 최대잔여법으로 합계가 정확히 맞게 배분한다.
+   Meta 행이 하나면 예전과 똑같이 통째로 들어간다. */
+function allocAmz(metaRows,amzRows){
+  const out=metaRows.map(()=>({purchases:0,revenue:0}));
+  function share(idxs,purch,rev){
+    if(!idxs.length||(!purch&&!rev))return;
+    const w=idxs.map(i=>metaRows[i].spend||0);
+    const tw=w.reduce((s,x)=>s+x,0);
+    const ratio=w.map(x=>tw>0?x/tw:1/idxs.length);
+    idxs.forEach((i,k)=>{out[i].revenue+=rev*ratio[k];});
+    const raw=ratio.map(r=>purch*r);
+    const base=raw.map(Math.floor);
+    let rem=Math.round(purch)-base.reduce((s,x)=>s+x,0);
+    const order=raw.map((v,k)=>[v-base[k],k]).sort((a,b)=>b[0]-a[0]);
+    for(let k=0;k<order.length&&rem>0;k++,rem--)base[order[k][1]]++;
+    idxs.forEach((i,k)=>{out[i].purchases+=base[k];});
+  }
+  let restP=0,restR=0;
+  amzRows.forEach(a=>{
+    const idxs=[];
+    metaRows.forEach((m,i)=>{if(a.media&&m.media===a.media)idxs.push(i);});
+    if(idxs.length)share(idxs,a.purchases||0,a.revenue||0);
+    else{restP+=a.purchases||0;restR+=a.revenue||0;}
+  });
+  if(restP||restR)share(metaRows.map((_,i)=>i),restP,restR);
+  return out;
+}
+
 function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
@@ -689,9 +748,10 @@ function computeData(from,to){
   const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
   const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
   const ads_m=grp(meta,adGroupKeys,['clicks','spend','impressions']);
-  const ads_a=grp(amz,amzGroupKeys,['purchases']);
   // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
-  const ads_a_join=splitByCampaign?grp(amz,['ad_name','person','product'],['purchases']):ads_a;
+  // media는 미리 쪼개서 묶어 둔다 — Meta 행과 media가 같으면 그 행에 정확히 붙이기 위해
+  const ads_a=grp(amz,['ad_name','person','product','media'],['purchases','revenue']);
+  const ads_a_only=grp(amz,amzGroupKeys,['purchases','revenue']);
   const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
   // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
@@ -699,15 +759,28 @@ function computeData(from,to){
     const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+1;});
     console.log('[META DROPPED ad_name] vdo/img 없어서 누락된 소재 per product:',cnt);
   }
-  // Meta 기반 rows (clicks/spend/impressions + AMZ purchases join)
-  const metaAds=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product).map(m=>{
-    const a=ads_a_join.find(x=>joinKey(x)===joinKey(m))||{purchases:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0});
+  // Meta 기반 rows (clicks/spend/impressions + AMZ purchases/revenue join)
+  // 한 소재(ad_name|person|product)가 media·캠페인으로 여러 Meta 행으로 쪼개질 때
+  // 같은 구매를 행마다 통째로 붙이면 중복 집계된다 — allocAmz로 나눠서 붙인다.
+  const metaValid=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product);
+  const metaByKey=new Map();
+  metaValid.forEach(m=>{const k=joinKey(m);if(!metaByKey.has(k))metaByKey.set(k,[]);metaByKey.get(k).push(m);});
+  const amzByKey=new Map();
+  ads_a.forEach(a=>{if(!a.ad_name||!a.product)return;const k=joinKey(a);if(!amzByKey.has(k))amzByKey.set(k,[]);amzByKey.get(k).push(a);});
+  const metaAds=[];
+  metaByKey.forEach((rows,k)=>{
+    const alloc=allocAmz(rows,amzByKey.get(k)||[]);
+    rows.forEach((m,i)=>{
+      const a=alloc[i];
+      metaAds.push(Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,
+        cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,
+        roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0}));
+    });
   });
-  // AMZ 전용 rows (Meta에 없지만 구매 있는 소재)
-  const metaKeys=new Set(ads_m.filter(m=>m.ad_name&&m.product).map(m=>joinKey(m)));
-  const amzOnly=ads_a.filter(x=>x.purchases>0&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
-    .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,cpa:0}));
+  // AMZ 전용 rows (Meta에 없지만 구매 있는 소재) — 광고비가 없으니 ROAS는 계산 불가
+  const metaKeys=new Set(metaValid.map(m=>joinKey(m)));
+  const amzOnly=ads_a_only.filter(x=>(x.purchases>0||x.revenue>0)&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
+    .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,revenue:x.revenue,cpa:0,roas:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
   return{ps,pm,daily,pp,psum,ads};
@@ -1229,7 +1302,7 @@ function renderCreativeTable(){
     return cSortDir*(av-bv);
   });
   if(!ads.length){
-    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="10" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
+    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="'+(splitByCampaign?12:11)+'" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
     document.getElementById('adPagination').innerHTML='';
     return;
   }
@@ -1255,6 +1328,7 @@ function renderCreativeTable(){
       '<td>'+fd(a.ctr)+'%</td>'+
       '<td>₩'+f(a.cpc)+'</td>'+
       '<td style="font-weight:600;color:'+(a.purchases>0?'#0F6E56':'var(--muted)')+'">'+(a.purchases>0?a.purchases+'건':'—')+'</td>'+
+      '<td style="font-weight:600;color:'+(a.roas>0?'#0F6E56':'var(--muted)')+'">'+(a.roas>0?fd(a.roas)+'%':'—')+'</td>'+
       '</tr>';
   }).join('');
   // Pagination
@@ -1270,6 +1344,36 @@ function renderCreativeTable(){
 }
 
 function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
+
+/* 콘솔에서 checkTotals() 실행 — 화면 합계와 원본 시트 합계를 대조한다.
+   By Creative 표는 소재명(vdo/img 토큰)과 제품코드를 모두 인식한 행만 보여주므로
+   '인식된 것만' 줄과 표 합계가 같아야 정상이다. */
+window.checkTotals=function(){
+  const{from,to}=getDateRange();
+  const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
+  const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
+  const ads=D().ads||[];
+  const s=(arr,k)=>arr.reduce((x,r)=>x+(r[k]||0),0);
+  const metaOk=meta.filter(r=>r.ad_name&&r.ad_name!='null'&&r.product);
+  const amzOk=amz.filter(r=>r.ad_name&&r.ad_name!='null'&&r.product);
+  const row=(label,sp,cl,pu,rv)=>({구분:label,광고비:sp==null?'':f(sp),클릭:cl==null?'':f(cl),구매:pu==null?'':f(pu),매출:rv==null?'':f(rv)});
+  console.table([
+    row('원본 Meta 전체',s(meta,'spend'),s(meta,'clicks'),null,null),
+    row('원본 Meta — 소재명·제품 인식된 행',s(metaOk,'spend'),s(metaOk,'clicks'),null,null),
+    row('원본 AMZ 전체',null,null,s(amz,'purchases'),s(amz,'revenue')),
+    row('원본 AMZ — 소재명·제품 인식된 행',null,null,s(amzOk,'purchases'),s(amzOk,'revenue')),
+    row('By Creative 표 합계',s(ads,'spend'),s(ads,'clicks'),s(ads,'purchases'),s(ads,'revenue'))
+  ]);
+  const spend=s(ads,'spend'),rev=s(ads,'revenue');
+  console.log('[TOTALS] '+from+' ~ '+to+' · 표 전체 ROAS '+(spend>0?fd(rev/spend*100)+'%':'—')+' (매출합÷광고비합)');
+  const gapP=s(ads,'purchases')-s(amzOk,'purchases');
+  const gapR=Math.round(s(ads,'revenue')-s(amzOk,'revenue'));
+  if(gapP||gapR)console.error('[TOTALS] ⚠ 표 합계가 원본과 다릅니다 — 구매 '+gapP+'건 / 매출 '+gapR+'원 차이');
+  else console.log('[TOTALS] ✓ 구매·매출 합계 일치 — 중복 집계·누락 없음');
+  const lostP=s(amz,'purchases')-s(amzOk,'purchases');
+  if(lostP)console.warn('[TOTALS] 소재명/제품을 못 뽑아 표에서 빠진 구매 '+lostP+'건 — checkMissingAds() 로 확인하세요.');
+  return{spend,revenue:rev,purchases:s(ads,'purchases'),roas:spend>0?+(rev/spend*100).toFixed(2):0};
+};
 
 // 콘솔에서 checkMissingAds() 실행하면 By Creative에 누락된 소재 목록 출력
 window.checkMissingAds=function(){
