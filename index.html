@@ -445,12 +445,17 @@ function parseProduct(name){
   if(!name)return null;
   const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS','OTC':'OTC','PCB':'PCB'};
   const parts=name.split('_');
+  // 딜그룹 토큰 → 제품 통합. BD와 PCB는 같은 제품이라 PCB로 모은다.
+  // 주의: PRODS에 'BD'를 넣으면 안 된다 — 아래 for 루프가 토큰을 앞에서부터 훑어서
+  // 'BD_GPG_img_...'(BD = Best Deal 캐페인 접두사) 같은 이름의 제품이 GPG → PCB 로 바뀜다.
+  // BD를 제품으로 돌려주는 경로는 아래 파트너십 분기뿐이라 여기서만 합친다.
+  const DEAL_ALIAS={'BD':'PCB'};
   // Partnership naming: the token after Alwz/Promotion is the product or deal group (e.g. GS, GSP, BD).
   if(isPartnershipName(name)){
     const markerIndex=parts.findIndex(p=>['alwz','promotion'].includes(String(p||'').trim().toLowerCase()));
     if(markerIndex>=0&&parts[markerIndex+1]){
       const token=String(parts[markerIndex+1]).trim().toUpperCase();
-      return PRODS[token]||token;
+      return DEAL_ALIAS[token]||PRODS[token]||token;
     }
   }
   for(const part of parts){
