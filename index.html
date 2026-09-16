@@ -608,9 +608,16 @@ async function loadData(){
         const rk=k0.find(k=>k.includes('한화'))||k0.find(k=>k.includes('매출')||k.toLowerCase().includes('revenue'));
         if(!rk)console.warn('[AMZ] 매출 컬럼(한화매출)을 못 찾았습니다 — ROAS가 전부 — 로 나옵니다. 헤더:',k0);
         else{
-          const filled=result.filter(r=>r.revenue>0).length;
-          console.log('[AMZ] 매출 컬럼:',rk,'· 값이 채워진 행',filled+'/'+result.length);
-          if(!filled&&result.length)console.warn('[AMZ] 매출이 전부 비어 있습니다 — 시트의 한화매출 열을 확인하세요. ROAS는 — 로 나옵니다.');
+          // 구매가 0인 행은 매출도 당연히 0이라 '채워진 비율'만 보면 오해한다.
+          // ROAS가 낮게 나오게 만드는 건 '구매는 있는데 매출만 빈' 행이다.
+          const withP=result.filter(r=>r.purchases>0);
+          const noRev=withP.filter(r=>!(r.revenue>0));
+          console.log('[AMZ] 매출 컬럼:',rk,'· 구매 있는 행',withP.length+'개 중 매출 채워진 행',(withP.length-noRev.length)+'개');
+          if(noRev.length){
+            const lost=noRev.reduce((s,r)=>s+r.purchases,0);
+            console.warn('[AMZ] 구매는 있는데 매출이 비어 있는 행 '+noRev.length+'개 (구매 '+lost+'건) — 그만큼 ROAS가 실제보다 낮게 나옵니다.',
+              noRev.slice(0,10).map(r=>r.date+'|'+r.person+'|'+r.product+'|'+r.ad_name+'|구매'+r.purchases));
+          }
         }
       }
       if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
