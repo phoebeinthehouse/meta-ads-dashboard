@@ -443,13 +443,14 @@ function parsePerson(name){
 }
 function parseProduct(name){
   if(!name)return null;
-  const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS','OTC':'OTC','BD':'PCB','PCB':'PCB','AZO':'AZO','AZC':'AZC'};
+  const PRODS={'GPG':'GPG','PCO':'PCO','BCA':'BCA/BPD','PCM':'PCM','BPD':'BCA/BPD','PCF':'BCA/BPD','GSP':'GSP','GS':'GS','OTC':'OTC','PCB':'PCB','AZO':'AZO','AZC':'AZC'};
   const parts=name.split('_');
-  // Partnership naming: the token after Alwz/Promotion is the product or deal group. BD is normalized to PCB.
+  // Partnership naming: the token after Alwz/Promotion is the product or deal group. Only partnership BD is normalized to PCB.
   if(isPartnershipName(name)){
     const markerIndex=parts.findIndex(p=>['alwz','promotion'].includes(String(p||'').trim().toLowerCase()));
     if(markerIndex>=0&&parts[markerIndex+1]){
       const token=String(parts[markerIndex+1]).trim().toUpperCase();
+      if(token==='BD')return'PCB';
       return PRODS[token]||token;
     }
   }
