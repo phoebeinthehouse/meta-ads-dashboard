@@ -247,8 +247,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   <!-- Product filter pills -->
   <div class="slabel">Filter by product</div>
   <div class="prod-pills" id="prodPills"></div>
-  <!-- Sub-filters + sort -->
-  <div style="margin-bottom:10px">
+  <!-- Campaign filter + creative search (By Creative only) -->
+  <div class="filter-bar" style="margin-bottom:10px">
+    <span class="filter-label">Campaign</span>
+    <select id="campaignFilter" onchange="setCampaignFilter(this.value)" style="width:min(520px,100%);padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;"></select>
     <input id="adSearchInput" type="text" placeholder="소재명 검색..." oninput="adNameSearch=this.value.toLowerCase();adPage=0;renderCreativeTable()" style="width:240px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;">
   </div>
   <div class="filter-bar">
@@ -387,7 +389,7 @@ function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now()
 function clearCache(){['meta_raw','amz_raw','ads_list'].forEach(k=>localStorage.removeItem(k));}
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
-let cFilters={person:'All',media:'All',product:'All'};
+let cFilters={person:'All',media:'All',product:'All',campaign:'All'};
 let cSort='purchases',cSortDir=-1,adPage=0,adNameSearch='',splitByCampaign=false;
 const ADS_PER_PAGE=30;
 let tC,mC;
@@ -566,6 +568,8 @@ async function loadData(){
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
         const spendKey=keys.find(k=>k.includes('광고비'))||'';
         const impKey=keys.find(k=>k.includes('노출'))||'';
+        const campaignKey=keys.find(k=>{const n=k.toLowerCase().replace(/[\s_-]/g,'');return n==='캠페인이름'||n==='campaignname';})
+          ||keys.find(k=>k.includes('캠페인')||k.toLowerCase().includes('campaign'))||'';
         const date=parseDateStr(r[dateKey]);
         if(!date)return null;
         const name=String(r[nameKey]||'');
@@ -573,6 +577,7 @@ async function loadData(){
         if(!person){if(name)droppedNoPerson.push(name);return null;}
         return{date,month:date.slice(0,7),person,
           product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
+          campaign_name:String(r[campaignKey]||'').trim()||null,
           campaign_type:name.split('_')[0]||null,
           clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
       }).filter(Boolean);
@@ -713,6 +718,9 @@ function allocAmz(metaRows,amzRows){
 function computeData(from,to){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
+  // Campaign filtering is local to By Creative: other summaries continue to use the full date-range data.
+  const campaignFilterActive=cFilters.campaign&&cFilters.campaign!=='All';
+  const metaForAds=campaignFilterActive?meta.filter(r=>r.campaign_name===cFilters.campaign):meta;
   // Partnership ads excluded from By Creator (person-based cards); included in By Product and By Creative
   const metaNP=meta.filter(r=>r.person!=='Partner');
   const amzNP=amz.filter(r=>r.person!=='Partner');
@@ -756,7 +764,7 @@ function computeData(from,to){
 
   const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
   const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
-  const ads_m=grp(meta,adGroupKeys,['clicks','spend','impressions']);
+  const ads_m=grp(metaForAds,adGroupKeys,['clicks','spend','impressions']);
   // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
   // media는 미리 쪼개서 묶어 둔다 — Meta 행과 media가 같으면 그 행에 정확히 붙이기 위해
   const ads_a=grp(amz,['ad_name','person','product','media'],['purchases','revenue']);
@@ -788,7 +796,8 @@ function computeData(from,to){
   });
   // AMZ 전용 rows (Meta에 없지만 구매 있는 소재) — 광고비가 없으니 ROAS는 계산 불가
   const metaKeys=new Set(metaValid.map(m=>joinKey(m)));
-  const amzOnly=ads_a_only.filter(x=>(x.purchases>0||x.revenue>0)&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
+  // Amazon-only rows have no reliable Meta campaign identity, so do not mix them into a selected campaign.
+  const amzOnly=campaignFilterActive?[]:ads_a_only.filter(x=>(x.purchases>0||x.revenue>0)&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
     .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,revenue:x.revenue,cpa:0,roas:0}));
   const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
 
@@ -901,7 +910,7 @@ function refresh(){
   updateMeta();
   if(curPage==='creator'){renderPCards();renderTrend();renderMedia();}
   else if(curPage==='product')renderProdPage();
-  else if(curPage==='creative'){renderProdPills();renderCreativeTable();}
+  else if(curPage==='creative'){renderCampaignFilter();renderProdPills();renderCreativeTable();}
   else if(curPage==='weekly')renderWeeklyPage();
   else if(curPage==='weeklycreative')renderWeeklyCreativePage();
 }
@@ -933,7 +942,7 @@ function goPage(pg,btn){
   document.getElementById('pg-'+pg).classList.add('active');
   btn.classList.add('active');
   if(pg==='product')renderProdPage();
-  else if(pg==='creative'){renderProdPills();renderCreativeTable();}
+  else if(pg==='creative'){renderCampaignFilter();renderProdPills();renderCreativeTable();}
   else if(pg==='weekly')renderWeeklyPage();
   else if(pg==='weeklycreative')renderWeeklyCreativePage();
 }
@@ -1252,6 +1261,24 @@ function renderWeeklyCreativeCharts(){
       }));
     },0);
   });
+}
+
+function renderCampaignFilter(){
+  const sel=document.getElementById('campaignFilter');
+  if(!sel)return;
+  const{from,to}=getDateRange();
+  const campaigns=[...new Set(RAW.meta.filter(r=>r.date>=from&&r.date<=to).map(r=>r.campaign_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  if(cFilters.campaign!=='All'&&!campaigns.includes(cFilters.campaign))cFilters.campaign='All';
+  sel.replaceChildren();
+  sel.add(new Option('전체 캠페인','All'));
+  campaigns.forEach(c=>sel.add(new Option(c,c)));
+  sel.value=cFilters.campaign;
+}
+function setCampaignFilter(campaign){
+  cFilters.campaign=campaign||'All';
+  adPage=0;
+  renderProdPills();
+  renderCreativeTable();
 }
 
 function renderProdPills(){
