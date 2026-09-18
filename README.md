@@ -5,7 +5,7 @@ Google Sheets(Apps Script Web App)를 데이터 소스로 쓰는 정적 대시�
 | 파일 | 대시보드 | 소스 탭 |
 |---|---|---|
 | `index.html` | Meta Ads · Amazon US | `meta-raw-new`, `amz-raw-new`, `meta-ads-list` |
-| `jp.html` | Meta Ads · Japan | `JP meta raw` |
+| *(migrated)* | Meta Ads · Japan | [`meta-ads-dashboard-jp`](https://github.com/phoebeinthehouse/meta-ads-dashboard-jp) |
 
 공통 스프레드시트: **Amazon Dashboard (2025년~)**
 `12IC6YbDR8s8lMEeUY69c5tejXbfnbdadbpugPkAGxT0`
@@ -64,7 +64,7 @@ Meta 행이 하나면(대부분의 경우) 예전과 똑같이 통째로 들어�
 By Creative 표에서 빠진다. `checkTotals()`의 '원본 전체' 줄과 '인식된 행' 줄의 차이가
 그만큼이니, 차이가 크면 시트의 소재명을 고쳐야 한다.
 
-## JP 대시보드 (`jp.html`)
+## JP 대시보드 (분리 완료)
 
 - 적재: strategyeric/business-report 가 매일 KST 10:00에 D-1 데이터를 `JP meta raw` 탭에 적재
 - 단위: 일 × 캠페인 × 광고세트 × 광고 / 1행 헤더, 2행부터 데이터
@@ -136,7 +136,7 @@ By Creative 의 `전환` 탭 열로 표시된다.
 - 컬럼이 없으면 아래 고정값으로 대시보드가 직접 계산한다 (기존 동작)
 
 **현재 고정값** — 판매가 2,700엔 (제품 1종), 환율 1,406.30원/100엔.
-`jp.html`의 `DEFAULT_SETTINGS` 한 줄이며, 구매 1건당 ₩37,970으로 환산된다.
+분리된 JP 대시보드의 `DEFAULT_SETTINGS` 한 줄이며, 구매 1건당 ₩37,970으로 환산된다.
 
 > 고정 환율의 한계: 전 기간에 같은 배율이 걸리므로 **캠페인·소재 간 비교에는 영향이 없지만**,
 > 시계열 비교와 ROAS 절대값에는 오차가 생기고 값을 바꾸면 과거 수치도 함께 바뀐다.
@@ -146,7 +146,7 @@ By Creative 의 `전환` 탭 열로 표시된다.
 ### 판매가 · 환율 탭
 
 추정 매출은 달마다 다른 판매가(프로모션)와 월평균 환율을 반영한다.
-`jp.html`의 `PRICE_SHEETS` / `FX_SHEETS` 후보 이름으로 시트 탭을 찾아 읽는다.
+분리된 JP 대시보드의 `PRICE_SHEETS` / `FX_SHEETS` 후보 이름으로 시트 탭을 찾아 읽는다.
 
 - 환율은 **100엔 기준**으로 입력·저장한다. 시트 값이 100 미만이면 원/엔으로 보고 100배 환산한다
 - 인식 형식: **한 행에 「월 + 숫자」** (예: `2026-01 | 1406.30`). `YYYY-MM`, `YYYY.M`,
@@ -158,5 +158,5 @@ By Creative 의 `전환` 탭 열로 표시된다.
 
 데이터는 브라우저 localStorage에 30분 캐시된다. 상단 `↻ Refresh`로 캐시를 지우고 다시 불러온다.
 
-> `jp.html`은 Apps Script Web App이 `?sheet=JP meta raw` 요청을 처리한다는 전제로 동작한다.
+> 분리된 JP 대시보드는 Apps Script Web App이 `?sheet=JP meta raw` 요청을 처리한다는 전제로 동작한다.
 > 스크립트에 시트 화이트리스트가 있다면 `JP meta raw`를 추가해야 한다.
