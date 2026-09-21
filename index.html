@@ -482,6 +482,23 @@ function parseAdName(name){
       return parts[i+1];
     }
   }
+  // Legacy format without an explicit media token:
+  // PRODUCT_CREATIVE_CREATOR[_DATE] (e.g. PCO_nonosc01_Sarah).
+  // Keep media=null, but recover the creative name so zero/low-delivery ads
+  // are not dropped from By Creative solely because _vdo_/_img_ is absent.
+  if(!isPartnershipName(name)){
+    const productTokens=new Set(['GPG','PCO','BCA','PCM','BPD','PCF','GSP','GS','OTC','PCB','AZO','AZC']);
+    const productIndex=parts.findIndex(p=>productTokens.has(String(p||'').trim().toUpperCase()));
+    const creatorIndex=parts.findIndex((p,i)=>{
+      if(i<=productIndex)return false;
+      const leadingName=String(p||'').trim().match(/^[A-Za-z]+/);
+      return !!leadingName&&PEOPLE.some(person=>person.toLowerCase()===leadingName[0].toLowerCase());
+    });
+    if(productIndex>=0&&creatorIndex>productIndex+1){
+      const fallbackName=parts.slice(productIndex+1,creatorIndex).join('_').trim();
+      if(fallbackName)return fallbackName;
+    }
+  }
   return null;
 }
 
@@ -770,11 +787,11 @@ function computeData(from,to){
   const ads_a=grp(amz,['ad_name','person','product','media'],['purchases','revenue']);
   const ads_a_only=grp(amz,amzGroupKeys,['purchases','revenue']);
   const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
-  // 누락 진단: ad_name null (vdo/img 없는 소재명) per product
+  // 누락 진단: 지원하는 이름 규칙으로 ad_name을 추출하지 못한 소재 per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
   if(nullAdNameAds.length){
     const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+1;});
-    console.log('[META DROPPED ad_name] vdo/img 없어서 누락된 소재 per product:',cnt);
+    console.log('[META DROPPED ad_name] 소재명 파싱 실패로 누락된 소재 per product:',cnt);
   }
   // Meta 기반 rows (clicks/spend/impressions + AMZ purchases/revenue join)
   // 한 소재(ad_name|person|product)가 media·캠페인으로 여러 Meta 행으로 쪼개질 때
@@ -1382,7 +1399,7 @@ function renderCreativeTable(){
 function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
 
 /* 콘솔에서 checkTotals() 실행 — 화면 합계와 원본 시트 합계를 대조한다.
-   By Creative 표는 소재명(vdo/img 토큰)과 제품코드를 모두 인식한 행만 보여주므로
+   By Creative 표는 지원하는 소재명 규칙과 제품코드를 모두 인식한 행만 보여주므로
    '인식된 것만' 줄과 표 합계가 같아야 정상이다. */
 window.checkTotals=function(){
   const{from,to}=getDateRange();
