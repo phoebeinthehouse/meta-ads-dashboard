@@ -420,8 +420,8 @@ function isPartnershipName(name){
   if(!name)return false;
   const parts=name.split('_');
   const first=String(parts[0]||'').trim().toLowerCase();
-  const last=String(parts[parts.length-1]||'').trim().toLowerCase();
-  return first==='파트너십'||first==='partnership'||last.endsWith('-p');
+  const hasPartnershipSuffix=parts.some(part=>String(part||'').trim().toLowerCase().endsWith('-p'));
+  return first==='파트너십'||first==='partnership'||hasPartnershipSuffix;
 }
 function parsePerson(name){
   if(!name)return null;
