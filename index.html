@@ -27,6 +27,8 @@ body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);colo
 .custom-range{display:flex;align-items:center;gap:6px;}
 .date-input{padding:4px 10px;border-radius:var(--radius-sm);border:.5px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-family:inherit;outline:none;}
 .date-input:focus{border-color:var(--text);}
+.latest-date-btn{padding:4px 9px;border-radius:var(--radius-sm);border:.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;}
+.latest-date-btn:disabled{opacity:.4;cursor:default;}
 .apply-btn{padding:4px 14px;border-radius:var(--radius-sm);background:var(--text);color:var(--bg);font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .date-mode-tabs{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:2px;}
 .dmt{padding:3px 12px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;transition:all .15s;text-transform:uppercase;letter-spacing:.04em;}
@@ -162,8 +164,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <div id="custom-range" style="display:none;" class="custom-range">
       <span class="date-label">From</span>
       <input type="date" class="date-input" id="dateFrom" value="2025-11-14">
+      <button type="button" class="latest-date-btn" id="latestFrom" onclick="setLatestDate('dateFrom')" aria-label="시작일을 최신 데이터 날짜로 선택" disabled>Latest</button>
       <span class="date-label">To</span>
       <input type="date" class="date-input" id="dateTo" value="2026-03-23">
+      <button type="button" class="latest-date-btn" id="latestTo" onclick="setLatestDate('dateTo')" aria-label="종료일을 최신 데이터 날짜로 선택" disabled>Latest</button>
       <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
     </div>
   </div>
@@ -662,6 +666,11 @@ async function loadData(){
       const df=document.getElementById('dateFrom'),dt=document.getElementById('dateTo');
       df.min=customFrom;df.max=customTo;df.value=customFrom;
       dt.min=customFrom;dt.max=customTo;dt.value=customTo;
+      ['latestFrom','latestTo'].forEach(id=>{
+        const btn=document.getElementById(id);
+        btn.disabled=false;
+        btn.title='최신 데이터 날짜: '+customTo;
+      });
     }
     const months=[...new Set([...RAW.meta.map(r=>r.month),...RAW.amz.map(r=>r.month)].filter(Boolean))].sort();
     const metaMonths=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
@@ -945,6 +954,13 @@ function switchMonth(m,btn){
   document.querySelectorAll('.mpill').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   refresh();
+}
+function setLatestDate(inputId){
+  const input=document.getElementById(inputId);
+  if(!input||!input.max)return;
+  input.value=input.max;
+  const df=document.getElementById('dateFrom'),dt=document.getElementById('dateTo');
+  if(df.value&&dt.value&&df.value>dt.value)dt.value=df.value;
 }
 function applyCustomRange(){
   customFrom=document.getElementById('dateFrom').value;
