@@ -4,6 +4,18 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
 
+test('thumbnail matches renamed partnership spaces and underscores without matching another variant', () => {
+  const context = dashboard();
+  vm.runInContext(`AD_IMAGES=[
+    {n:'파트너십_제품랜딩_F1830+_Alwz_GS_vdo_mishka_dii2-p',u:'https://example.com/wrong.png',d:'2026-10-02'},
+    {n:'파트너십_제품랜딩_F1830+_Alwz_GS_vdo_mishka_dii3-p',u:'https://example.com/right.png',d:'2026-10-06'},
+    {n:'파트너십_제품랜딩_F1830+_Alwz_PCO_vdo_l_yuhann',u:'https://example.com/yuhann.png',d:'2026-10-06'}
+  ]`, context);
+  assert.equal(vm.runInContext("getAdImg('mishka dii3','GS','Partner','2026-10-01','2026-10-31','vdo')", context), 'https://example.com/right.png');
+  assert.equal(vm.runInContext("getAdImg('l_yuhann','PCO','Partner','2026-10-01','2026-10-31','vdo')", context), 'https://example.com/yuhann.png');
+  assert.equal(vm.runInContext("getAdImg('mishka dii4','GS','Partner','2026-10-01','2026-10-31','vdo')", context), '');
+});
+
 function dashboard(meta = [], amz = []) {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const script = html.match(/<script>\s*(const API_URL=[\s\S]*?)<\/script>/)[1]
@@ -135,3 +147,4 @@ test('approved exceptions load and join without merging the numbered duplicate i
     assert.equal(ads.reduce((sum, r) => sum + r.revenue, 0), 230000);
   }
 });
+
