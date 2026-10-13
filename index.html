@@ -429,8 +429,14 @@ function parseCSV(text){
   });
 }
 
+// Explicit exceptions approved for these two nonstandard partnership names.
+const PARTNERSHIP_NAME_EXCEPTIONS=new Set([
+  'Alwz_GS_vdo_Milkeydew p',
+  'Alwz_GS_vdo_what_is_lada-p 2'
+]);
 function isPartnershipName(name){
   if(!name)return false;
+  if(PARTNERSHIP_NAME_EXCEPTIONS.has(String(name).trim()))return true;
   const parts=name.split('_');
   const first=String(parts[0]||'').trim().toLowerCase();
   const hasPartnershipSuffix=parts.some(part=>String(part||'').trim().toLowerCase().endsWith('-p'));

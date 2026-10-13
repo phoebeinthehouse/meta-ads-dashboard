@@ -87,3 +87,51 @@ test('Amazon-only partnership purchases remain visible without a campaign filter
   assert.equal(ads[0].purchases, 10);
   assert.equal(ads[0].spend, 0);
 });
+
+test('only the two approved nonstandard names are partnership exceptions', () => {
+  const context = dashboard();
+  for (const name of ['Alwz_GS_vdo_Milkeydew p', 'Alwz_GS_vdo_what_is_lada-p 2']) {
+    context.name = name;
+    assert.equal(vm.runInContext('parsePerson(name)', context), 'Partner');
+    assert.equal(vm.runInContext('parseProduct(name)', context), 'GS');
+    assert.equal(vm.runInContext('parseMedia(name)', context), 'vdo');
+  }
+  for (const name of ['Alwz_GS_vdo_other p', 'Alwz_GS_vdo_other-p 2', 'Alwz_PCO_vdo_Milkeydew p']) {
+    context.name = name;
+    assert.equal(vm.runInContext('isPartnershipName(name)', context), false);
+  }
+});
+
+test('approved exceptions load and join without merging the numbered duplicate into the original', async () => {
+  const context = dashboard([
+    ['날짜', 'Contents 소재명', 'Link 링크클릭', 'Cost 광고비', 'Imp 노출', 'Campaign 캠페인명'],
+    ['2026-10-08', 'Alwz_GS_vdo_Milkeydew p', 86, 106100, 1000, 'GS Campaign'],
+    ['2026-10-08', 'Alwz_GS_vdo_what_is_lada-p 2', 80, 101245, 1000, 'GS Campaign'],
+    ['2026-10-08', 'Alwz_GS_vdo_what_is_lada-p', 100, 50000, 1000, 'GS Campaign'],
+  ], [
+    ['날짜', 'Contents 소재명', '구매', '한화매출'],
+    ['2026-10-08', 'Alwz_GS_vdo_Milkeydew p', 7, 70000],
+    ['2026-10-08', 'Alwz_GS_vdo_what_is_lada-p 2', 3, 30000],
+    ['2026-10-08', 'Alwz_GS_vdo_what_is_lada-p', 13, 130000],
+  ]);
+  await vm.runInContext('loadData()', context);
+  assert.equal(vm.runInContext('RAW.meta.length', context), 3);
+  assert.equal(vm.runInContext('RAW.amz.length', context), 3);
+  for (const filter of ['All', 'GS Campaign']) {
+    context.filter = filter;
+    vm.runInContext('cFilters.campaign=filter', context);
+    const ads = vm.runInContext("computeData('2026-10-01','2026-10-31').ads", context);
+    assert.equal(ads.length, 3);
+    const milkeydew = ads.find(r => r.ad_name === 'Milkeydew p');
+    const duplicate = ads.find(r => r.ad_name === 'what_is_lada-p 2');
+    const original = ads.find(r => r.ad_name === 'what_is_lada');
+    assert.equal(milkeydew.person, 'Partner');
+    assert.equal(milkeydew.spend, 106100);
+    assert.equal(milkeydew.purchases, 7);
+    assert.equal(duplicate.spend, 101245);
+    assert.equal(duplicate.purchases, 3);
+    assert.equal(original.purchases, 13);
+    assert.equal(ads.reduce((sum, r) => sum + r.purchases, 0), 23);
+    assert.equal(ads.reduce((sum, r) => sum + r.revenue, 0), 230000);
+  }
+});
