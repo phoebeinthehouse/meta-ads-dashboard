@@ -797,14 +797,16 @@ function computeData(from,to){
     return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
   });
 
-  const adGroupKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
-  const amzGroupKeys=splitByCampaign?['ad_name','person','product','campaign_type']:['ad_name','person','product'];
+  // Allocate Amazon performance per reporting date before rolling up the selected period.
+  const adDisplayKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
+  const adGroupKeys=['date',...adDisplayKeys];
+  const amzGroupKeys=splitByCampaign?['date','ad_name','person','product','campaign_type']:['date','ad_name','person','product'];
   const ads_m=grp(metaForAds,adGroupKeys,['clicks','spend','impressions']);
   // Meta-AMZ join은 campaign_type 제외 (Meta는 한국어, AMZ는 영문 코드라 불일치)
   // media는 미리 쪼개서 묶어 둔다 — Meta 행과 media가 같으면 그 행에 정확히 붙이기 위해
-  const ads_a=grp(amz,['ad_name','person','product','media'],['purchases','revenue']);
+  const ads_a=grp(amz,['date','ad_name','person','product','media'],['purchases','revenue']);
   const ads_a_only=grp(amz,amzGroupKeys,['purchases','revenue']);
-  const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
+  const joinKey=(r)=>r.date+'|||'+r.ad_name+'|||'+r.person+'|||'+r.product;
   // 누락 진단: 지원하는 이름 규칙으로 ad_name을 추출하지 못한 소재 per product
   const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
   if(nullAdNameAds.length){
@@ -812,7 +814,7 @@ function computeData(from,to){
     console.log('[META DROPPED ad_name] 소재명 파싱 실패로 누락된 소재 per product:',cnt);
   }
   // Meta 기반 rows (clicks/spend/impressions + AMZ purchases/revenue join)
-  // 한 소재(ad_name|person|product)가 media·캠페인으로 여러 Meta 행으로 쪼개질 때
+  // 같은 날짜의 한 소재(date|ad_name|person|product)가 media·캠페인으로 여러 Meta 행으로 쪼개질 때
   // 같은 구매를 행마다 통째로 붙이면 중복 집계된다 — allocAmz로 나눠서 붙인다.
   const metaValid=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product);
   const metaByKey=new Map();
@@ -829,12 +831,18 @@ function computeData(from,to){
         roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0}));
     });
   });
-  // AMZ 전용 rows (Meta에 없지만 구매 있는 소재) — 광고비가 없으니 ROAS는 계산 불가
+  // AMZ 전용 rows (같은 날짜·소재·담당자·제품의 Meta 행이 없는 구매)도 합계에 보존한다.
   const metaKeys=new Set(metaValid.map(m=>joinKey(m)));
   // Amazon-only rows have no reliable Meta campaign identity, so do not mix them into a selected campaign.
   const amzOnly=campaignFilterActive?[]:ads_a_only.filter(x=>(x.purchases>0||x.revenue>0)&&x.ad_name&&x.product&&!metaKeys.has(joinKey(x)))
-    .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,revenue:x.revenue,cpa:0,roas:0}));
-  const ads=[...metaAds,...amzOnly].sort((a,b)=>b.clicks-a.clicks);
+    .map(x=>({date:x.date,ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:x.campaign_type||null,media:null,clicks:0,spend:0,impressions:0,ctr:0,cpc:0,purchases:x.purchases,revenue:x.revenue,cpa:0,roas:0}));
+  // Display one period-total row per creative/media/campaign after the date-aware join.
+  // Recompute ratios from summed numerators and denominators.
+  const ads=grp([...metaAds,...amzOnly],adDisplayKeys,['clicks','spend','impressions','purchases','revenue'])
+    .map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),
+      cpa:m.purchases>0?Math.round(m.spend/m.purchases):0,
+      roas:m.spend>0?+(m.revenue/m.spend*100).toFixed(2):0}))
+    .sort((a,b)=>b.clicks-a.clicks);
 
   return{ps,pm,daily,pp,psum,ads};
 }
