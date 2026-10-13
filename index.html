@@ -367,7 +367,12 @@ function getAdImg(adName,product,person,from,to,media){
   const codes=product?(PC[product]||[]):[];
   const mt=x=>{
     const fn=x.n.toLowerCase(),tokens=fn.split('_');
-    if(person==='Partner')return tokens.includes(lc)||tokens.includes(lc+'-p')||(lc.includes('_')&&fn.includes(lc));
+    if(person==='Partner'){
+      // Report names can be renamed from mishka_dii3-p to mishka dii3-p.
+      // Compare the whole parsed handle so spaces do not lose the image match.
+      const normalize=s=>String(s||'').trim().toLowerCase().replace(/[\s_]+/g,'_');
+      return normalize(parseAdName(x.n))===normalize(adName);
+    }
     return lc.includes('_')?fn.includes(lc):tokens.includes(lc);
   };
   const mp=x=>!personLc||x.n.toLowerCase().includes(personLc);
