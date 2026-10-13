@@ -183,6 +183,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   Google Sheets에서 데이터 불러오는 중...
 </div>
 <div id="loadError" style="display:none;max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:#FAEEDA;border-radius:8px;font-size:13px;color:#633806;"></div>
+<div id="reconcileSummary" style="max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:var(--surface2);border-radius:8px;font-size:13px;"></div>
+<div id="attributionNotice" style="display:none;max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:#FAEEDA;border-radius:8px;font-size:13px;color:#633806;"></div>
 <style>@keyframes spin{{to{{transform:rotate(360deg)}}}}</style>
 
 <div class="pg active" id="pg-creator">
@@ -271,6 +273,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="fb" onclick="setCF('person','Lia',this)">Lia</button>
     <button class="fb" onclick="setCF('person','Seoyoon',this)">Seoyoon</button>
     <button class="fb" onclick="setCF('person','Partner',this)">Partnership</button>
+    <button class="fb" onclick="setCF('person','Stella',this)">Stella</button>
+    <button class="fb" onclick="setCF('person','미분류',this)">미분류</button>
     <span class="filter-label" style="margin-left:8px">Media</span>
     <button class="fb active" onclick="setCF('media','All',this)">All</button>
     <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
@@ -392,10 +396,14 @@ const CT={Lina:'#0C447C',Phoebe:'#72243E',Sarah:'#085041',Iris:'#5B2D6E',Donnie:
 const PC={'GPG':'#7F77DD','PCO':'#1D9E75','BCA/BPD':'#D85A30','PCM':'#BA7517','GS':'#D9A006','GSP':'#5B8AD9','OTC':'#2A7AB5','PCB':'#C45782','AZO':'#0F6E56','AZC':'#8B5CF6'};
 const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','GS':'#FEF6E0','GSP':'#E8EFF9','OTC':'#E3F0FA','PCB':'#FBEAF0','AZO':'#E1F5EE','AZC':'#F0E6F6'};
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A','OTC':'#14395A','PCB':'#72243E','AZO':'#085041','AZC':'#5B2D6E'};
-const PEOPLE=['Lina','Sarah','Phoebe','Iris','Donnie','Lia','Seoyoon'];
+const PEOPLE=['Lina','Sarah','Phoebe','Iris','Donnie','Lia','Seoyoon','Stella'];
+const UNCLASSIFIED='미분류';
+['Stella',UNCLASSIFIED].forEach(p=>{C[p]='#737373';CB[p]='#F0F0F0';CT[p]='#404040';});
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
 let RAW={meta:[],amz:[]};
+// Captured before identity parsing so reconciliation cannot hide parsing losses.
+const SOURCE_METRICS={meta:[],amz:[]};
 const CACHE_TTL=30*60*1000;
 function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
 function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
@@ -412,6 +420,7 @@ let cFiltersWC={product:'All',person:'All'};
 const WC_MIN_SPEND=30000;
 const f=n=>Math.round(n).toLocaleString('ko-KR');
 const fd=(n,d=2)=>Number(n).toFixed(d);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function parseCSV(text){
   const lines=text.split('\n').filter(l=>l.trim());
@@ -451,12 +460,12 @@ function parsePerson(name){
     if(!leadingName)return null;
     return PEOPLE.find(person=>person.toLowerCase()===leadingName[0].toLowerCase())||null;
   };
-  if(parts[0].toLowerCase()==='stella')return null;
+  if(parts[0].toLowerCase()==='stella')return'Stella';
   // Partnership prefix/suffix takes priority over creator-like handle names.
   if(isPartnershipName(name))return'Partner';
   const firstPerson=personFromToken(parts[0]);
   if(firstPerson)return firstPerson;
-  if(parts[parts.length-1].toLowerCase()==='stella')return null;
+  if(parts[parts.length-1].toLowerCase()==='stella')return'Stella';
   // Sheet notes may follow a creator name, e.g. "Phoebe ★라스트데이(0726)".
   const lastPerson=personFromToken(parts[parts.length-1]);
   if(lastPerson)return lastPerson;
@@ -474,12 +483,13 @@ function parseProduct(name){
     if(markerIndex>=0&&parts[markerIndex+1]){
       const token=String(parts[markerIndex+1]).trim().toUpperCase();
       if(token==='BD')return'PCB';
-      return PRODS[token]||token;
+      if(PRODS[token])return PRODS[token];
     }
   }
   for(const part of parts){
     const token=String(part||'').trim().toUpperCase();
     if(PRODS[token])return PRODS[token];
+    if(token==='ALL')return'ALL';
   }
   return null;
 }
@@ -524,12 +534,37 @@ function parseAdName(name){
   return null;
 }
 
+function rowIdentity(rawName,campaign,source){
+  const name=String(rawName||'').trim().split('_').map(t=>t.trim()).join('_');
+  const person=parsePerson(name)||UNCLASSIFIED;
+  const product=parseProduct(name)||UNCLASSIFIED;
+  const parsedAd=parseAdName(name);
+  const complete=person!==UNCLASSIFIED&&product!==UNCLASSIFIED&&!!parsedAd;
+  const fallback=name||'(소재명 없음 · '+(campaign||source)+')';
+  const ad_name=complete?parsedAd:fallback;
+  // Incomplete identities only join identical full names; never guess an owner/asset.
+  const identity_key=complete?ad_name+'|||'+person+'|||'+product:'원본|||'+fallback;
+  return{person,product,ad_name,identity_key,media:parseMedia(name),raw_name:rawName,classified:complete};
+}
+
+function summarizeMetrics(meta,amz,keys){
+  return grp([...meta,...amz],keys,['clicks','spend','impressions','purchases','revenue']).map(r=>{
+    return Object.assign(r,{ctr:r.impressions>0?+(r.clicks/r.impressions*100).toFixed(2):0,
+      cpc:r.clicks>0?Math.round(r.spend/r.clicks):0,
+      cpa:r.purchases>0?Math.round(r.spend/r.purchases):null,
+      roas:r.spend>0?+(r.revenue/r.spend*100).toFixed(2):null});
+  });
+}
+
 async function loadData(){
   showLoading(true);
+  const loadError=document.getElementById('loadError');
+  if(loadError)loadError.style.display='none';
   try{
     // Apps Script returns JSON array-of-arrays: [[headers...], [row1...], ...]
     function arrToObjs(json){
       const rows=JSON.parse(json);
+      if(!Array.isArray(rows))throw new Error('원본 데이터 응답 형식 확인 필요');
       if(!rows||!rows.length)return[];
       // Find header row (first row with 소재명 or 일자)
       let hIdx=0;
@@ -575,7 +610,8 @@ async function loadData(){
       const s=String(v==null?'':v).replace(/[,₩$\s%]/g,'').trim();
       if(!s||s==='-'||s==='—')return 0;
       const n=parseFloat(s);
-      return isNaN(n)?0:n;
+      if(!Number.isFinite(n))throw new Error('숫자 확인 필요: '+String(v));
+      return n;
     }
     function parseDateStr(raw){
       const s=String(raw==null?'':raw).trim();
@@ -599,81 +635,54 @@ async function loadData(){
 
     function parseMetaRows(text){
       const rows=arrToObjs(text);
-      const droppedNoPerson=[];
-      const result=rows.map(r=>{
+      SOURCE_METRICS.meta=[];
+      return rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
         const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
         const clickKey=keys.find(k=>k.includes('링크클릭'))||'';
         const spendKey=keys.find(k=>k.includes('광고비'))||'';
         const impKey=keys.find(k=>k.includes('노출'))||'';
+        if(!spendKey&&rows.length)throw new Error('Meta 광고비 열을 찾을 수 없습니다.');
         const campaignKey=keys.find(k=>{const n=k.toLowerCase().replace(/[\s_-]/g,'');return n==='캠페인이름'||n==='campaignname';})
           ||keys.find(k=>k.includes('캠페인')||k.toLowerCase().includes('campaign'))||'';
+        const metrics={clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
         const date=parseDateStr(r[dateKey]);
-        if(!date)return null;
+        if(!date){
+          if(Object.values(metrics).some(v=>v!==0))throw new Error('Meta 날짜 확인 필요: '+String(r[nameKey]||'(소재명 없음)'));
+          return null;
+        }
         const name=String(r[nameKey]||'');
-        const person=parsePerson(name);
-        if(!person){if(name)droppedNoPerson.push(name);return null;}
-        return{date,month:date.slice(0,7),person,
-          product:parseProduct(name),media:parseMedia(name),ad_name:parseAdName(name),raw_name:name,
-          campaign_name:String(r[campaignKey]||'').trim()||null,
-          campaign_type:name.split('_')[0]||null,
-          clicks:parseNum(r[clickKey]),spend:parseNum(r[spendKey]),impressions:parseNum(r[impKey])};
+        const campaign_name=String(r[campaignKey]||'').trim()||null;
+        SOURCE_METRICS.meta.push({date,campaign_name,...metrics});
+        return{date,month:date.slice(0,7),...rowIdentity(name,campaign_name,'Meta'),
+          campaign_name,campaign_type:name.split('_')[0]||null,...metrics};
       }).filter(Boolean);
-      if(droppedNoPerson.length)console.log('[META DROPPED person] 담당자 인식 실패:',droppedNoPerson);
-      const nullAdName=result.filter(r=>!r.ad_name&&r.product&&r.person);
-      if(nullAdName.length)console.log('[META NULL ad_name] vdo/img 없는 소재명:',nullAdName.map(r=>r.person+'|'+r.product+'|'+r.raw_name));
-      return result;
     }
 
     function parseAmzRows(text){
       const rows=arrToObjs(text);
-      const dropped=[];
-      const result=rows.map(r=>{
+      SOURCE_METRICS.amz=[];
+      return rows.map(r=>{
         const keys=Object.keys(r);
         const dateKey=keys.find(k=>k.includes('일자')||k.includes('날짜'))||keys[0];
         const purchKey=keys.find(k=>k.includes('구매')||k.toLowerCase().includes('purchase'))||'';
-        const purch=parseNum(r[purchKey]);
-        // 매출은 반드시 원화 컬럼(한화매출 · T열)을 쓴다. 달러 컬럼(상품판매)을 잡으면 ROAS가 1/1400로 나온다.
-        // 예전 fallback(keys[19])은 위험했다 — arrToObjs가 이름 같은 빈 헤더를 합치므로
-        // keys[19]가 T열이라는 보장이 없고, 실제로는 엉뚱한 컬럼을 집었다.
-        const revKey=keys.find(k=>k.includes('한화'))||keys.find(k=>k.includes('매출')||k.toLowerCase().includes('revenue'))||'';
-        const revenue=parseNum(r[revKey]);
+        // Require won revenue; never substitute the dollar sales column.
+        const revKey=keys.find(k=>k.includes('한화'))||'';
+        if(!purchKey||!revKey)throw new Error('Amazon 구매·한화매출 열을 찾을 수 없습니다.');
+        const purchases=parseNum(r[purchKey]),revenue=parseNum(r[revKey]);
         const date=parseDateStr(r[dateKey]);
-        if(!date){if(purch>0)dropped.push({reason:'date_fail',raw_date:r[dateKey],purch});return null;}
-        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
-        const rawName=String(r[nameKey]||'').trim();
-        const person=parsePerson(rawName);
-        if(!person){if(purch>0)dropped.push({reason:'person_fail',rawName,date,purch});return null;}
-        const product=parseProduct(rawName);
-        const ad_name=parseAdName(rawName);
-        return{date,month:date.slice(0,7),person,product,media:parseMedia(rawName),ad_name,campaign_type:rawName.split('_')[0]||null,purchases:purch,revenue};
-      }).filter(Boolean);
-      if(rows.length){
-        const k0=Object.keys(rows[0]);
-        const rk=k0.find(k=>k.includes('한화'))||k0.find(k=>k.includes('매출')||k.toLowerCase().includes('revenue'));
-        if(!rk)console.warn('[AMZ] 매출 컬럼(한화매출)을 못 찾았습니다 — ROAS가 전부 — 로 나옵니다. 헤더:',k0);
-        else{
-          // 구매가 0인 행은 매출도 당연히 0이라 '채워진 비율'만 보면 오해한다.
-          // ROAS가 낮게 나오게 만드는 건 '구매는 있는데 매출만 빈' 행이다.
-          const withP=result.filter(r=>r.purchases>0);
-          const noRev=withP.filter(r=>!(r.revenue>0));
-          console.log('[AMZ] 매출 컬럼:',rk,'· 구매 있는 행',withP.length+'개 중 매출 채워진 행',(withP.length-noRev.length)+'개');
-          if(noRev.length){
-            const lost=noRev.reduce((s,r)=>s+r.purchases,0);
-            console.warn('[AMZ] 구매는 있는데 매출이 비어 있는 행 '+noRev.length+'개 (구매 '+lost+'건) — 그만큼 ROAS가 실제보다 낮게 나옵니다.',
-              noRev.slice(0,10).map(r=>r.date+'|'+r.person+'|'+r.product+'|'+r.ad_name+'|구매'+r.purchases));
-          }
+        if(!date){
+          if(purchases!==0||revenue!==0)throw new Error('Amazon 구매·매출 행의 날짜 확인 필요');
+          return null;
         }
-      }
-      if(dropped.length)console.log('[AMZ DROPPED] 구매있는데 필터된 행:',dropped);
-      // 누락 진단: product null인 구매 행
-      const nullProd=result.filter(r=>r.purchases>0&&!r.product);
-      if(nullProd.length)console.log('[AMZ NULL PRODUCT] 구매있는데 product없는행:',nullProd.map(r=>r.date+'|'+r.person+'|'+r.ad_name+'|purch:'+r.purchases));
-      // 누락 진단: ad_name null인 구매 행 (vdo/img 없는 소재명)
-      const nullAdName=result.filter(r=>r.purchases>0&&r.product&&!r.ad_name);
-      if(nullAdName.length)console.log('[AMZ NULL ADNAME] 구매있는데 ad_name없는행:',nullAdName.map(r=>r.date+'|'+r.person+'|'+r.product+'|rawName확인필요|purch:'+r.purchases));
-      return result;
+        const nameKey=keys.find(k=>k.includes('소재명'))||keys[1]||'';
+        const campaignKey=keys.find(k=>k.includes('캠페인')||k.toLowerCase().includes('campaign'))||'';
+        const rawName=String(r[nameKey]||'').trim();
+        SOURCE_METRICS.amz.push({date,purchases,revenue});
+        return{date,month:date.slice(0,7),...rowIdentity(rawName,String(r[campaignKey]||''),'Amazon'),
+          campaign_type:rawName.split('_')[0]||null,purchases,revenue};
+      }).filter(Boolean);
     }
 
     RAW.meta=parseMetaRows(mt);
@@ -694,10 +703,14 @@ async function loadData(){
     const metaMonths=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
     curMonth=metaMonths[metaMonths.length-1]||months[months.length-1]||'2026-03';
     renderMonthPills(months);
+    document.querySelectorAll?.('.pg').forEach(el=>{el.style.display='';});
     showLoading(false);
     refresh();
   }catch(e){
     showLoading(false);
+    document.querySelectorAll?.('.pg').forEach(el=>{el.style.display='none';});
+    const summary=document.getElementById('reconcileSummary');
+    if(summary)summary.textContent='원본 데이터 검증 실패 · ROAS 확인 불가';
     const el=document.getElementById('loadError');
     el.style.display='block';
     el.textContent='데이터 로드 실패: '+e.message;
@@ -759,83 +772,42 @@ function allocAmz(metaRows,amzRows){
   return out;
 }
 
-function computeData(from,to){
+function computeData(from,to,campaignFilter=cFilters.campaign){
   const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
   const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
   // Campaign filtering is local to By Creative: other summaries continue to use the full date-range data.
-  const campaignFilterActive=cFilters.campaign&&cFilters.campaign!=='All';
-  const metaForAds=campaignFilterActive?meta.filter(r=>r.campaign_name===cFilters.campaign):meta;
-  // Partnership ads excluded from By Creator (person-based cards); included in By Product and By Creative
-  const metaNP=meta.filter(r=>r.person!=='Partner');
-  const amzNP=amz.filter(r=>r.person!=='Partner');
+  const campaignFilterActive=campaignFilter&&campaignFilter!=='All';
   const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
   const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
+  const ps=summarizeMetrics(meta,amz,['person']);
+  const pm=summarizeMetrics(meta,amz,['person','media']);
+  const daily=summarizeMetrics(meta,amz,['date','person']).map(r=>({...r,p:r.person}));
+  const pp=summarizeMetrics(meta,amz,['product','person']);
+  const psum=summarizeMetrics(meta,amz,['product']);
 
-  const ps_m=grp(metaNP,['person'],['clicks','spend','impressions']);
-  const ps_a=grp(amzNP,['person'],['purchases','revenue']);
-  const ps=ps_m.map(m=>{
-    const a=ps_a.find(x=>x.person===m.person)||{purchases:0,revenue:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
-  });
-
-  const pm_m=grp(metaNP,['person','media'],['clicks','spend','impressions']);
-  const pm_a=grp(amzNP,['person','media'],['purchases','revenue']);
-  const pm=pm_m.map(m=>{
-    const a=pm_a.find(x=>x.person===m.person&&x.media===m.media)||{purchases:0,revenue:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
-  });
-
-  const daily_m=grp(metaNP,['date','person'],['clicks','spend','impressions']);
-  const daily_a=grp(amzNP,['date','person'],['purchases','revenue']);
-  const daily=daily_m.map(m=>{
-    const a=daily_a.find(x=>x.date===m.date&&x.person===m.person)||{purchases:0,revenue:0};
-    return{date:m.date,p:m.person,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
-  });
-
-  const pp_m=grp(meta,['product','person'],['clicks','spend','impressions']);
-  const pp_a=grp(amz,['product','person'],['purchases','revenue']);
-  const pp=pp_m.filter(m=>m.product).map(m=>{
-    const a=pp_a.find(x=>x.product===m.product&&x.person===m.person)||{purchases:0,revenue:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
-  });
-
-  const psum_m=grp(meta,['product'],['clicks','spend','impressions']);
-  const psum_a=grp(amz,['product'],['purchases','revenue']);
-  const psum=psum_m.filter(m=>m.product).map(m=>{
-    const a=psum_a.find(x=>x.product===m.product)||{purchases:0,revenue:0};
-    return Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,revenue:a.revenue,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0});
-  });
-
-  const adDisplayKeys=splitByCampaign?['ad_name','person','product','media','campaign_type']:['ad_name','person','product','media'];
+  const adDisplayKeys=['identity_key','amz_only','ad_name','person','product','media',...(splitByCampaign?['campaign_type']:[])];
   // Identify distinct Meta candidates independently of display grouping and campaign filters.
   // Repeated daily rows of the same ad/campaign are one candidate, not a duplicate.
-  const candidateKeys=['ad_name','person','product','media','raw_name','campaign_name','campaign_type'];
-  const ads_m=grp(metaForAds,['date',...candidateKeys],['clicks','spend','impressions']);
-  const ads_a=grp(amz,['date','ad_name','person','product','media'],['purchases','revenue']);
-  const joinKey=(r)=>r.ad_name+'|||'+r.person+'|||'+r.product;
+  const candidateKeys=['identity_key','ad_name','person','product','media','raw_name','campaign_name','campaign_type'];
+  const ads_m=grp(meta,['date',...candidateKeys],['clicks','spend','impressions']);
+  const ads_a=grp(amz,['date','identity_key','ad_name','person','product','media'],['purchases','revenue']);
+  const joinKey=(r)=>r.identity_key||r.ad_name+'|||'+r.person+'|||'+r.product;
   const candidateCounts=new Map();
   grp(meta,candidateKeys,['spend']).forEach(m=>{
-    if(!m.ad_name||m.ad_name==='null'||!m.product)return;
     const k=joinKey(m);
     candidateCounts.set(k,(candidateCounts.get(k)||0)+1);
   });
-  const nullAdNameAds=ads_m.filter(m=>(!m.ad_name||m.ad_name==='null')&&m.product);
-  if(nullAdNameAds.length){
-    const cnt={};nullAdNameAds.forEach(r=>{cnt[r.product]=(cnt[r.product]||0)+1;});
-    console.log('[META DROPPED ad_name] 소재명 파싱 실패로 누락된 소재 per product:',cnt);
-  }
-  const metaValid=ads_m.filter(m=>m.ad_name&&m.ad_name!='null'&&m.product);
   const metaByKey=new Map();
-  metaValid.forEach(m=>{const k=joinKey(m);if(!metaByKey.has(k))metaByKey.set(k,[]);metaByKey.get(k).push(m);});
+  ads_m.forEach(m=>{const k=joinKey(m);if(!metaByKey.has(k))metaByKey.set(k,[]);metaByKey.get(k).push(m);});
   const amzByKey=new Map();
-  ads_a.forEach(a=>{if(!a.ad_name||!a.product)return;const k=joinKey(a);if(!amzByKey.has(k))amzByKey.set(k,[]);amzByKey.get(k).push(a);});
+  ads_a.forEach(a=>{const k=joinKey(a);if(!amzByKey.has(k))amzByKey.set(k,[]);amzByKey.get(k).push(a);});
   const metaAds=[];
   const matchedAmz=new Set();
   function attach(rows,amzRows){
     const alloc=allocAmz(rows,amzRows);
     amzRows.forEach(a=>matchedAmz.add(a));
     rows.forEach((m,i)=>{
-      metaAds.push(Object.assign({},m,{purchases:alloc[i].purchases,revenue:alloc[i].revenue}));
+      metaAds.push(Object.assign({},m,{purchases:alloc[i].purchases,revenue:alloc[i].revenue,amz_only:false,matched_amz:amzRows.length?1:0,unmatched_spend:amzRows.length?0:m.spend}));
     });
   }
   metaByKey.forEach((rows,k)=>{
@@ -855,16 +827,26 @@ function computeData(from,to){
   // Preserve purchases that have no base-key match, or no same-date match for a duplicate key.
   // Amazon-only rows have no reliable Meta campaign identity, so exclude them from a selected campaign.
   const amzOnly=campaignFilterActive?[]:ads_a
-    .filter(x=>(x.purchases>0||x.revenue>0)&&x.ad_name&&x.product&&!matchedAmz.has(x))
-    .map(x=>({ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:null,media:null,clicks:0,spend:0,impressions:0,purchases:x.purchases,revenue:x.revenue}));
+    .filter(x=>!matchedAmz.has(x))
+    .map(x=>({identity_key:x.identity_key,amz_only:true,matched_amz:0,unmatched_spend:0,ad_name:x.ad_name,person:x.person,product:x.product,campaign_type:null,media:x.media,clicks:0,spend:0,impressions:0,purchases:x.purchases,revenue:x.revenue}));
   // Roll up joined results for display and recompute ratios from period totals.
-  const ads=grp([...metaAds,...amzOnly],adDisplayKeys,['clicks','spend','impressions','purchases','revenue'])
+  const selectedMetaAds=campaignFilterActive?metaAds.filter(r=>r.campaign_name===campaignFilter):metaAds;
+  const ads=grp([...selectedMetaAds,...amzOnly],adDisplayKeys,['clicks','spend','impressions','purchases','revenue','matched_amz','unmatched_spend'])
     .map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),
       cpa:m.purchases>0?Math.round(m.spend/m.purchases):0,
-      roas:m.spend>0?+(m.revenue/m.spend*100).toFixed(2):0}))
+      roas:m.spend>0&&m.matched_amz>0&&m.unmatched_spend===0?+(m.revenue/m.spend*100).toFixed(2):null}))
     .sort((a,b)=>b.clicks-a.clicks);
 
-  return{ps,pm,daily,pp,psum,ads};
+  const sum=(rows,k)=>rows.reduce((s,r)=>s+(r[k]||0),0);
+  const sourceMeta=SOURCE_METRICS.meta.filter(r=>r.date>=from&&r.date<=to);
+  const sourceAmz=SOURCE_METRICS.amz.filter(r=>r.date>=from&&r.date<=to);
+  const total={spend:sum(sourceMeta,'spend'),purchases:sum(sourceAmz,'purchases'),revenue:sum(sourceAmz,'revenue')};
+  total.roas=total.spend>0?total.revenue/total.spend*100:null;
+  const sourceMetaForAds=campaignFilterActive?sourceMeta.filter(r=>r.campaign_name===campaignFilter):sourceMeta;
+  const integrity={spendGap:sum(ads,'spend')-sum(sourceMetaForAds,'spend'),
+    purchasesGap:campaignFilterActive?null:sum(ads,'purchases')-total.purchases,
+    revenueGap:campaignFilterActive?null:sum(ads,'revenue')-total.revenue};
+  return{ps,pm,daily,pp,psum,ads,total,integrity};
 }
 
 function getDateRange(){
@@ -873,7 +855,7 @@ function getDateRange(){
 }
 function D(){const{from,to}=getDateRange();return computeData(from,to);}
 function getDateLabel(){return dateMode==='monthly'?monthLabel(curMonth):customFrom+' ~ '+customTo;}
-function isNoAmz(){const{to}=getDateRange();return to<'2025-12-01';}
+function isNoAmz(){const{from,to}=getDateRange();return !RAW.amz.some(r=>r.date>=from&&r.date<=to);}
 
 function fmtLocalDate(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -930,43 +912,54 @@ function computeProductDaily(days){
   return{days,products,byProduct};
 }
 function computeCreativeDaily(days,productFilter,personFilter){
-  if(!days.length)return{days,creatives:[],byCreative:{}};
-  const daySet=new Set(days);
-  const passFilter=r=>r.ad_name&&r.product&&daySet.has(r.date)&&(productFilter==='All'||r.product===productFilter)&&(personFilter==='All'||r.person===personFilter);
-  const meta=RAW.meta.filter(passFilter);
-  const amz=RAW.amz.filter(passFilter);
-  const ctr_=(m)=>m.impressions>0?+(m.clicks/m.impressions*100).toFixed(2):0;
-  const cpc_=(m)=>m.clicks>0?Math.round(m.spend/m.clicks):0;
-  const m_g=grp(meta,['date','ad_name','person','product'],['clicks','spend','impressions']);
-  const a_g=grp(amz,['date','ad_name','person','product'],['purchases','revenue']);
-  const keyOf=r=>r.ad_name+'|||'+r.person+'|||'+r.product;
-  const mMap=new Map(m_g.map(r=>[r.date+'|||'+keyOf(r),r]));
-  const aMap=new Map(a_g.map(r=>[r.date+'|||'+keyOf(r),r]));
-  const keySet=new Set([...m_g.map(keyOf),...a_g.map(keyOf)]);
-  const byCreative={},totalSpend={};
-  keySet.forEach(key=>{
-    byCreative[key]=days.map(d=>{
-      const mk=d+'|||'+key;
-      const m=mMap.get(mk)||{clicks:0,spend:0,impressions:0};
-      const a=aMap.get(mk)||{purchases:0,revenue:0};
-      return{date:d,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
+  const metadata=new Map(),dailyRows=new Map(),totalSpend=new Map();
+  days.forEach(date=>{
+    const ads=computeData(date,date,'All').ads;
+    ads.filter(r=>(productFilter==='All'||r.product===productFilter)&&(personFilter==='All'||r.person===personFilter)).forEach(r=>{
+      const key=JSON.stringify([r.identity_key,r.amz_only]);
+      if(!metadata.has(key))metadata.set(key,{key,ad_name:r.ad_name,person:r.person,product:r.product});
+      const dk=JSON.stringify([date,key]);
+      const row=dailyRows.get(dk)||{clicks:0,spend:0,impressions:0,purchases:0,revenue:0,matched_amz:0,unmatched_spend:0};
+      ['clicks','spend','impressions','purchases','revenue','matched_amz','unmatched_spend'].forEach(k=>row[k]+=(r[k]||0));
+      dailyRows.set(dk,row);
+      totalSpend.set(key,(totalSpend.get(key)||0)+r.spend);
     });
-    totalSpend[key]=byCreative[key].reduce((s,r)=>s+r.spend,0);
   });
-  const creatives=[...keySet].filter(key=>totalSpend[key]>WC_MIN_SPEND).map(key=>{
-    const[ad_name,person,product]=key.split('|||');
-    return{key,ad_name,person,product,totalSpend:totalSpend[key]};
-  }).sort((a,b)=>b.totalSpend-a.totalSpend);
+  const byCreative={};
+  metadata.forEach((info,key)=>{
+    byCreative[key]=days.map(date=>{
+      const r=dailyRows.get(JSON.stringify([date,key]))||{clicks:0,spend:0,impressions:0,purchases:0,revenue:0,matched_amz:0,unmatched_spend:0};
+      return{date,...r,ctr:r.impressions>0?r.clicks/r.impressions*100:0,cpc:r.clicks>0?r.spend/r.clicks:0,
+        cpa:r.purchases>0?r.spend/r.purchases:null,
+        roas:r.spend>0&&r.matched_amz>0&&r.unmatched_spend===0?r.revenue/r.spend*100:null};
+    });
+  });
+  const creatives=[...metadata.values()].map(r=>({...r,totalSpend:totalSpend.get(r.key)}))
+    .filter(r=>r.totalSpend>WC_MIN_SPEND).sort((a,b)=>b.totalSpend-a.totalSpend);
   return{days,creatives,byCreative};
 }
 
 function updateMeta(){
   const lbl=getDateLabel(),noAmz=isNoAmz();
+  const {from,to}=getDateRange();
+  const d=computeData(from,to,'All'),t=d.total;
+  const ok=Math.abs(d.integrity.spendGap)<0.005&&(d.integrity.purchasesGap===null||Math.abs(d.integrity.purchasesGap)<0.005)&&(d.integrity.revenueGap===null||Math.abs(d.integrity.revenueGap)<0.005);
+  const summary=document.getElementById('reconcileSummary');
+  const latest=[...RAW.meta,...RAW.amz].filter(r=>r.date>=from&&r.date<=to).map(r=>r.date).sort().at(-1)||'—';
+  if(summary)summary.textContent=lbl+' · 최신 데이터 '+latest+' · 전체 광고비 ₩'+f(t.spend)+' · Amazon 매출 ₩'+f(t.revenue)+' · 전체 ROAS '+(!ok||noAmz||t.roas===null?'—':fd(t.roas)+'%')+' · '+(ok?'원본 합계 일치':'합계 불일치: 수치 확인 필요');
+  const notice=document.getElementById('attributionNotice');
+  if(notice){
+    const unlinked=d.ads.filter(r=>(r.amz_only||!r.matched_amz||r.unmatched_spend!==0)&&(r.spend!==0||r.purchases!==0||r.revenue!==0));
+    const unclassified=d.ads.filter(r=>(r.person===UNCLASSIFIED||r.product===UNCLASSIFIED)&&(r.spend!==0||r.purchases!==0||r.revenue!==0));
+    notice.style.display=unlinked.length||unclassified.length||!ok?'block':'none';
+    notice.textContent='미분류 '+unclassified.length+'개 · 구매·매출 연결 확인 필요 '+unlinked.length+'개. 해당 행도 전체 합계에 포함됩니다. 소재별 ROAS가 —인 행은 연결을 확인한 뒤 판단해주세요.';
+  }
   ['creatorMeta','productMeta','creativeMeta','weeklyMeta','weeklyCreativeMeta'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.textContent=lbl+(noAmz?' · Meta only':' · Meta + Amazon');
   });
-  document.getElementById('novNotice').style.display=noAmz?'block':'none';
+  const novNotice=document.getElementById('novNotice');
+  if(novNotice){novNotice.style.display=noAmz?'block':'none';novNotice.textContent='선택한 기간에 Amazon 데이터가 없습니다.';}
 }
 
 function refresh(){
@@ -1045,7 +1038,7 @@ function renderPCards(){
       '</div><div class="srow">'+
       '<div class="st"><div class="stl">Spend</div><div class="stv sm">₩'+f(p.spend)+'</div></div>'+
       '<div class="st"><div class="stl">Purchases</div><div class="stv'+(p.purchases>0?' good':'')+'">'+(noAmz?'—':p.purchases)+'</div></div>'+
-      '<div class="st"><div class="stl">ROAS</div><div class="stv'+(p.roas>0?' good':'')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'%')+'</div></div>'+
+      '<div class="st"><div class="stl">ROAS</div><div class="stv'+(p.roas>0?' good':'')+'">'+((noAmz||p.roas===null)?'—':fd(p.roas)+'%')+'</div></div>'+
       '</div>'+
       '<div class="mlabels"><span>Video '+vp+'%</span><span>Image '+(100-vp)+'%</span></div>'+
       '<div class="btrack"><div class="bfill" style="width:'+vp+'%;background:'+C[p.person]+'"></div></div>'+
@@ -1066,7 +1059,7 @@ function renderTrend(){
   if(tC)tC.destroy();
   tC=new Chart(ctx,{
     type:'line',
-    data:{labels:dates,datasets:PEOPLE.map(ds)},
+    data:{labels:dates,datasets:[...new Set(d.map(r=>r.p))].map(ds)},
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false}},
@@ -1080,7 +1073,7 @@ function renderTrend(){
 
 function renderMedia(){
   const pm=D().pm||[];
-  const ppl=PEOPLE;
+  const ppl=[...new Set(pm.map(r=>r.person))];
   const gv=function(p,m){const r=pm.find(x=>x.person===p&&x.media===m);return r?r[cM]:0;};
   const mlabels={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',roas:'ROAS (%)'};
   document.getElementById('mediaT').textContent='Video vs image — '+mlabels[cM]+' by creator';
@@ -1122,7 +1115,7 @@ function renderPSum(){
       '<div class="pml">Spend</div><div class="pmv">₩'+f(p.spend)+'</div>'+
       '<div class="pml">CPC</div><div class="pmv">₩'+f(p.cpc)+'</div>'+
       '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(noAmz?'—':(p.purchases||'—'))+'</div>'+
-      '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||!(p.roas>0))?'—':fd(p.roas)+'%')+'</div>'+
+      '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||p.roas===null)?'—':fd(p.roas)+'%')+'</div>'+
       '</div>';
   }).join('');
 }
@@ -1141,7 +1134,7 @@ function renderPDGrid(){
     rows.sort((a,b)=>b[m]-a[m]).forEach(function(r){
       const val=r[m]||0;
       const pct=mx>0&&val>0?Math.round(val/mx*100):0;
-      let dv=m==='clicks'?f(val):(m==='ctr'||m==='roas')?fd(val)+'%':m==='purchases'?(val>0?val+'건':'—'):(val>0?'₩'+f(val):'—');
+      let dv=m==='clicks'?f(val):(m==='ctr'||m==='roas')?(r[m]===null?'—':fd(val)+'%'):m==='purchases'?(val>0?val+'건':'—'):(val>0?'₩'+f(val):'—');
       html+='<div class="crow">'+
         '<div class="clabel"><span class="cdot" style="background:'+C[r.person]+'"></span><span class="cname">'+r.person+'</span></div>'+
         '<div class="cbw"><div class="cbt"><div class="cbf" style="width:'+pct+'%;background:'+C[r.person]+'"></div></div></div>'+
@@ -1301,7 +1294,7 @@ function renderWeeklyCreativeCharts(){
       thumbHtml+
       '<div style="flex:1;min-width:0;">'+
       '<div class="ctitle">'+
-      '<span style="color:'+(PC[c.product]||'var(--text)')+'">'+(c.ad_name||'—')+'</span> '+
+      '<span style="color:'+(PC[c.product]||'var(--text)')+'">'+esc(c.ad_name||'—')+'</span> '+
       '<span class="ptag">'+c.product+'</span> '+
       '<span class="pp" style="background:'+(CB[c.person]||'var(--surface2)')+';color:'+(CT[c.person]||'var(--muted)')+';margin-left:4px">'+c.person+'</span>'+
       ' — '+mLabels[cWCM]+' ('+rangeLabel+')'+
@@ -1315,7 +1308,7 @@ function renderWeeklyCreativeCharts(){
       const canvas=document.getElementById('wcchart-'+i);
       if(!canvas)return;
       const color=PC[c.product]||'#378ADD';
-      const data=byCreative[c.key].map(r=>r[cWCM]||0);
+      const data=byCreative[c.key].map(r=>r[cWCM]===null?null:(r[cWCM]||0));
       weeklyCreativeCharts.push(new Chart(canvas.getContext('2d'),{
         type:'line',
         data:{labels:dayLabels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:dense?0:3,pointHoverRadius:5,tension:.3,fill:true}]},
@@ -1367,7 +1360,7 @@ function setProdFilter(p,btn){cFilters.product=p;adPage=0;renderProdPills();rend
 
 function setCF(key,val,btn){
   cFilters[key]=val;
-  const group=key==='person'?['All',...PEOPLE,'Partnership']:['All','vdo','img'];
+  const group=key==='person'?['All',...PEOPLE,'Partnership',UNCLASSIFIED]:['All','vdo','img'];
   document.querySelectorAll('.filter-bar .fb').forEach(function(b){
     const txt=b.textContent.trim();
     const inGroup=group.some(g=>g===txt||(g==='vdo'&&txt==='Video')||(g==='img'&&txt==='Image'));
@@ -1424,17 +1417,17 @@ function renderCreativeTable(){
     var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;" onclick="openImg(\''+thumbUrl+'\')" style="cursor:zoom-in">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
-      '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+(a.ad_name||'')+'">'+(a.ad_name||'—')+'</td>'+
+      '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+esc(a.ad_name||'')+'">'+esc(a.ad_name||'—')+((a.amz_only||!a.matched_amz||a.unmatched_spend!==0)?'<div style="font-size:11px;color:#BA7517;font-weight:400">구매·매출 연결 확인 필요</div>':'')+'</td>'+
       '<td class="ad-thumb-cell">'+thumbHtml+'</td>'+
-      '<td><span class="pp" style="background:'+(CB[a.person]||'var(--surface2)')+';color:'+(CT[a.person]||'var(--muted)')+'">'+((a.person==='Partner'&&a.ad_name)?a.ad_name:a.person)+'</span></td>'+
+      '<td><span class="pp" style="background:'+(CB[a.person]||'var(--surface2)')+';color:'+(CT[a.person]||'var(--muted)')+'">'+esc((a.person==='Partner'&&a.ad_name)?a.ad_name:a.person)+'</span></td>'+
       (splitByCampaign?'<td style="font-size:12px;color:var(--muted)">'+(a.campaign_type||'—')+'</td>':'')+
       '<td>'+(a.media?'<span class="bdg '+(a.media==='vdo'?'bvdo':'bimg')+'">'+(a.media==='vdo'?'Video':'Image')+'</span>':'—')+'</td>'+
       '<td style="font-weight:600">'+f(a.clicks)+'</td>'+
       '<td style="font-size:12px">₩'+f(a.spend)+'</td>'+
       '<td>'+fd(a.ctr)+'%</td>'+
       '<td>₩'+f(a.cpc)+'</td>'+
-      '<td style="font-weight:600;color:'+(a.purchases>0?'#0F6E56':'var(--muted)')+'">'+(a.purchases>0?a.purchases+'건':'—')+'</td>'+
-      '<td style="font-weight:600;color:'+(a.roas>0?'#0F6E56':'var(--muted)')+'">'+(a.roas>0?fd(a.roas)+'%':'—')+'</td>'+
+      '<td style="font-weight:600;color:'+(a.purchases>0?'#0F6E56':'var(--muted)')+'">'+(a.amz_only||a.matched_amz>0?f(a.purchases)+'건':'—')+'</td>'+
+      '<td style="font-weight:600;color:'+(a.roas>0?'#0F6E56':'var(--muted)')+'">'+(a.roas===null?'—':fd(a.roas)+'%')+'</td>'+
       '</tr>';
   }).join('');
   // Pagination
@@ -1451,34 +1444,22 @@ function renderCreativeTable(){
 
 function goAdPage(p){adPage=p;renderCreativeTable();document.getElementById('creativeTable').scrollIntoView({behavior:'smooth'});}
 
-/* 콘솔에서 checkTotals() 실행 — 화면 합계와 원본 시트 합계를 대조한다.
-   By Creative 표는 지원하는 소재명 규칙과 제품코드를 모두 인식한 행만 보여주므로
-   '인식된 것만' 줄과 표 합계가 같아야 정상이다. */
+/* 원본 전체와 표 전체를 대조한다. 캠페인 필터에서는 해당 Meta 광고비를 대조한다. */
 window.checkTotals=function(){
   const{from,to}=getDateRange();
-  const meta=RAW.meta.filter(r=>r.date>=from&&r.date<=to);
-  const amz=RAW.amz.filter(r=>r.date>=from&&r.date<=to);
-  const ads=D().ads||[];
-  const s=(arr,k)=>arr.reduce((x,r)=>x+(r[k]||0),0);
-  const metaOk=meta.filter(r=>r.ad_name&&r.ad_name!='null'&&r.product);
-  const amzOk=amz.filter(r=>r.ad_name&&r.ad_name!='null'&&r.product);
-  const row=(label,sp,cl,pu,rv)=>({구분:label,광고비:sp==null?'':f(sp),클릭:cl==null?'':f(cl),구매:pu==null?'':f(pu),매출:rv==null?'':f(rv)});
+  const d=D(),sum=(arr,k)=>arr.reduce((s,r)=>s+(r[k]||0),0);
+  const expectedMeta=SOURCE_METRICS.meta.filter(r=>r.date>=from&&r.date<=to&&(cFilters.campaign==='All'||r.campaign_name===cFilters.campaign));
+  const actual={spend:sum(d.ads,'spend'),purchases:sum(d.ads,'purchases'),revenue:sum(d.ads,'revenue')};
   console.table([
-    row('원본 Meta 전체',s(meta,'spend'),s(meta,'clicks'),null,null),
-    row('원본 Meta — 소재명·제품 인식된 행',s(metaOk,'spend'),s(metaOk,'clicks'),null,null),
-    row('원본 AMZ 전체',null,null,s(amz,'purchases'),s(amz,'revenue')),
-    row('원본 AMZ — 소재명·제품 인식된 행',null,null,s(amzOk,'purchases'),s(amzOk,'revenue')),
-    row('By Creative 표 합계',s(ads,'spend'),s(ads,'clicks'),s(ads,'purchases'),s(ads,'revenue'))
+    {구분:'원본 Meta 전체',광고비:d.total.spend},
+    {구분:'원본 Amazon 전체',구매:d.total.purchases,매출:d.total.revenue},
+    {구분:'By Creative 표',광고비:actual.spend,구매:actual.purchases,매출:actual.revenue}
   ]);
-  const spend=s(ads,'spend'),rev=s(ads,'revenue');
-  console.log('[TOTALS] '+from+' ~ '+to+' · 표 전체 ROAS '+(spend>0?fd(rev/spend*100)+'%':'—')+' (매출합÷광고비합)');
-  const gapP=s(ads,'purchases')-s(amzOk,'purchases');
-  const gapR=Math.round(s(ads,'revenue')-s(amzOk,'revenue'));
-  if(gapP||gapR)console.error('[TOTALS] ⚠ 표 합계가 원본과 다릅니다 — 구매 '+gapP+'건 / 매출 '+gapR+'원 차이');
-  else console.log('[TOTALS] ✓ 구매·매출 합계 일치 — 중복 집계·누락 없음');
-  const lostP=s(amz,'purchases')-s(amzOk,'purchases');
-  if(lostP)console.warn('[TOTALS] 소재명/제품을 못 뽑아 표에서 빠진 구매 '+lostP+'건 — checkMissingAds() 로 확인하세요.');
-  return{spend,revenue:rev,purchases:s(ads,'purchases'),roas:spend>0?+(rev/spend*100).toFixed(2):0};
+  const ok=Math.abs(actual.spend-sum(expectedMeta,'spend'))<0.005&&
+    (cFilters.campaign!=='All'||(Math.abs(actual.purchases-d.total.purchases)<0.005&&Math.abs(actual.revenue-d.total.revenue)<0.005));
+  if(!ok)console.error('[TOTALS] 원본 합계 불일치',d.integrity);
+  else console.log('[TOTALS] 원본 전체 합계 일치');
+  return{...actual,roas:d.total.roas,ok,integrity:d.integrity};
 };
 
 // 콘솔에서 checkMissingAds() 실행하면 By Creative에 누락된 소재 목록 출력
