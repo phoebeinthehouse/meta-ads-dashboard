@@ -39,6 +39,10 @@ test('estimated ratios keep null, zero and refunds; round only at display time',
   assert.equal(vm.runInContext('isVisibleCreator("Partner")',c),false);
   assert.equal(vm.runInContext('isVisibleCreator("미분류")',c),false);
   assert.equal(vm.runInContext('isVisibleCreator("Stella")',c),true);
+  vm.runInContext("curMonth='2026-09'",c);
+  assert.equal(vm.runInContext('getDateRange().to',c),'2026-09-30');
+  vm.runInContext("curMonth='2026-02'",c);
+  assert.equal(vm.runInContext('getDateRange().to',c),'2026-02-28');
 });
 
 test('creator cards and both creator charts hide Partner and unclassified without removing their totals', async () => {

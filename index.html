@@ -878,7 +878,11 @@ function computeData(from,to,campaignFilter=cFilters.campaign){
 }
 
 function getDateRange(){
-  if(dateMode==='monthly')return{from:curMonth+'-01',to:curMonth+'-31'};
+  if(dateMode==='monthly'){
+    const [year,month]=curMonth.split('-').map(Number);
+    const lastDay=new Date(year,month,0).getDate();
+    return{from:curMonth+'-01',to:curMonth+'-'+String(lastDay).padStart(2,'0')};
+  }
   return{from:customFrom,to:customTo};
 }
 function D(){const{from,to}=getDateRange();return computeData(from,to);}
