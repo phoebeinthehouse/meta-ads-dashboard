@@ -146,7 +146,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="nav-tab" onclick="goPage('weeklycreative',this)">Weekly Trend by Creative</button>
     <a class="nav-tab" style="margin-left:auto;text-decoration:none;line-height:1" href="https://phoebeinthehouse.github.io/meta-amazon-uk-dashboard/">UK →</a>
     <a class="nav-tab" style="text-decoration:none;line-height:1" id="attributionQALink" href="https://phoebeinthehouse.github.io/amazon-attribution-manager/">Attribution QA →</a>
-    <button class="nav-tab" style="font-size:12px;color:var(--muted)" onclick="clearCache();location.reload();" title="데이터 새로고침">↻ Refresh</button>
+    <button class="nav-tab" style="font-size:12px;color:var(--muted)" onclick="refreshDashboard()" title="화면과 데이터 새로고침">↻ Refresh</button>
   </div>
 </nav>
 
@@ -413,6 +413,8 @@ function estimatedRoas(revenue,spend){return spend>0?revenue/spend*100/ATTRIBUTI
 function isVisibleCreator(person){return person!=='Partner'&&person!==UNCLASSIFIED;}
 const PAGE_PARAMS=new URLSearchParams(window.location?.search||'');
 const QA_VIEW=PAGE_PARAMS.get('view')==='qa';
+const APP_VERSION='20261014-1040';
+const FRESH_DATA=PAGE_PARAMS.has('refresh')||PAGE_PARAMS.get('fresh')==='1';
 if(QA_VIEW){
   document.documentElement.classList.add('qa-view');
   ['reconcileSummary','attributionNotice'].forEach(id=>document.getElementById(id).hidden=false);
@@ -428,9 +430,16 @@ let RAW={meta:[],amz:[]};
 // Captured before identity parsing so reconciliation cannot hide parsing losses.
 const SOURCE_METRICS={meta:[],amz:[]};
 const CACHE_TTL=30*60*1000;
-function getCached(k){try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
+function getCached(k){if(FRESH_DATA)return null;try{const i=localStorage.getItem(k);if(!i)return null;const{ts,d}=JSON.parse(i);if(Date.now()-ts>CACHE_TTL){localStorage.removeItem(k);return null;}return d;}catch(e){return null;}}
 function setCached(k,d){try{localStorage.setItem(k,JSON.stringify({ts:Date.now(),d}));}catch(e){}}
 function clearCache(){['meta_raw','amz_raw','ads_list'].forEach(k=>localStorage.removeItem(k));}
+function refreshDashboard(){
+  clearCache();
+  const url=new URL(window.location.href);
+  url.searchParams.set('v',APP_VERSION);
+  url.searchParams.set('refresh',String(Date.now()));
+  window.location.replace(url.href);
+}
 let curPage='creator',cM='clicks',cPM='clicks';
 let dateMode='monthly',curMonth='2026-03',customFrom='',customTo='';
 let cFilters={person:'All',media:'All',product:'All',campaign:'All'};
@@ -603,7 +612,7 @@ async function loadData(){
       });
     }
 
-    const fetchOpts={redirect:'follow'};
+    const fetchOpts={redirect:'follow',cache:'no-store'};
 
     let mt=getCached('meta_raw'),at=getCached('amz_raw'),adsListText=QA_VIEW?'[]':getCached('ads_list');
     if(!mt||!at||!adsListText){
