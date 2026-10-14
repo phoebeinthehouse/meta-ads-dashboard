@@ -9,6 +9,7 @@
 :root{--lina:#378ADD;--phoebe:#D4537E;--sarah:#1D9E75;--iris:#9B59B6;--bg:#F7F6F2;--surface:#FFF;--surface2:#F1EFE8;--border:rgba(0,0,0,0.08);--text:#1a1a18;--muted:#888780;--radius:12px;--radius-sm:8px;}
 @media(prefers-color-scheme:dark){:root{--bg:#18181A;--surface:#232325;--surface2:#2C2C2E;--border:rgba(255,255,255,0.08);--text:#F1EFE8;}}
 *{box-sizing:border-box;margin:0;padding:0;}
+[hidden]{display:none!important;}
 body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 .nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:.5px solid var(--border);padding:0 1.5rem;}
 .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;flex-wrap:wrap;}
@@ -126,6 +127,9 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .ad-tbl tr:hover td{background:var(--surface2);}
 .no-data{text-align:center;padding:3rem;color:var(--muted);font-size:14px;}
 .rank-num{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.qa-view .nav,.qa-view .date-bar,.qa-view .pg,.qa-view #roasLogic,.qa-view #imgModal{display:none!important;}
+.qa-view body{min-height:0;}
+.qa-view #reconcileSummary,.qa-view #attributionNotice,.qa-view #loadError{margin:8px auto;max-width:none;padding:12px;}
 </style>
 </head>
 <body>
@@ -139,7 +143,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="nav-tab" onclick="goPage('weekly',this)">Weekly Trend</button>
     <button class="nav-tab" onclick="goPage('weeklycreative',this)">Weekly Trend by Creative</button>
     <a class="nav-tab" style="margin-left:auto;text-decoration:none;line-height:1" href="https://phoebeinthehouse.github.io/meta-amazon-uk-dashboard/">UK →</a>
-    <a class="nav-tab" style="text-decoration:none;line-height:1" href="https://phoebeinthehouse.github.io/amazon-attribution-manager/">Attribution QA →</a>
+    <a class="nav-tab" style="text-decoration:none;line-height:1" id="attributionQALink" href="https://phoebeinthehouse.github.io/amazon-attribution-manager/">Attribution QA →</a>
     <button class="nav-tab" style="font-size:12px;color:var(--muted)" onclick="clearCache();location.reload();" title="데이터 새로고침">↻ Refresh</button>
   </div>
 </nav>
@@ -183,8 +187,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   Google Sheets에서 데이터 불러오는 중...
 </div>
 <div id="loadError" style="display:none;max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:#FAEEDA;border-radius:8px;font-size:13px;color:#633806;"></div>
-<div id="reconcileSummary" style="max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:var(--surface2);border-radius:8px;font-size:13px;"></div>
-<div id="attributionNotice" style="display:none;max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:#FAEEDA;border-radius:8px;font-size:13px;color:#633806;"></div>
+<div id="reconcileSummary" hidden style="max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:var(--surface2);border-radius:8px;font-size:13px;"></div>
+<div id="attributionNotice" hidden style="display:none;max-width:1200px;margin:1rem auto;padding:12px 1.5rem;background:#FAEEDA;border-radius:8px;font-size:13px;color:#633806;"></div>
 <style>@keyframes spin{{to{{transform:rotate(360deg)}}}}</style>
 
 <div class="pg active" id="pg-creator">
@@ -195,7 +199,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="tab" onclick="switchM('ctr',this)">CTR</button>
       <button class="tab" onclick="switchM('cpc',this)">CPC</button>
       <button class="tab" onclick="switchM('purchases',this)">Purchases</button>
-      <button class="tab" onclick="switchM('roas',this)">ROAS</button>
+      <button class="tab" onclick="switchM('roas',this)">추정 ROAS</button>
     </div>
   </div>
   <div id="novNotice" style="display:none" class="notice">Nov 2025: Amazon purchase data not available.</div>
@@ -239,7 +243,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="pmtab" onclick="switchPM('spend',this)">Spend</button>
       <button class="pmtab" onclick="switchPM('purchases',this)">Purchases</button>
       <button class="pmtab" onclick="switchPM('cpa',this)">CPA</button>
-      <button class="pmtab" onclick="switchPM('roas',this)">ROAS</button>
+      <button class="pmtab" onclick="switchPM('roas',this)">추정 ROAS</button>
     </div>
   </div>
   <div class="slabel">Product summary</div>
@@ -284,7 +288,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
       <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
       <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
       <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
-      <button class="sort-btn" onclick="setCS('roas',this)">ROAS</button>
+      <button class="sort-btn" onclick="setCS('roas',this)">추정 ROAS</button>
     </div>
   </div>
   <!-- Creative table -->
@@ -302,7 +306,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
           <th onclick="setCS('ctr',null)">CTR <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('cpc',null)">CPC <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('purchases',null)" class="sorted">Purchases <span class="sort-arrow">↓</span></th>
-          <th onclick="setCS('roas',null)">ROAS <span class="sort-arrow">↕</span></th>
+          <th onclick="setCS('roas',null)">추정 ROAS <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody id="creativeTbody"></tbody>
       </table>
@@ -317,7 +321,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <div><h1>Weekly trend by product</h1><div class="top-meta" id="weeklyMeta"></div></div>
     <div class="pmtabs" id="wpmtabs">
       <button class="pmtab active" onclick="switchWM('purchases',this)">Purchases</button>
-      <button class="pmtab" onclick="switchWM('roas',this)">ROAS</button>
+      <button class="pmtab" onclick="switchWM('roas',this)">추정 ROAS</button>
     </div>
   </div>
   <div class="note" id="weeklyNote">선택한 기간의 일별 추이 · 중복 선택 가능</div>
@@ -331,7 +335,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <div><h1>Weekly Trend by Creative</h1><div class="top-meta" id="weeklyCreativeMeta"></div></div>
     <div class="pmtabs" id="wcpmtabs">
       <button class="pmtab active" onclick="switchWCM('purchases',this)">Purchases</button>
-      <button class="pmtab" onclick="switchWCM('roas',this)">ROAS</button>
+      <button class="pmtab" onclick="switchWCM('roas',this)">추정 ROAS</button>
     </div>
   </div>
   <div class="note">선택한 기간의 일별 추이 · 중복 선택 가능 · 광고비 ₩30,000 이상 소재만 표시</div>
@@ -403,6 +407,19 @@ const PB={'GPG':'#EEEDFE','PCO':'#E1F5EE','BCA/BPD':'#FAECE7','PCM':'#FAEEDA','G
 const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','GS':'#6E5003','GSP':'#2B4A7A','OTC':'#14395A','PCB':'#72243E','AZO':'#085041','AZC':'#5B2D6E'};
 const PEOPLE=['Lina','Sarah','Phoebe','Iris','Donnie','Lia','Seoyoon','Stella'];
 const UNCLASSIFIED='미분류';
+const ATTRIBUTION_SHARE=0.4;
+function estimatedRoas(revenue,spend){return spend>0?revenue/spend*100/ATTRIBUTION_SHARE:null;}
+function isVisibleCreator(person){return person!=='Partner'&&person!==UNCLASSIFIED;}
+const PAGE_PARAMS=new URLSearchParams(window.location?.search||'');
+const QA_VIEW=PAGE_PARAMS.get('view')==='qa';
+if(QA_VIEW){
+  document.documentElement.classList.add('qa-view');
+  ['reconcileSummary','attributionNotice'].forEach(id=>document.getElementById(id).hidden=false);
+  const sendHeight=()=>window.parent.postMessage({type:'dashboard-qa-height',height:document.body.scrollHeight},window.location.origin);
+  window.addEventListener('load',sendHeight);
+  new ResizeObserver(sendHeight).observe(document.body);
+}
+
 ['Stella',UNCLASSIFIED].forEach(p=>{C[p]='#737373';CB[p]='#F0F0F0';CT[p]='#404040';});
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function monthLabel(m){const[y,mo]=m.split('-');return(MONTH_NAMES[parseInt(mo,10)-1]||mo)+' '+y;}
@@ -557,7 +574,7 @@ function summarizeMetrics(meta,amz,keys){
     return Object.assign(r,{ctr:r.impressions>0?+(r.clicks/r.impressions*100).toFixed(2):0,
       cpc:r.clicks>0?Math.round(r.spend/r.clicks):0,
       cpa:r.purchases>0?Math.round(r.spend/r.purchases):null,
-      roas:r.spend>0?+(r.revenue/r.spend*100).toFixed(2):null});
+      roas:estimatedRoas(r.revenue,r.spend)});
   });
 }
 
@@ -587,12 +604,12 @@ async function loadData(){
 
     const fetchOpts={redirect:'follow'};
 
-    let mt=getCached('meta_raw'),at=getCached('amz_raw'),adsListText=getCached('ads_list');
+    let mt=getCached('meta_raw'),at=getCached('amz_raw'),adsListText=QA_VIEW?'[]':getCached('ads_list');
     if(!mt||!at||!adsListText){
-      const adsListFetch=fetch(ADS_LIST_URL,fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL] meta-ads-list',e.message);return'[]';});
+      const adsListFetch=QA_VIEW?Promise.resolve('[]'):fetch(ADS_LIST_URL,fetchOpts).then(r=>r.text()).catch(e=>{console.error('[FETCH FAIL] meta-ads-list',e.message);return'[]';});
       const [mr,ar,alt]=await Promise.all([fetch(META_URL,fetchOpts),fetch(AMZ_URL,fetchOpts),adsListFetch]);
       [mt,at,adsListText]=await Promise.all([mr.text(),ar.text(),Promise.resolve(alt)]);
-      setCached('meta_raw',mt);setCached('amz_raw',at);setCached('ads_list',adsListText);
+      setCached('meta_raw',mt);setCached('amz_raw',at);if(!QA_VIEW)setCached('ads_list',adsListText);
     }
 
     // Build ad_name → image URL map
@@ -707,6 +724,12 @@ async function loadData(){
     const months=[...new Set([...RAW.meta.map(r=>r.month),...RAW.amz.map(r=>r.month)].filter(Boolean))].sort();
     const metaMonths=[...new Set(RAW.meta.map(r=>r.month).filter(Boolean))].sort();
     curMonth=metaMonths[metaMonths.length-1]||months[months.length-1]||'2026-03';
+    if(QA_VIEW){
+      const requestedFrom=PAGE_PARAMS.get('from'),requestedTo=PAGE_PARAMS.get('to');
+      if(parseDateStr(requestedFrom)&&parseDateStr(requestedTo)&&requestedFrom<=requestedTo){
+        dateMode='custom';customFrom=requestedFrom;customTo=requestedTo;
+      }
+    }
     renderMonthPills(months);
     document.querySelectorAll?.('.pg').forEach(el=>{el.style.display='';});
     showLoading(false);
@@ -715,7 +738,7 @@ async function loadData(){
     showLoading(false);
     document.querySelectorAll?.('.pg').forEach(el=>{el.style.display='none';});
     const summary=document.getElementById('reconcileSummary');
-    if(summary)summary.textContent='원본 데이터 검증 실패 · ROAS 확인 불가';
+    if(summary)summary.textContent='원본 데이터 검증 실패 · 추정 ROAS 확인 불가';
     const el=document.getElementById('loadError');
     el.style.display='block';
     el.textContent='데이터 로드 실패: '+e.message;
@@ -839,14 +862,14 @@ function computeData(from,to,campaignFilter=cFilters.campaign){
   const ads=grp([...selectedMetaAds,...amzOnly],adDisplayKeys,['clicks','spend','impressions','purchases','revenue','matched_amz','unmatched_spend'])
     .map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),
       cpa:m.purchases>0?Math.round(m.spend/m.purchases):0,
-      roas:m.spend>0&&m.matched_amz>0&&m.unmatched_spend===0?+(m.revenue/m.spend*100).toFixed(2):null}))
+      roas:m.matched_amz>0&&m.unmatched_spend===0?estimatedRoas(m.revenue,m.spend):null}))
     .sort((a,b)=>b.clicks-a.clicks);
 
   const sum=(rows,k)=>rows.reduce((s,r)=>s+(r[k]||0),0);
   const sourceMeta=SOURCE_METRICS.meta.filter(r=>r.date>=from&&r.date<=to);
   const sourceAmz=SOURCE_METRICS.amz.filter(r=>r.date>=from&&r.date<=to);
   const total={spend:sum(sourceMeta,'spend'),purchases:sum(sourceAmz,'purchases'),revenue:sum(sourceAmz,'revenue')};
-  total.roas=total.spend>0?total.revenue/total.spend*100:null;
+  total.roas=estimatedRoas(total.revenue,total.spend);
   const sourceMetaForAds=campaignFilterActive?sourceMeta.filter(r=>r.campaign_name===campaignFilter):sourceMeta;
   const integrity={spendGap:sum(ads,'spend')-sum(sourceMetaForAds,'spend'),
     purchasesGap:campaignFilterActive?null:sum(ads,'purchases')-total.purchases,
@@ -911,7 +934,7 @@ function computeProductDaily(days){
       const key=d+'|||'+p;
       const m=mMap.get(key)||{clicks:0,spend:0,impressions:0};
       const a=aMap.get(key)||{purchases:0,revenue:0};
-      return{date:d,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:m.spend>0?+(a.revenue/m.spend*100).toFixed(2):0};
+      return{date:d,clicks:m.clicks,spend:m.spend,ctr:ctr_(m),cpc:cpc_(m),purchases:a.purchases,cpa:a.purchases>0?Math.round(m.spend/a.purchases):0,roas:estimatedRoas(a.revenue,m.spend)};
     });
   });
   return{days,products,byProduct};
@@ -936,7 +959,7 @@ function computeCreativeDaily(days,productFilter,personFilter){
       const r=dailyRows.get(JSON.stringify([date,key]))||{clicks:0,spend:0,impressions:0,purchases:0,revenue:0,matched_amz:0,unmatched_spend:0};
       return{date,...r,ctr:r.impressions>0?r.clicks/r.impressions*100:0,cpc:r.clicks>0?r.spend/r.clicks:0,
         cpa:r.purchases>0?r.spend/r.purchases:null,
-        roas:r.spend>0&&r.matched_amz>0&&r.unmatched_spend===0?r.revenue/r.spend*100:null};
+        roas:r.matched_amz>0&&r.unmatched_spend===0?estimatedRoas(r.revenue,r.spend):null};
     });
   });
   const creatives=[...metadata.values()].map(r=>({...r,totalSpend:totalSpend.get(r.key)}))
@@ -945,19 +968,22 @@ function computeCreativeDaily(days,productFilter,personFilter){
 }
 
 function updateMeta(){
+  const link=document.getElementById('attributionQALink');
+  const range=getDateRange();
+  if(link)link.href='https://phoebeinthehouse.github.io/amazon-attribution-manager/?from='+range.from+'&to='+range.to;
   const lbl=getDateLabel(),noAmz=isNoAmz();
   const {from,to}=getDateRange();
   const d=computeData(from,to,'All'),t=d.total;
   const ok=Math.abs(d.integrity.spendGap)<0.005&&(d.integrity.purchasesGap===null||Math.abs(d.integrity.purchasesGap)<0.005)&&(d.integrity.revenueGap===null||Math.abs(d.integrity.revenueGap)<0.005);
   const summary=document.getElementById('reconcileSummary');
   const latest=[...RAW.meta,...RAW.amz].filter(r=>r.date>=from&&r.date<=to).map(r=>r.date).sort().at(-1)||'—';
-  if(summary)summary.textContent=lbl+' · 최신 데이터 '+latest+' · 전체 광고비 ₩'+f(t.spend)+' · Amazon 매출 ₩'+f(t.revenue)+' · 전체 ROAS '+(!ok||noAmz||t.roas===null?'—':fd(t.roas)+'%')+' · '+(ok?'원본 합계 일치':'합계 불일치: 수치 확인 필요');
+  if(summary)summary.textContent=lbl+' · 최신 데이터 '+latest+' · 전체 광고비 ₩'+f(t.spend)+' · Amazon 매출 ₩'+f(t.revenue)+' · 전체 추정 ROAS '+(!ok||noAmz||t.roas===null?'—':fd(t.roas)+'%')+' · '+(ok?'원본 합계 일치':'합계 불일치: 수치 확인 필요');
   const notice=document.getElementById('attributionNotice');
   if(notice){
     const unlinked=d.ads.filter(r=>(r.amz_only||!r.matched_amz||r.unmatched_spend!==0)&&(r.spend!==0||r.purchases!==0||r.revenue!==0));
     const unclassified=d.ads.filter(r=>(r.person===UNCLASSIFIED||r.product===UNCLASSIFIED)&&(r.spend!==0||r.purchases!==0||r.revenue!==0));
     notice.style.display=unlinked.length||unclassified.length||!ok?'block':'none';
-    notice.textContent='미분류 '+unclassified.length+'개 · 구매·매출 연결 확인 필요 '+unlinked.length+'개. 해당 행도 전체 합계에 포함됩니다. 소재별 ROAS가 —인 행은 연결을 확인한 뒤 판단해주세요.';
+    notice.textContent='미분류 '+unclassified.length+'개 · 구매·매출 연결 확인 필요 '+unlinked.length+'개. 해당 행도 전체 합계에 포함됩니다. 소재별 추정 ROAS가 —인 행은 연결을 확인한 뒤 판단해주세요.';
   }
   ['creatorMeta','productMeta','creativeMeta','weeklyMeta','weeklyCreativeMeta'].forEach(id=>{
     const el=document.getElementById(id);
@@ -969,6 +995,7 @@ function updateMeta(){
 
 function refresh(){
   updateMeta();
+  if(QA_VIEW)return;
   if(curPage==='creator'){renderPCards();renderTrend();renderMedia();}
   else if(curPage==='product')renderProdPage();
   else if(curPage==='creative'){renderCampaignFilter();renderProdPills();renderCreativeTable();}
@@ -1016,7 +1043,7 @@ function goPage(pg,btn){
 }
 
 function renderPCards(){
-  const ps=D().ps||[];
+  const ps=(D().ps||[]).filter(r=>isVisibleCreator(r.person));
   const sorted={
     clicks:[...ps].sort((a,b)=>b.clicks-a.clicks).map(x=>x.person),
     ctr:[...ps].sort((a,b)=>b.ctr-a.ctr).map(x=>x.person),
@@ -1024,7 +1051,7 @@ function renderPCards(){
     purchases:[...ps].sort((a,b)=>b.purchases-a.purchases).map(x=>x.person),
     roas:[...ps].sort((a,b)=>b.roas-a.roas).map(x=>x.person)
   };
-  const rl={clicks:'clicks',ctr:'CTR',cpc:'CPC (lower)',purchases:'purchases',roas:'ROAS'};
+  const rl={clicks:'clicks',ctr:'CTR',cpc:'CPC (lower)',purchases:'purchases',roas:'추정 ROAS'};
   const noAmz=isNoAmz();
   document.getElementById('pcards').innerHTML=ps.map(p=>{
     const rank=sorted[cM].indexOf(p.person)+1;
@@ -1043,7 +1070,7 @@ function renderPCards(){
       '</div><div class="srow">'+
       '<div class="st"><div class="stl">Spend</div><div class="stv sm">₩'+f(p.spend)+'</div></div>'+
       '<div class="st"><div class="stl">Purchases</div><div class="stv'+(p.purchases>0?' good':'')+'">'+(noAmz?'—':p.purchases)+'</div></div>'+
-      '<div class="st"><div class="stl">ROAS</div><div class="stv'+(p.roas>0?' good':'')+'">'+((noAmz||p.roas===null)?'—':fd(p.roas)+'%')+'</div></div>'+
+      '<div class="st"><div class="stl">추정 ROAS</div><div class="stv'+(p.roas>0?' good':'')+'">'+((noAmz||p.roas===null)?'—':fd(p.roas)+'%')+'</div></div>'+
       '</div>'+
       '<div class="mlabels"><span>Video '+vp+'%</span><span>Image '+(100-vp)+'%</span></div>'+
       '<div class="btrack"><div class="bfill" style="width:'+vp+'%;background:'+C[p.person]+'"></div></div>'+
@@ -1052,8 +1079,8 @@ function renderPCards(){
 }
 
 function renderTrend(){
-  const d=D().daily||[];
-  const labels={clicks:'Daily clicks',ctr:'Daily CTR (%)',cpc:'Daily CPC (₩)',purchases:'Daily purchases',roas:'Daily ROAS (%)'};
+  const d=(D().daily||[]).filter(r=>isVisibleCreator(r.person));
+  const labels={clicks:'Daily clicks',ctr:'Daily CTR (%)',cpc:'Daily CPC (₩)',purchases:'Daily purchases',roas:'Daily 추정 ROAS (%)'};
   document.getElementById('trendT').textContent=labels[cM]+' by creator';
   const dates=[...new Set(d.map(r=>r.date))].sort();
   const ds=function(person){return{label:person,
@@ -1077,10 +1104,10 @@ function renderTrend(){
 }
 
 function renderMedia(){
-  const pm=D().pm||[];
+  const pm=(D().pm||[]).filter(r=>isVisibleCreator(r.person));
   const ppl=[...new Set(pm.map(r=>r.person))];
   const gv=function(p,m){const r=pm.find(x=>x.person===p&&x.media===m);return r?r[cM]:0;};
-  const mlabels={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',roas:'ROAS (%)'};
+  const mlabels={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',roas:'추정 ROAS (%)'};
   document.getElementById('mediaT').textContent='Video vs image — '+mlabels[cM]+' by creator';
   const ctx=document.getElementById('mediaC').getContext('2d');
   if(mC)mC.destroy();
@@ -1120,7 +1147,7 @@ function renderPSum(){
       '<div class="pml">Spend</div><div class="pmv">₩'+f(p.spend)+'</div>'+
       '<div class="pml">CPC</div><div class="pmv">₩'+f(p.cpc)+'</div>'+
       '<div class="pml">Purchases</div><div class="pmv" style="color:'+(p.purchases>0?'#0F6E56':'var(--muted)')+'">'+(noAmz?'—':(p.purchases||'—'))+'</div>'+
-      '<div class="pml">ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||p.roas===null)?'—':fd(p.roas)+'%')+'</div>'+
+      '<div class="pml">추정 ROAS</div><div class="pmv" style="color:'+(p.roas>0?'#0F6E56':'var(--muted)')+'">'+((noAmz||p.roas===null)?'—':fd(p.roas)+'%')+'</div>'+
       '</div>';
   }).join('');
 }
@@ -1129,7 +1156,7 @@ function renderPDGrid(){
   const m=cPM;
   const pp=D().pp||[];
   const prods=[...new Set(pp.map(r=>r.product))];
-  const mLabels={clicks:'CLICKS',ctr:'CTR',cpc:'CPC',spend:'SPEND',purchases:'PURCHASES',cpa:'CPA',roas:'ROAS'};
+  const mLabels={clicks:'CLICKS',ctr:'CTR',cpc:'CPC',spend:'SPEND',purchases:'PURCHASES',cpa:'CPA',roas:'추정 ROAS'};
   document.getElementById('pdgrid').innerHTML=prods.map(function(prod){
     const rows=pp.filter(r=>r.product===prod);
     const vals=rows.map(r=>r[m]).filter(v=>v>0);
@@ -1191,7 +1218,7 @@ function renderWeeklyCharts(){
   const days=getWeeklyDays();
   if(!days.length){container.innerHTML='<div class="no-data">표시할 기간을 선택해주세요.</div>';return;}
   const{products,byProduct}=computeProductDaily(days);
-  const mLabels={purchases:'Purchases',roas:'ROAS (%)'};
+  const mLabels={purchases:'Purchases',roas:'추정 ROAS (%)'};
   const dayLabels=days.map(d=>{const p=d.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);});
   const rangeLabel=dayLabels[0]+'–'+dayLabels[dayLabels.length-1];
   if(!products.length){container.innerHTML='<div class="no-data">이 기간에는 데이터가 없어요.</div>';return;}
@@ -1210,7 +1237,7 @@ function renderWeeklyCharts(){
       const canvas=document.getElementById('wchart-'+i);
       if(!canvas)return;
       const color=PC[p]||'#378ADD';
-      const data=byProduct[p].map(r=>r[cWM]||0);
+      const data=byProduct[p].map(r=>r[cWM]===null?null:(r[cWM]||0));
       weeklyCharts.push(new Chart(canvas.getContext('2d'),{
         type:'line',
         data:{labels:dayLabels,datasets:[{data,borderColor:color,backgroundColor:color+'22',borderWidth:2,pointRadius:dense?0:3,pointHoverRadius:5,tension:.3,fill:true}]},
@@ -1286,7 +1313,7 @@ function renderWeeklyCreativeCharts(){
   const days=[...curWeeksWC].sort().flatMap(w=>{const a=[];for(let i=0;i<7;i++)a.push(addDays(w,i));return a;});
   if(!days.length){container.innerHTML='<div class="no-data">표시할 기간을 선택해주세요.</div>';return;}
   const{creatives,byCreative}=computeCreativeDaily(days,cFiltersWC.product,cFiltersWC.person);
-  const mLabels={purchases:'Purchases',roas:'ROAS (%)'};
+  const mLabels={purchases:'Purchases',roas:'추정 ROAS (%)'};
   const dayLabels=days.map(d=>{const p=d.split('-');return parseInt(p[1],10)+'/'+parseInt(p[2],10);});
   const rangeLabel=dayLabels[0]+'–'+dayLabels[dayLabels.length-1];
   if(!creatives.length){container.innerHTML='<div class="no-data">조건에 맞는 소재가 없어요 (광고비 ₩'+f(WC_MIN_SPEND)+' 이상).</div>';return;}
@@ -1495,5 +1522,7 @@ loadData();
   document.getElementById('imgModalImg').src=u.replace(/=s\d+$/,'=s0');
   document.getElementById('imgModal').style.display='flex';
 }</script>
+<footer id="roasLogic" class="note" style="max-width:1200px;margin:0 auto;padding:0 1.5rem 1.5rem;">추정 ROAS = (Amazon Attribution 매출 ÷ Meta 광고비 × 100) ÷ 0.4. 전체 전환 중 Attribution으로 확인되는 비중을 40%로 가정해 2.5배 보정합니다. 예: 기존 100% → 추정 250%. 40%는 내부 추정 가정이며, 실측 전환 비중이 아닙니다.</footer>
 </body>
 </html>
+

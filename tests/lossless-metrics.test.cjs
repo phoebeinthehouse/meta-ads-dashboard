@@ -35,7 +35,7 @@ test('unknown owners/products, empty names, Stella and zero-delivery ads preserv
     near(sum(d[view], 'purchases'), 10);
     near(sum(d[view], 'revenue'), 1000);
   }
-  near(d.total.roas, 1000 / 1550 * 100);
+  near(d.total.roas, 1000 / 1550 * 100 / 0.4);
   near(d.integrity.spendGap, 0);
   near(d.integrity.purchasesGap, 0);
   near(d.integrity.revenueGap, 0);
@@ -62,11 +62,11 @@ test('boundary whitespace and extra partnership targeting tokens do not break id
   const patchy = ads.find(r => r.ad_name === 'PatchyMakeup');
   assert.equal(patchy.media, 'vdo');
   assert.equal(patchy.purchases, 2);
-  assert.equal(patchy.roas, 300);
+  assert.equal(patchy.roas, 750);
   const partner = ads.find(r => r.person === 'Partner');
   assert.equal(partner.product, 'GPG');
   assert.equal(partner.purchases, 3);
-  assert.equal(partner.roas, 200);
+  assert.equal(partner.roas, 500);
 });
 
 test('campaign filtering retains source spend and uses the shared full-scope allocation', async () => {
@@ -100,7 +100,7 @@ test('refunds and unmatched Amazon zero rows are retained without claiming a ver
   const d = vm.runInContext("computeData('2026-10-01','2026-10-31')", c);
   near(sum(d.ads, 'purchases'), -1);
   near(sum(d.ads, 'revenue'), -50);
-  assert.equal(d.ads.find(r => r.ad_name === 'test').roas, -50);
+  assert.equal(d.ads.find(r => r.ad_name === 'test').roas, -125);
   assert.ok(d.ads.some(r => r.ad_name === 'amazononly' && r.amz_only));
 });
 
@@ -130,3 +130,4 @@ test('reconciliation still detects a row removed after source capture', async ()
   assert.equal(d.total.spend, 300);
   assert.equal(d.integrity.spendGap, -200);
 });
+
