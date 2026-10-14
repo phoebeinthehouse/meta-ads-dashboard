@@ -1454,7 +1454,7 @@ function renderCreativeTable(){
     var thumbHtml=thumbUrl?'<img class="ad-thumb" src="'+thumbUrl+'" loading="lazy" onerror="this.style.display=&quot;none&quot;" onclick="openImg(\''+thumbUrl+'\')" style="cursor:zoom-in">':'';
     return '<tr>'+
       '<td style="padding-left:14px"><span class="rank-num" style="background:'+(i<3?rb[i]:'var(--surface2)')+';color:'+(i<3?rt[i]:'var(--muted)')+'">'+(i+1)+'</span></td>'+
-      '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+esc(a.ad_name||'')+'">'+esc(a.ad_name||'—')+((a.amz_only||!a.matched_amz||a.unmatched_spend!==0)?'<div style="font-size:11px;color:#BA7517;font-weight:400">구매·매출 연결 확인 필요</div>':'')+'</td>'+
+      '<td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+esc(a.ad_name||'')+'">'+esc(a.ad_name||'—')+'</td>'+
       '<td class="ad-thumb-cell">'+thumbHtml+'</td>'+
       '<td><span class="pp" style="background:'+(CB[a.person]||'var(--surface2)')+';color:'+(CT[a.person]||'var(--muted)')+'">'+esc((a.person==='Partner'&&a.ad_name)?a.ad_name:a.person)+'</span></td>'+
       (splitByCampaign?'<td style="font-size:12px;color:var(--muted)">'+(a.campaign_type||'—')+'</td>':'')+
