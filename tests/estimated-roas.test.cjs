@@ -87,7 +87,7 @@ test('QA embedded view uses requested dates and the same dynamic estimated total
   assert.match(c.document.getElementById('attributionNotice').textContent,/미분류 1개 · 구매·매출 연결 확인 필요 1개/);
 });
 
-test('partial Amazon coverage displays period ROAS using all spend while QA retains the gap', async () => {
+test('renamed Meta candidates join period purchases without requiring the same reporting dates', async () => {
   const c = dashboard([
     ['날짜','Contents 소재명','Link 링크클릭','Cost 광고비','Imp 노출'],
     ['2026-10-05','파트너십_제품랜딩_F1830+_Alwz_PCO_vdo_chxrry.glowy-p',10,40000,100],
@@ -106,7 +106,7 @@ test('partial Amazon coverage displays period ROAS using all spend while QA reta
   assert.equal(cherry.spend,120000);
   assert.equal(cherry.revenue,120000);
   assert.equal(cherry.purchases,2);
-  assert.equal(cherry.unmatched_spend,40000);
+  assert.equal(cherry.unmatched_spend,0);
   assert.equal(cherry.roas,250);
   assert.equal(d.ads.find(r=>r.ad_name==='zero').roas,0);
   assert.equal(d.ads.find(r=>r.ad_name==='noamazon').roas,null);
@@ -116,7 +116,7 @@ test('partial Amazon coverage displays period ROAS using all spend while QA reta
   assert.equal(d.integrity.revenueGap,0);
   assert.equal(d.integrity.purchasesGap,0);
   vm.runInContext('updateMeta()',c);
-  assert.match(c.document.getElementById('attributionNotice').textContent,/구매·매출 연결 확인 필요 3개/);
+  assert.match(c.document.getElementById('attributionNotice').textContent,/구매·매출 연결 확인 필요 1개/);
   const daily=vm.runInContext("computeCreativeDaily(['2026-10-05','2026-10-08'],'All','All')",c);
   const points=Object.values(daily.byCreative).find(points=>points.some(p=>p.revenue===120000));
   assert.equal(points[0].roas,null);

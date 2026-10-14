@@ -413,7 +413,7 @@ function estimatedRoas(revenue,spend){return spend>0?revenue/spend*100/ATTRIBUTI
 function isVisibleCreator(person){return person!=='Partner'&&person!==UNCLASSIFIED;}
 const PAGE_PARAMS=new URLSearchParams(window.location?.search||'');
 const QA_VIEW=PAGE_PARAMS.get('view')==='qa';
-const APP_VERSION='20261014-1430';
+const APP_VERSION='20261014-1645';
 const FRESH_DATA=PAGE_PARAMS.has('refresh')||PAGE_PARAMS.get('fresh')==='1';
 if(QA_VIEW){
   document.documentElement.classList.add('qa-view');
@@ -830,11 +830,6 @@ function computeData(from,to,campaignFilter=cFilters.campaign){
   const ads_m=grp(meta,['date',...candidateKeys],['clicks','spend','impressions']);
   const ads_a=grp(amz,['date','identity_key','ad_name','person','product','media'],['purchases','revenue']);
   const joinKey=(r)=>r.identity_key||r.ad_name+'|||'+r.person+'|||'+r.product;
-  const candidateCounts=new Map();
-  grp(meta,candidateKeys,['spend']).forEach(m=>{
-    const k=joinKey(m);
-    candidateCounts.set(k,(candidateCounts.get(k)||0)+1);
-  });
   const metaByKey=new Map();
   ads_m.forEach(m=>{const k=joinKey(m);if(!metaByKey.has(k))metaByKey.set(k,[]);metaByKey.get(k).push(m);});
   const amzByKey=new Map();
@@ -850,19 +845,11 @@ function computeData(from,to,campaignFilter=cFilters.campaign){
   }
   metaByKey.forEach((rows,k)=>{
     const amzRows=amzByKey.get(k)||[];
-    if((candidateCounts.get(k)||0)<=1){
-      // Unique base key: join the selected-period totals without requiring equal dates.
-      attach(grp(rows,candidateKeys,['clicks','spend','impressions']),amzRows);
-    }else{
-      // Duplicate base key: use the sheet reporting date as the additional matching key.
-      const rowsByDate=new Map();
-      rows.forEach(m=>{if(!rowsByDate.has(m.date))rowsByDate.set(m.date,[]);rowsByDate.get(m.date).push(m);});
-      rowsByDate.forEach((dayRows,date)=>{
-        attach(dayRows,amzRows.filter(a=>a.date===date));
-      });
-    }
+    // Match period totals by creative + Creator + product, including renamed Meta candidates.
+    // Reporting dates select the period but do not restrict purchase attribution within it.
+    attach(grp(rows,candidateKeys,['clicks','spend','impressions']),amzRows);
   });
-  // Preserve purchases that have no base-key match, or no same-date match for a duplicate key.
+  // Preserve purchases that have no creative + Creator + product match in the selected period.
   // Amazon-only rows have no reliable Meta campaign identity, so exclude them from a selected campaign.
   const amzOnly=campaignFilterActive?[]:ads_a
     .filter(x=>!matchedAmz.has(x))
@@ -1151,7 +1138,7 @@ function renderProdPage(){renderPSum();renderPDGrid();}
 function renderWeeklyPage(){renderWeekPills();renderWeeklyCharts();}
 
 function renderPSum(){
-  const ps=D().psum||[];
+  const ps=(D().psum||[]).filter(r=>r.product!==UNCLASSIFIED);
   const noAmz=isNoAmz();
   document.getElementById('psgrid').innerHTML=ps.map(p=>{
     return '<div class="pscard">'+
@@ -1168,7 +1155,7 @@ function renderPSum(){
 
 function renderPDGrid(){
   const m=cPM;
-  const pp=D().pp||[];
+  const pp=(D().pp||[]).filter(r=>r.product!==UNCLASSIFIED&&r.person!==UNCLASSIFIED);
   const prods=[...new Set(pp.map(r=>r.product))];
   const mLabels={clicks:'CLICKS',ctr:'CTR',cpc:'CPC',spend:'SPEND',purchases:'PURCHASES',cpa:'CPA',roas:'추정 ROAS'};
   document.getElementById('pdgrid').innerHTML=prods.map(function(prod){
