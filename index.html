@@ -413,7 +413,7 @@ function estimatedRoas(revenue,spend){return spend>0?revenue/spend*100/ATTRIBUTI
 function isVisibleCreator(person){return person!=='Partner'&&person!==UNCLASSIFIED;}
 const PAGE_PARAMS=new URLSearchParams(window.location?.search||'');
 const QA_VIEW=PAGE_PARAMS.get('view')==='qa';
-const APP_VERSION='20261014-1040';
+const APP_VERSION='20261014-1430';
 const FRESH_DATA=PAGE_PARAMS.has('refresh')||PAGE_PARAMS.get('fresh')==='1';
 if(QA_VIEW){
   document.documentElement.classList.add('qa-view');
@@ -872,7 +872,7 @@ function computeData(from,to,campaignFilter=cFilters.campaign){
   const ads=grp([...selectedMetaAds,...amzOnly],adDisplayKeys,['clicks','spend','impressions','purchases','revenue','matched_amz','unmatched_spend'])
     .map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),
       cpa:m.purchases>0?Math.round(m.spend/m.purchases):0,
-      roas:m.matched_amz>0&&m.unmatched_spend===0?estimatedRoas(m.revenue,m.spend):null}))
+      roas:m.matched_amz>0?estimatedRoas(m.revenue,m.spend):null}))
     .sort((a,b)=>b.clicks-a.clicks);
 
   const sum=(rows,k)=>rows.reduce((s,r)=>s+(r[k]||0),0);
@@ -973,7 +973,7 @@ function computeCreativeDaily(days,productFilter,personFilter){
       const r=dailyRows.get(JSON.stringify([date,key]))||{clicks:0,spend:0,impressions:0,purchases:0,revenue:0,matched_amz:0,unmatched_spend:0};
       return{date,...r,ctr:r.impressions>0?r.clicks/r.impressions*100:0,cpc:r.clicks>0?r.spend/r.clicks:0,
         cpa:r.purchases>0?r.spend/r.purchases:null,
-        roas:r.matched_amz>0&&r.unmatched_spend===0?estimatedRoas(r.revenue,r.spend):null};
+        roas:r.matched_amz>0?estimatedRoas(r.revenue,r.spend):null};
     });
   });
   const creatives=[...metadata.values()].map(r=>({...r,totalSpend:totalSpend.get(r.key)}))
