@@ -1426,7 +1426,8 @@ function setCS(s,btn){
 }
 
 function renderCreativeTable(){
-  let ads=[...(D().ads||[])];
+  // Hide unidentified attribution rows only from this list; preserve all source totals.
+  let ads=(D().ads||[]).filter(a=>!String(a.ad_name||'').startsWith('미식별 소재'));
   if(cFilters.product!=='All')ads=ads.filter(a=>a.product===cFilters.product);
   if(cFilters.person!=='All')ads=ads.filter(a=>a.person===cFilters.person);
   if(cFilters.media!=='All')ads=ads.filter(a=>a.media===cFilters.media);
