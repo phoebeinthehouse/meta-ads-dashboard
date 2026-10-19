@@ -111,6 +111,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .creative-filter-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
 .creative-media-group{flex-wrap:wrap;}
 .creative-split-btn{margin-left:8px;}
+.creative-campaign-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0;flex:1;}
+.creative-campaign-controls #campaignFilter{flex:1 1 320px;min-width:180px;max-width:520px;}
+.creative-campaign-controls #adSearchInput{flex:0 1 240px;min-width:180px;}
+.creative-campaign-controls .creative-split-btn{margin-left:0;white-space:nowrap;}
 .creative-sort-group{margin-left:auto;flex-shrink:0;}
 .creative-sort-group>.filter-label{flex:0 0 auto;}
 .creative-sort-group .sort-tabs{margin-left:0;flex-wrap:nowrap;}
@@ -279,13 +283,27 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
   <!-- Product filter pills -->
   <div class="slabel">Filter by product</div>
   <div class="prod-pills" id="prodPills"></div>
-  <!-- Campaign filter + creative search (By Creative only) -->
-  <div class="filter-bar" style="margin-bottom:10px">
-    <span class="filter-label">Campaign</span>
-    <select id="campaignFilter" onchange="setCampaignFilter(this.value)" style="width:min(520px,100%);padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;"></select>
-    <input id="adSearchInput" type="text" placeholder="소재명 검색..." oninput="adNameSearch=this.value.toLowerCase();adPage=0;renderCreativeTable()" style="width:240px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;">
-  </div>
+  <!-- By Creative filters: Media, Creator, Campaign. Product filter above stays fixed. -->
   <div class="creative-filter-layout">
+    <div class="creative-filter-bottom">
+      <div class="creative-filter-group creative-media-group">
+        <span class="filter-label">Media</span>
+        <div class="creative-filter-buttons" id="creativeMediaFilters">
+          <button class="fb active" onclick="setCF('media','All',this)">All</button>
+          <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
+          <button class="fb" onclick="setCF('media','img',this)">Image</button>
+        </div>
+      </div>
+      <div class="creative-filter-group creative-sort-group">
+        <span class="filter-label">Sort by</span>
+        <div class="sort-tabs">
+          <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
+          <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
+          <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
+          <button class="sort-btn" onclick="setCS('roas',this)">추정 ROAS</button>
+        </div>
+      </div>
+    </div>
     <div class="creative-filter-group creative-creator-group">
       <span class="filter-label">Creator</span>
       <div class="creative-filter-buttons" id="creativeCreatorFilters">
@@ -300,24 +318,12 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
         <button class="fb" onclick="setCF('person','Partner',this)">Partnership</button>
       </div>
     </div>
-    <div class="creative-filter-bottom">
-      <div class="creative-filter-group creative-media-group">
-        <span class="filter-label">Media</span>
-        <div class="creative-filter-buttons" id="creativeMediaFilters">
-          <button class="fb active" onclick="setCF('media','All',this)">All</button>
-          <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
-          <button class="fb" onclick="setCF('media','img',this)">Image</button>
-        </div>
+    <div class="creative-filter-group creative-campaign-group">
+      <span class="filter-label">Campaign</span>
+      <div class="creative-campaign-controls">
+        <select id="campaignFilter" onchange="setCampaignFilter(this.value)" style="width:min(520px,100%);padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;"></select>
+        <input id="adSearchInput" type="text" placeholder="소재명 검색..." oninput="adNameSearch=this.value.toLowerCase();adPage=0;renderCreativeTable()" style="width:240px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;">
         <button id="splitCampaignBtn" class="fb creative-split-btn" onclick="toggleSplitCampaign()">캠페인 분리</button>
-      </div>
-      <div class="creative-filter-group creative-sort-group">
-        <span class="filter-label">Sort by</span>
-        <div class="sort-tabs">
-          <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
-          <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
-          <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
-          <button class="sort-btn" onclick="setCS('roas',this)">추정 ROAS</button>
-        </div>
       </div>
     </div>
   </div>
