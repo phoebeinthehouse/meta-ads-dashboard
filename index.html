@@ -103,6 +103,23 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .sort-btn{padding:4px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all .15s;}
 .sort-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
 
+/* By Creative filters: keep each control group together instead of letting sort tabs wrap alone. */
+.creative-filter-layout{display:flex;flex-direction:column;gap:11px;margin-bottom:1.25rem;}
+.creative-filter-group{display:flex;align-items:center;gap:8px;min-width:0;}
+.creative-filter-group>.filter-label{flex:0 0 66px;}
+.creative-filter-buttons{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0;}
+.creative-filter-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.creative-media-group{flex-wrap:wrap;}
+.creative-split-btn{margin-left:8px;}
+.creative-sort-group{margin-left:auto;flex-shrink:0;}
+.creative-sort-group>.filter-label{flex:0 0 auto;}
+.creative-sort-group .sort-tabs{margin-left:0;flex-wrap:nowrap;}
+@media(max-width:720px){
+  .creative-filter-bottom{align-items:flex-start;}
+  .creative-sort-group{margin-left:0;flex-wrap:wrap;flex-shrink:1;}
+  .creative-sort-group .sort-tabs{flex-wrap:wrap;max-width:100%;}
+}
+
 /* Product filter pills */
 .prod-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;}
 .prod-pill{padding:6px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:.5px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;transition:all .15s;}
@@ -268,27 +285,40 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <select id="campaignFilter" onchange="setCampaignFilter(this.value)" style="width:min(520px,100%);padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;"></select>
     <input id="adSearchInput" type="text" placeholder="소재명 검색..." oninput="adNameSearch=this.value.toLowerCase();adPage=0;renderCreativeTable()" style="width:240px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-family:inherit;color:var(--text);outline:none;">
   </div>
-  <div class="filter-bar">
-    <span class="filter-label">Creator</span>
-    <button class="fb active" onclick="setCF('person','All',this)">All</button>
-    <button class="fb" onclick="setCF('person','Lina',this)">Lina</button>
-    <button class="fb" onclick="setCF('person','Phoebe',this)">Phoebe</button>
-    <button class="fb" onclick="setCF('person','Sarah',this)">Sarah</button>
-    <button class="fb" onclick="setCF('person','Iris',this)">Iris</button>
-    <button class="fb" onclick="setCF('person','Donnie',this)">Donnie</button>
-    <button class="fb" onclick="setCF('person','Lia',this)">Lia</button>
-    <button class="fb" onclick="setCF('person','Seoyoon',this)">Seoyoon</button>
-    <button class="fb" onclick="setCF('person','Partner',this)">Partnership</button>
-    <span class="filter-label" style="margin-left:8px">Media</span>
-    <button class="fb active" onclick="setCF('media','All',this)">All</button>
-    <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
-    <button class="fb" onclick="setCF('media','img',this)">Image</button>
-    <button id="splitCampaignBtn" class="fb" onclick="toggleSplitCampaign()" style="margin-left:8px">캠페인 분리</button>
-    <div class="sort-tabs">
-      <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
-      <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
-      <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
-      <button class="sort-btn" onclick="setCS('roas',this)">추정 ROAS</button>
+  <div class="creative-filter-layout">
+    <div class="creative-filter-group creative-creator-group">
+      <span class="filter-label">Creator</span>
+      <div class="creative-filter-buttons" id="creativeCreatorFilters">
+        <button class="fb active" onclick="setCF('person','All',this)">All</button>
+        <button class="fb" onclick="setCF('person','Lina',this)">Lina</button>
+        <button class="fb" onclick="setCF('person','Phoebe',this)">Phoebe</button>
+        <button class="fb" onclick="setCF('person','Sarah',this)">Sarah</button>
+        <button class="fb" onclick="setCF('person','Iris',this)">Iris</button>
+        <button class="fb" onclick="setCF('person','Donnie',this)">Donnie</button>
+        <button class="fb" onclick="setCF('person','Lia',this)">Lia</button>
+        <button class="fb" onclick="setCF('person','Seoyoon',this)">Seoyoon</button>
+        <button class="fb" onclick="setCF('person','Partner',this)">Partnership</button>
+      </div>
+    </div>
+    <div class="creative-filter-bottom">
+      <div class="creative-filter-group creative-media-group">
+        <span class="filter-label">Media</span>
+        <div class="creative-filter-buttons" id="creativeMediaFilters">
+          <button class="fb active" onclick="setCF('media','All',this)">All</button>
+          <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
+          <button class="fb" onclick="setCF('media','img',this)">Image</button>
+        </div>
+        <button id="splitCampaignBtn" class="fb creative-split-btn" onclick="toggleSplitCampaign()">캠페인 분리</button>
+      </div>
+      <div class="creative-filter-group creative-sort-group">
+        <span class="filter-label">Sort by</span>
+        <div class="sort-tabs">
+          <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
+          <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
+          <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
+          <button class="sort-btn" onclick="setCS('roas',this)">추정 ROAS</button>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Creative table -->
@@ -1393,7 +1423,7 @@ function setProdFilter(p,btn){cFilters.product=p;adPage=0;renderProdPills();rend
 function setCF(key,val,btn){
   cFilters[key]=val;
   const group=key==='person'?['All',...PEOPLE,'Partnership']:['All','vdo','img'];
-  document.querySelectorAll('.filter-bar .fb').forEach(function(b){
+  document.querySelectorAll(key==='person' ? '#creativeCreatorFilters .fb' : '#creativeMediaFilters .fb').forEach(function(b){
     const txt=b.textContent.trim();
     const inGroup=group.some(g=>g===txt||(g==='vdo'&&txt==='Video')||(g==='img'&&txt==='Image'));
     if(inGroup)b.classList.remove('active');
