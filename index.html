@@ -1413,8 +1413,21 @@ function setCampaignFilter(campaign){
 }
 
 function renderProdPills(){
+  // Show only products with actual Meta delivery in the selected date range.
+  // Amazon-only/zero-delivery rows stay in the data but do not create product pills.
+  const {from,to}=getDateRange();
+  const activeProducts=new Set(RAW.meta
+    .filter(r=>r.date>=from&&r.date<=to
+      &&(cFilters.campaign==='All'||r.campaign_name===cFilters.campaign)
+      &&(r.spend>0||r.impressions>0)
+      &&r.product&&r.product!==UNCLASSIFIED
+      &&r.person!=='Stella'
+      &&!String(r.ad_name||'').startsWith('미식별 소재'))
+    .map(r=>r.product));
   const ads=D().ads||[];
-  const prods=['All',...new Set(ads.map(a=>a.product).filter(p=>p&&p!==UNCLASSIFIED))];
+  const prods=['All',...new Set(ads.map(a=>a.product).filter(p=>activeProducts.has(p)))];
+  // Reset a previously selected product if it was not active in the new period/campaign.
+  if(!prods.includes(cFilters.product)){cFilters.product='All';adPage=0;}
   document.getElementById('prodPills').innerHTML=prods.map(function(p){
     const isActive=cFilters.product===p;
     const bg=isActive?(p==='All'?'var(--surface2)':(PB[p]||'var(--surface2)')):'transparent';
