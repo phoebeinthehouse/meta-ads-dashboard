@@ -38,19 +38,20 @@ test('estimated ratios keep null, zero and refunds; round only at display time',
   assert.equal(vm.runInContext('fd(estimatedRoas(1,3))',c),'83.33');
   assert.equal(vm.runInContext('isVisibleCreator("Partner")',c),false);
   assert.equal(vm.runInContext('isVisibleCreator("미분류")',c),false);
-  assert.equal(vm.runInContext('isVisibleCreator("Stella")',c),true);
+  assert.equal(vm.runInContext('isVisibleCreator("Stella")',c),false);
   vm.runInContext("curMonth='2026-09'",c);
   assert.equal(vm.runInContext('getDateRange().to',c),'2026-09-30');
   vm.runInContext("curMonth='2026-02'",c);
   assert.equal(vm.runInContext('getDateRange().to',c),'2026-02-28');
 });
 
-test('creator cards and both creator charts hide Partner and unclassified without removing their totals', async () => {
+test('creator cards and charts hide Partner, unclassified and Stella; creative list hides Stella without removing totals', async () => {
   const c = dashboard([
     ['날짜','Contents 소재명','Link 링크클릭','Cost 광고비','Imp 노출'],
     ['2026-10-01','GS_vdo_test_Phoebe',10,40000,100],
     ['2026-10-01','Alwz_GS_vdo_partner_p',20,80000,200],
     ['2026-10-01','이름 오류',30,120000,300],
+    ['2026-10-01','GS_vdo_stella-creative_Stella',40,160000,400],
   ], []);
   await vm.runInContext('loadData()',c);
   const charts=[];
@@ -60,10 +61,19 @@ test('creator cards and both creator charts hide Partner and unclassified withou
   assert.ok(cards.includes('Phoebe'));
   assert.ok(!cards.includes('Partner'));
   assert.ok(!cards.includes('미분류'));
+  assert.ok(!cards.includes('Stella'));
   assert.deepEqual(Array.from(charts[0].data.datasets,r=>r.label),['Phoebe']);
   assert.deepEqual(Array.from(charts[1].data.labels),['Phoebe']);
-  assert.equal(vm.runInContext('D().total.spend',c),240000);
-  assert.equal(vm.runInContext('D().ads.length',c),3);
+  assert.equal(vm.runInContext('D().total.spend',c),400000);
+  assert.equal(vm.runInContext('D().ads.length',c),4);
+  vm.runInContext('renderCreativeTable()',c);
+  const creative=c.document.getElementById('creativeTbody').innerHTML;
+  assert.ok(creative.includes('Phoebe'));
+  assert.ok(creative.includes('partner'));
+  assert.ok(!creative.includes('Stella'));
+  assert.ok(!creative.includes('stella-creative'));
+  vm.runInContext('splitByCampaign=true;renderCreativeTable()',c);
+  assert.ok(!c.document.getElementById('creativeTbody').innerHTML.includes('Stella'));
   assert.match(c.document.getElementById('attributionQALink').href,/from=2026-10-01&to=2026-10-31$/);
 });
 

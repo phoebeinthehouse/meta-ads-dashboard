@@ -279,7 +279,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     <button class="fb" onclick="setCF('person','Lia',this)">Lia</button>
     <button class="fb" onclick="setCF('person','Seoyoon',this)">Seoyoon</button>
     <button class="fb" onclick="setCF('person','Partner',this)">Partnership</button>
-    <button class="fb" onclick="setCF('person','Stella',this)">Stella</button>
     <span class="filter-label" style="margin-left:8px">Media</span>
     <button class="fb active" onclick="setCF('media','All',this)">All</button>
     <button class="fb" onclick="setCF('media','vdo',this)">Video</button>
@@ -410,10 +409,10 @@ const PEOPLE=['Lina','Sarah','Phoebe','Iris','Donnie','Lia','Seoyoon','Stella'];
 const UNCLASSIFIED='미분류';
 const ATTRIBUTION_SHARE=0.4;
 function estimatedRoas(revenue,spend){return spend>0?revenue/spend*100/ATTRIBUTION_SHARE:null;}
-function isVisibleCreator(person){return person!=='Partner'&&person!==UNCLASSIFIED;}
+function isVisibleCreator(person){return person!=='Partner'&&person!==UNCLASSIFIED&&person!=='Stella';}
 const PAGE_PARAMS=new URLSearchParams(window.location?.search||'');
 const QA_VIEW=PAGE_PARAMS.get('view')==='qa';
-const APP_VERSION='20261014-1645';
+const APP_VERSION='20261019-hide-stella';
 const FRESH_DATA=PAGE_PARAMS.has('refresh')||PAGE_PARAMS.get('fresh')==='1';
 if(QA_VIEW){
   document.documentElement.classList.add('qa-view');
@@ -1423,8 +1422,8 @@ function setCS(s,btn){
 }
 
 function renderCreativeTable(){
-  // Hide unidentified attribution rows only from this list; preserve all source totals.
-  let ads=(D().ads||[]).filter(a=>!String(a.ad_name||'').startsWith('미식별 소재'));
+  // Hide Stella and unidentified attribution rows only from this list; preserve all source totals.
+  let ads=(D().ads||[]).filter(a=>a.person!=='Stella'&&!String(a.ad_name||'').startsWith('미식별 소재'));
   if(cFilters.product!=='All')ads=ads.filter(a=>a.product===cFilters.product);
   if(cFilters.person!=='All')ads=ads.filter(a=>a.person===cFilters.person);
   if(cFilters.media!=='All')ads=ads.filter(a=>a.media===cFilters.media);
@@ -1531,4 +1530,3 @@ loadData();
 <footer id="roasLogic" class="note" style="max-width:1200px;margin:0 auto;padding:0 1.5rem 1.5rem;">추정 ROAS는 Amazon Attribution 기준 ROAS에 보정계수 2.5를 적용한 수치입니다.</footer>
 </body>
 </html>
-

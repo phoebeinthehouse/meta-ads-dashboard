@@ -19,7 +19,7 @@ Google Sheets(Apps Script Web App)를 데이터 소스로 쓰는 정적 대시�
 - 담당자·제품·소재명 파싱 실패를 이유로 행을 버리지 않는다.
 - 해석할 수 없는 이름은 원본 이름과 **미분류**로 남긴다. 빈 이름도 별도 행으로 보존한다.
 - 구매·매출이 0인 Amazon 행도 읽고 표시한다.
-- By Creator는 Partner·미분류를 화면에서 숨기고 Stella를 포함한다. 원본 데이터와 전체 합계, 다른 탭에는 Partner·미분류를 계속 포함한다. By Product는 Amazon에만 있는 제품도 포함한다.
+- By Creator는 Partner·미분류·Stella를 화면에서 숨긴다. By Creative는 Stella 필터와 Stella 소재를 숨긴다. 원본 데이터와 전체 합계, 다른 탭의 집계는 유지한다. By Product는 Amazon에만 있는 제품도 포함한다.
 - 날짜가 잘못된 금액 행이나 필수 광고비·구매·한화매출 열이 없으면 로딩 오류를 표시한다.
 
 분류 전에 별도로 캡처한 `SOURCE_METRICS` 원본 금액을 화면 합계와 비교한다.
@@ -153,4 +153,3 @@ By Creative 의 `전환` 탭 열로 표시된다.
 
 > 분리된 JP 대시보드는 Apps Script Web App이 `?sheet=JP meta raw` 요청을 처리한다는 전제로 동작한다.
 > 스크립트에 시트 화이트리스트가 있다면 `JP meta raw`를 추가해야 한다.
-
