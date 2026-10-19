@@ -1169,11 +1169,30 @@ function switchM(m,btn){
   renderPCards();renderTrend();renderMedia();
 }
 
-function renderProdPage(){renderPSum();renderPDGrid();}
+function activeProductSetForPeriod(){
+  // A product is active if at least one source row in the selected period has
+  // nonzero Meta spend, Meta impressions, or Amazon purchases.
+  const {from,to}=getDateRange();
+  const products=new Set();
+  RAW.meta.forEach(r=>{
+    if(r.date>=from&&r.date<=to&&r.product&&r.product!==UNCLASSIFIED
+      &&(r.spend!==0||r.impressions!==0))products.add(r.product);
+  });
+  RAW.amz.forEach(r=>{
+    if(r.date>=from&&r.date<=to&&r.product&&r.product!==UNCLASSIFIED
+      &&r.purchases!==0)products.add(r.product);
+  });
+  return products;
+}
+function renderProdPage(){
+  const activeProducts=activeProductSetForPeriod();
+  renderPSum(activeProducts);
+  renderPDGrid(activeProducts);
+}
 function renderWeeklyPage(){renderWeekPills();renderWeeklyCharts();}
 
-function renderPSum(){
-  const ps=(D().psum||[]).filter(r=>r.product!==UNCLASSIFIED);
+function renderPSum(activeProducts=activeProductSetForPeriod()){
+  const ps=(D().psum||[]).filter(r=>activeProducts.has(r.product));
   const noAmz=isNoAmz();
   document.getElementById('psgrid').innerHTML=ps.map(p=>{
     return '<div class="pscard">'+
@@ -1188,9 +1207,9 @@ function renderPSum(){
   }).join('');
 }
 
-function renderPDGrid(){
+function renderPDGrid(activeProducts=activeProductSetForPeriod()){
   const m=cPM;
-  const pp=(D().pp||[]).filter(r=>r.product!==UNCLASSIFIED&&r.person!==UNCLASSIFIED);
+  const pp=(D().pp||[]).filter(r=>activeProducts.has(r.product)&&r.person!==UNCLASSIFIED);
   const prods=[...new Set(pp.map(r=>r.product))];
   const mLabels={clicks:'CLICKS',ctr:'CTR',cpc:'CPC',spend:'SPEND',purchases:'PURCHASES',cpa:'CPA',roas:'추정 ROAS'};
   document.getElementById('pdgrid').innerHTML=prods.map(function(prod){
