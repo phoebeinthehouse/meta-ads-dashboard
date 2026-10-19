@@ -1413,19 +1413,16 @@ function setCampaignFilter(campaign){
 }
 
 function renderProdPills(){
-  // Show only products with actual Meta delivery in the selected date range.
-  // Amazon-only/zero-delivery rows stay in the data but do not create product pills.
-  const {from,to}=getDateRange();
-  const activeProducts=new Set(RAW.meta
-    .filter(r=>r.date>=from&&r.date<=to
-      &&(cFilters.campaign==='All'||r.campaign_name===cFilters.campaign)
-      &&(r.spend>0||r.impressions>0)
-      &&r.product&&r.product!==UNCLASSIFIED
-      &&r.person!=='Stella'
-      &&!String(r.ad_name||'').startsWith('미식별 소재'))
-    .map(r=>r.product));
+  // Period/campaign-scoped creative rows: show a product when ANY ad spend,
+  // impressions, or Amazon purchases are nonzero. This includes Amazon-only rows
+  // when all campaigns are selected (their campaign cannot be verified).
   const ads=D().ads||[];
-  const prods=['All',...new Set(ads.map(a=>a.product).filter(p=>activeProducts.has(p)))];
+  const prods=['All',...new Set(ads
+    .filter(a=>a.product&&a.product!==UNCLASSIFIED
+      &&a.person!=='Stella'
+      &&!String(a.ad_name||'').startsWith('미식별 소재')
+      &&(a.spend!==0||a.impressions!==0||a.purchases!==0))
+    .map(a=>a.product))];
   // Reset a previously selected product if it was not active in the new period/campaign.
   if(!prods.includes(cFilters.product)){cFilters.product='All';adPage=0;}
   document.getElementById('prodPills').innerHTML=prods.map(function(p){
@@ -1436,7 +1433,6 @@ function renderProdPills(){
     return '<button class="prod-pill'+(isActive?' active':'')+'" style="background:'+bg+';color:'+tc+';border-color:'+bc+'" onclick="setProdFilter(\'' + p + '\',this)">'+p+'</button>';
   }).join('');
 }
-
 function setProdFilter(p,btn){cFilters.product=p;adPage=0;renderProdPills();renderCreativeTable();}
 
 function setCF(key,val,btn){
