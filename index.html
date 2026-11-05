@@ -301,6 +301,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
           <button class="sort-btn" onclick="setCS('clicks',this)">Clicks</button>
           <button class="sort-btn" onclick="setCS('ctr',this)">CTR</button>
           <button class="sort-btn active" onclick="setCS('purchases',this)">Purchases</button>
+          <button class="sort-btn" onclick="setCS('cvr',this)">CVR</button>
           <button class="sort-btn" onclick="setCS('roas',this)">추정 ROAS</button>
         </div>
       </div>
@@ -329,6 +330,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     </div>
   </div>
   <!-- Creative table -->
+  <p class="note" style="margin-bottom:10px">CVR = Amazon 구매 ÷ Meta 링크 클릭 × 100 · 클릭 0건 또는 Amazon 미연결: —</p>
   <div class="ccard" style="padding:0;overflow:hidden;">
     <div class="ad-table-wrap">
       <table class="ad-tbl" id="creativeTable">
@@ -343,6 +345,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
           <th onclick="setCS('ctr',null)">CTR <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('cpc',null)">CPC <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('purchases',null)" class="sorted">Purchases <span class="sort-arrow">↓</span></th>
+          <th onclick="setCS('cvr',null)" title="선택 기간의 Amazon 구매 합계 ÷ Meta 링크 클릭 합계 × 100 (보정 없음)">CVR <span class="sort-arrow">↕</span></th>
           <th onclick="setCS('roas',null)">추정 ROAS <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody id="creativeTbody"></tbody>
@@ -894,6 +897,7 @@ function computeData(from,to,campaignFilter=cFilters.campaign){
   const selectedMetaAds=campaignFilterActive?metaAds.filter(r=>r.campaign_name===campaignFilter):metaAds;
   const ads=grp([...selectedMetaAds,...amzOnly],adDisplayKeys,['clicks','spend','impressions','purchases','revenue','matched_amz','unmatched_spend'])
     .map(m=>Object.assign({},m,{ctr:ctr_(m),cpc:cpc_(m),
+      cvr:m.matched_amz>0&&m.clicks>0?m.purchases/m.clicks*100:null,
       cpa:m.purchases>0?Math.round(m.spend/m.purchases):0,
       roas:m.matched_amz>0?estimatedRoas(m.revenue,m.spend):null}))
     .sort((a,b)=>b.clicks-a.clicks);
@@ -1494,12 +1498,14 @@ function renderCreativeTable(){
   if(cFilters.media!=='All')ads=ads.filter(a=>a.media===cFilters.media);
   if(adNameSearch)ads=ads.filter(a=>a.ad_name&&a.ad_name.toLowerCase().includes(adNameSearch));
   ads.sort(function(a,b){
+    // An unavailable CVR stays below valid rates in both sort directions.
+    if(cSort==='cvr'&&(a.cvr==null||b.cvr==null))return (a.cvr==null?1:0)-(b.cvr==null?1:0);
     const av=a[cSort]||0,bv=b[cSort]||0;
     if(typeof av==='string')return cSortDir*av.localeCompare(bv);
     return cSortDir*(av-bv);
   });
   if(!ads.length){
-    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="'+(splitByCampaign?12:11)+'" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
+    document.getElementById('creativeTbody').innerHTML='<tr><td colspan="'+(splitByCampaign?13:12)+'" class="no-data">해당 조건의 소재가 없어요.</td></tr>';
     document.getElementById('adPagination').innerHTML='';
     return;
   }
@@ -1525,6 +1531,7 @@ function renderCreativeTable(){
       '<td>'+fd(a.ctr)+'%</td>'+
       '<td>₩'+f(a.cpc)+'</td>'+
       '<td style="font-weight:600;color:'+(a.purchases>0?'#0F6E56':'var(--muted)')+'">'+(a.amz_only||a.matched_amz>0?f(a.purchases)+'건':'—')+'</td>'+
+      '<td style="font-weight:600">'+(a.cvr==null?'—':fd(a.cvr)+'%')+'</td>'+
       '<td style="font-weight:600;color:'+(a.roas>0?'#0F6E56':'var(--muted)')+'">'+(a.roas===null?'—':fd(a.roas)+'%')+'</td>'+
       '</tr>';
   }).join('');
@@ -1595,3 +1602,4 @@ loadData();
 <footer id="roasLogic" class="note" style="max-width:1200px;margin:0 auto;padding:0 1.5rem 1.5rem;">추정 ROAS는 Amazon Attribution 기준 ROAS에 보정계수 2.5를 적용한 수치입니다.</footer>
 </body>
 </html>
+
