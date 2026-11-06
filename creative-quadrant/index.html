@@ -81,6 +81,9 @@ const qnames={1:'고CTR · 고ROAS',2:'고CTR · 저ROAS',3:'저CTR · 저ROAS',
 const qcolors={1:'#168a74',2:'#bf842a',3:'#c15c70',4:'#517bb8'};
 const qbg={1:'#e8f5ed',2:'#fff5e6',3:'#fff0f2',4:'#ecf3ff'};
 const US_PROMOTIONS=[
+ {id:'BF2025',label:'2025 BF · 소재명 기준',start:'',end:''},
+ {id:'CM2025',label:'2025 CM · 소재명 기준',start:'',end:''},
+ {id:'BD2025',label:'2025 연말 BD · 소재명 기준',start:'',end:''},
  {id:'BD_G',label:'BD_G · 1/26–2/1',start:'2026-01-26',end:'2026-02-01'},
  {id:'BD_O',label:'BD_O · 2/2–2/4',start:'2026-02-02',end:'2026-02-04'},
  {id:'OWN_FEB',label:'자체 · 2/5–2/15',start:'2026-02-05',end:'2026-02-15'},
@@ -110,7 +113,7 @@ function safeUrl(s){if(!s)return'';try{const u=new URL(s);return u.protocol==='h
 function normalizeName(x){let s=String(x||'').replace(/-CREATIVE$/i,'').replace(/\s+/g,'').replace(/\.+$/,'').toLowerCase();let m=s.match(/(pco|gpg|gsp|gs|pcb|azc|azo)_(?:img|vdo|video)_.+$/);return m?m[0]:s.replace(/^alwz_/,'')}
 function productFrom(group,campaign,name){let v=String(group||'').trim().toUpperCase();if(Object.hasOwn(names,v))return v;let match=String(name).match(/(?:^|_)(PCO|GPG|GSP|GS|PCB|AZC|AZO)_(?:img|vdo|video)/i)||String(campaign).match(/AMZ\(US\)_(PCO|GPG|GSP|GS|PCB|AZC|AZO)_/i);return match?match[1].toUpperCase():'OTHER'}
 function isPartner(camp,name){return /파트너십|partner(ship)?/i.test(String(camp)+' '+String(name))||/[-_ ]p(?:[ -]?2)?(?:-CREATIVE)?$/i.test(String(name).trim())}
-function identifyEvent(date,campaign='',name=''){const context=(String(campaign)+' '+String(name)).toUpperCase();if(/\bPBDD\b|PRIME\s*BIG\s*DEAL/.test(context))return 'PBDD';const period=US_PROMOTIONS.find(x=>date>=x.start&&date<=x.end);return period?period.id:''}
+function identifyEvent(date,campaign='',name=''){const context=(String(campaign)+' '+String(name)).toUpperCase();const period=US_PROMOTIONS.find(x=>x.start&&x.end&&date>=x.start&&date<=x.end);if(period)return period.id;if(/\bPBDD\b|PRIME\s*BIG\s*DEAL/.test(context))return 'PBDD';if(/BF[-_\s]*LIVE/.test(context))return 'BF2025';if(/CM[-_\s]*LIVE/.test(context))return 'CM2025';if(context.includes('BD_GPG'))return 'BD2025';return ''}
 function dateValue(x){const raw=String(x||'').trim();if(/^\d{4}-\d{2}-\d{2}T/.test(raw)){const parsed=new Date(raw);if(!Number.isNaN(parsed.getTime()))return new Date(parsed.getTime()+9*60*60*1000).toISOString().slice(0,10)}let m=raw.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);return m?m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0'):''}
 function asNum(x){const n=Number(String(x??0).replace(/,/g,'').trim());return Number.isFinite(n)?n:0}
 function percentile(arr,pt){if(!arr.length)return 0;let a=[...arr].sort((x,y)=>x-y);return a[Math.floor((a.length-1)*pt)]}
