@@ -92,6 +92,8 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
 .pmtab{padding:4px 11px;border-radius:5px;font-size:12px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:inherit;font-weight:500;transition:all .15s;}
 .pmtab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .note{font-size:11px;color:var(--muted);margin-bottom:12px;}
+#roasLogic .creative-cvr-note{display:none;margin-bottom:6px;}
+#pg-creative.active~#roasLogic .creative-cvr-note{display:block;}
 .notice{background:#FAEEDA;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:#633806;margin-bottom:1.25rem;}
 
 /* AD DETAIL / PRODUCT CREATIVE PAGE */
@@ -330,7 +332,6 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
     </div>
   </div>
   <!-- Creative table -->
-  <p class="note" style="margin-bottom:10px">CVR = Amazon 구매 ÷ Meta 링크 클릭 × 100 · 클릭 0건 또는 Amazon 미연결: —</p>
   <div class="ccard" style="padding:0;overflow:hidden;">
     <div class="ad-table-wrap">
       <table class="ad-tbl" id="creativeTable">
@@ -1599,7 +1600,10 @@ loadData();
   document.getElementById('imgModalImg').src=u.replace(/=s\d+$/,'=s0');
   document.getElementById('imgModal').style.display='flex';
 }</script>
-<footer id="roasLogic" class="note" style="max-width:1200px;margin:0 auto;padding:0 1.5rem 1.5rem;">추정 ROAS는 Amazon Attribution 기준 ROAS에 보정계수 2.5를 적용한 수치입니다.</footer>
+<footer id="roasLogic" class="note" style="max-width:1200px;margin:0 auto;padding:0 1.5rem 1.5rem;">
+  <p class="creative-cvr-note">CVR = Amazon 구매 ÷ Meta 링크 클릭 × 100 · 클릭 0건 또는 Amazon 미연결: —</p>
+  <p>추정 ROAS는 Amazon Attribution 기준 ROAS에 보정계수 2.5를 적용한 수치입니다.</p>
+</footer>
 </body>
 </html>
 
