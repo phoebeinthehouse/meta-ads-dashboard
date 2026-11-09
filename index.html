@@ -238,7 +238,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:var(--surface2);}
         <div class="li"><span class="ld" style="background:#378ADD"></span>Lina</div>
         <div class="li"><span class="ld" style="background:#D4537E"></span>Phoebe</div>
         <div class="li"><span class="ld" style="background:#1D9E75"></span>Sarah</div>
-        <div class="li"><span class="ld" style="background:#9B59B6"></span>Iris</div>
+        <div class="li" id="creatorLegendIris"><span class="ld" style="background:#9B59B6"></span>Iris</div>
         <div class="li"><span class="ld" style="background:#C47F17"></span>Donnie</div>
         <div class="li"><span class="ld" style="background:#0891B2"></span>Lia</div>
         <div class="li"><span class="ld" style="background:#D65F2E"></span>Seoyoon</div>
@@ -450,10 +450,15 @@ const PEOPLE=['Lina','Sarah','Phoebe','Iris','Donnie','Lia','Seoyoon','Stella'];
 const UNCLASSIFIED='미분류';
 const ATTRIBUTION_SHARE=0.4;
 function estimatedRoas(revenue,spend){return spend>0?revenue/spend*100/ATTRIBUTION_SHARE:null;}
-function isVisibleCreator(person){return person!=='Partner'&&person!==UNCLASSIFIED&&person!=='Stella';}
+const CREATOR_END_EXCLUSIVE={Iris:'2026-11-01'};
+function isVisibleCreator(person,date){
+  if(person==='Partner'||person===UNCLASSIFIED||person==='Stella')return false;
+  const end=CREATOR_END_EXCLUSIVE[person];
+  return !end||!date||date<end;
+}
 const PAGE_PARAMS=new URLSearchParams(window.location?.search||'');
 const QA_VIEW=PAGE_PARAMS.get('view')==='qa';
-const APP_VERSION='20261019-hide-stella';
+const APP_VERSION='20261109-hide-iris-from-nov';
 const FRESH_DATA=PAGE_PARAMS.has('refresh')||PAGE_PARAMS.get('fresh')==='1';
 if(QA_VIEW){
   document.documentElement.classList.add('qa-view');
@@ -924,6 +929,17 @@ function getDateRange(){
   return{from:customFrom,to:customTo};
 }
 function D(){const{from,to}=getDateRange();return computeData(from,to);}
+function computeCreatorData(from,to){
+  const inRange=r=>r.date>=from&&r.date<=to&&isVisibleCreator(r.person,r.date);
+  const meta=RAW.meta.filter(inRange);
+  const amz=RAW.amz.filter(inRange);
+  return{
+    ps:summarizeMetrics(meta,amz,['person']),
+    pm:summarizeMetrics(meta,amz,['person','media']),
+    daily:summarizeMetrics(meta,amz,['date','person']).map(r=>({...r,p:r.person}))
+  };
+}
+function creatorData(){const{from,to}=getDateRange();return computeCreatorData(from,to);}
 function getDateLabel(){return dateMode==='monthly'?monthLabel(curMonth):customFrom+' ~ '+customTo;}
 function isNoAmz(){const{from,to}=getDateRange();return !RAW.amz.some(r=>r.date>=from&&r.date<=to);}
 
@@ -1085,7 +1101,9 @@ function goPage(pg,btn){
 }
 
 function renderPCards(){
-  const ps=(D().ps||[]).filter(r=>isVisibleCreator(r.person));
+  const data=creatorData();
+  const ps=data.ps||[];
+  const pm=data.pm||[];
   const sorted={
     clicks:[...ps].sort((a,b)=>b.clicks-a.clicks).map(x=>x.person),
     ctr:[...ps].sort((a,b)=>b.ctr-a.ctr).map(x=>x.person),
@@ -1097,7 +1115,6 @@ function renderPCards(){
   const noAmz=isNoAmz();
   document.getElementById('pcards').innerHTML=ps.map(p=>{
     const rank=sorted[cM].indexOf(p.person)+1;
-    const pm=D().pm||[];
     const vdo=pm.find(m=>m.person===p.person&&m.media==='vdo');
     const img=pm.find(m=>m.person===p.person&&m.media==='img');
     const tc=(vdo?.clicks||0)+(img?.clicks||0);
@@ -1121,7 +1138,9 @@ function renderPCards(){
 }
 
 function renderTrend(){
-  const d=(D().daily||[]).filter(r=>isVisibleCreator(r.person));
+  const d=creatorData().daily||[];
+  const irisLegend=document.getElementById('creatorLegendIris');
+  if(irisLegend)irisLegend.style.display=d.some(r=>r.person==='Iris')?'flex':'none';
   const labels={clicks:'Daily clicks',ctr:'Daily CTR (%)',cpc:'Daily CPC (₩)',purchases:'Daily purchases',roas:'Daily 추정 ROAS (%)'};
   document.getElementById('trendT').textContent=labels[cM]+' by creator';
   const dates=[...new Set(d.map(r=>r.date))].sort();
@@ -1146,7 +1165,7 @@ function renderTrend(){
 }
 
 function renderMedia(){
-  const pm=(D().pm||[]).filter(r=>isVisibleCreator(r.person));
+  const pm=creatorData().pm||[];
   const ppl=[...new Set(pm.map(r=>r.person))];
   const gv=function(p,m){const r=pm.find(x=>x.person===p&&x.media===m);return r?r[cM]:0;};
   const mlabels={clicks:'Clicks',ctr:'CTR (%)',cpc:'CPC (₩)',purchases:'Purchases',roas:'추정 ROAS (%)'};
