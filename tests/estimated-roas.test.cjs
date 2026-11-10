@@ -52,9 +52,9 @@ test('creator names show monthly creative counts only when the source month has 
   assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe (170개)');
   assert.equal(vm.runInContext("creatorDisplayName('Lina')",c),'Lina');
   vm.runInContext("curMonth='2026-11'",c);
-  assert.equal(vm.runInContext("creatorDisplayName('Lina')",c),'Lina (259개)');
+  assert.equal(vm.runInContext("creatorDisplayName('Lina')",c),'Lina');
   assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe (181개)');
-  assert.equal(vm.runInContext("creatorDisplayName('Sarah')",c),'Sarah');
+  assert.equal(vm.runInContext("creatorDisplayName('Sarah')",c),'Sarah (259개)');
   vm.runInContext("dateMode='custom'",c);
   assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe');
 });
