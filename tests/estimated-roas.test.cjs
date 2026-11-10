@@ -47,14 +47,28 @@ test('estimated ratios keep null, zero and refunds; round only at display time',
 
 test('creator names show monthly creative counts only when the source month has that creator', () => {
   const c = dashboard();
+  const expected={
+    '2026-03':{Sarah:25,Phoebe:50,Lina:40},
+    '2026-04':{Sarah:9,Phoebe:5,Lina:1},
+    '2026-05':{Sarah:46,Phoebe:50,Lina:44},
+    '2026-06':{Sarah:159,Phoebe:126,Lina:105},
+    '2026-07':{Sarah:113,Phoebe:73,Lina:91,Iris:58},
+    '2026-08':{Sarah:83,Phoebe:59,Lina:66,Iris:58},
+    '2026-09':{Sarah:296,Phoebe:105,Lina:47,Iris:42},
+    '2026-10':{Sarah:240,Phoebe:170,Donnie:68,Seoyoon:13,Lia:13},
+    '2026-11':{Sarah:259,Phoebe:181,Donnie:128,Seoyoon:74,Lia:32}
+  };
   vm.runInContext("dateMode='monthly';curMonth='2026-10'",c);
-  assert.equal(vm.runInContext("creatorDisplayName('Sarah')",c),'Sarah (240개)');
-  assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe (170개)');
-  assert.equal(vm.runInContext("creatorDisplayName('Lina')",c),'Lina');
+  for(const [month,people] of Object.entries(expected)){
+    vm.runInContext(`curMonth='${month}'`,c);
+    for(const [person,count] of Object.entries(people)){
+      assert.equal(vm.runInContext(`creatorDisplayName('${person}')`,c),`${person} (${count}개)`);
+    }
+  }
+  vm.runInContext("curMonth='2026-06'",c);
+  assert.equal(vm.runInContext("creatorDisplayName('Iris')",c),'Iris');
   vm.runInContext("curMonth='2026-11'",c);
   assert.equal(vm.runInContext("creatorDisplayName('Lina')",c),'Lina');
-  assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe (181개)');
-  assert.equal(vm.runInContext("creatorDisplayName('Sarah')",c),'Sarah (259개)');
   vm.runInContext("dateMode='custom'",c);
   assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe');
 });
