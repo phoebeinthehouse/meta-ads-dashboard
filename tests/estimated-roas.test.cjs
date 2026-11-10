@@ -45,6 +45,20 @@ test('estimated ratios keep null, zero and refunds; round only at display time',
   assert.equal(vm.runInContext('getDateRange().to',c),'2026-02-28');
 });
 
+test('creator names show monthly creative counts only when the source month has that creator', () => {
+  const c = dashboard();
+  vm.runInContext("dateMode='monthly';curMonth='2026-10'",c);
+  assert.equal(vm.runInContext("creatorDisplayName('Sarah')",c),'Sarah (240개)');
+  assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe (170개)');
+  assert.equal(vm.runInContext("creatorDisplayName('Lina')",c),'Lina');
+  vm.runInContext("curMonth='2026-11'",c);
+  assert.equal(vm.runInContext("creatorDisplayName('Lina')",c),'Lina (259개)');
+  assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe (181개)');
+  assert.equal(vm.runInContext("creatorDisplayName('Sarah')",c),'Sarah');
+  vm.runInContext("dateMode='custom'",c);
+  assert.equal(vm.runInContext("creatorDisplayName('Phoebe')",c),'Phoebe');
+});
+
 test('creator cards and charts hide Partner, unclassified and Stella; creative list hides Stella without removing totals', async () => {
   const c = dashboard([
     ['날짜','Contents 소재명','Link 링크클릭','Cost 광고비','Imp 노출'],
