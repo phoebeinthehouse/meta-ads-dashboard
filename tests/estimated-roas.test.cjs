@@ -49,7 +49,6 @@ test('creator names show monthly creative counts only when the source month has 
   const c = dashboard();
   const expected={
     '2026-03':{Sarah:25,Phoebe:50,Lina:40},
-    '2026-04':{Sarah:9,Phoebe:5,Lina:1},
     '2026-05':{Sarah:46,Phoebe:50,Lina:44},
     '2026-06':{Sarah:159,Phoebe:126,Lina:105},
     '2026-07':{Sarah:113,Phoebe:73,Lina:91,Iris:58},
@@ -67,6 +66,8 @@ test('creator names show monthly creative counts only when the source month has 
   }
   vm.runInContext("curMonth='2026-06'",c);
   assert.equal(vm.runInContext("creatorDisplayName('Iris')",c),'Iris');
+  vm.runInContext("curMonth='2026-04'",c);
+  assert.equal(vm.runInContext("creatorDisplayName('Sarah')",c),'Sarah');
   vm.runInContext("curMonth='2026-11'",c);
   assert.equal(vm.runInContext("creatorDisplayName('Lina')",c),'Lina');
   vm.runInContext("dateMode='custom'",c);
