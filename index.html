@@ -449,7 +449,16 @@ const PT={'GPG':'#3C3489','PCO':'#085041','BCA/BPD':'#993C1D','PCM':'#633806','G
 const PEOPLE=['Lina','Sarah','Phoebe','Iris','Donnie','Lia','Seoyoon','Stella'];
 const UNCLASSIFIED='미분류';
 const ATTRIBUTION_SHARE=0.4;
+const CREATIVE_COUNTS_BY_MONTH={
+  '2026-10':{Sarah:240,Phoebe:170,Donnie:68,Seoyoon:13,Lia:13},
+  '2026-11':{Lina:259,Phoebe:181,Donnie:128,Seoyoon:74,Lia:32}
+};
 function estimatedRoas(revenue,spend){return spend>0?revenue/spend*100/ATTRIBUTION_SHARE:null;}
+function creatorDisplayName(person){
+  if(dateMode!=='monthly')return person;
+  const count=CREATIVE_COUNTS_BY_MONTH[curMonth]?.[person];
+  return Number.isFinite(count)?person+' ('+count+'개)':person;
+}
 const CREATOR_END_EXCLUSIVE={Iris:'2026-11-01'};
 function isVisibleCreator(person,date){
   if(person==='Partner'||person===UNCLASSIFIED||person==='Stella')return false;
@@ -458,7 +467,7 @@ function isVisibleCreator(person,date){
 }
 const PAGE_PARAMS=new URLSearchParams(window.location?.search||'');
 const QA_VIEW=PAGE_PARAMS.get('view')==='qa';
-const APP_VERSION='20261109-hide-iris-from-nov';
+const APP_VERSION='20261110-creator-creative-counts';
 const FRESH_DATA=PAGE_PARAMS.has('refresh')||PAGE_PARAMS.get('fresh')==='1';
 if(QA_VIEW){
   document.documentElement.classList.add('qa-view');
@@ -1121,7 +1130,7 @@ function renderPCards(){
     const vp=tc>0?Math.round((vdo?.clicks||0)/tc*100):0;
     return '<div class="pcard">'+
       '<div class="ph"><div class="av" style="background:'+CB[p.person]+';color:'+CT[p.person]+'">'+p.person[0]+'</div>'+
-      '<div><div class="pname">'+p.person+'</div><div class="prank">Rank #'+rank+' by '+rl[cM]+'</div></div></div>'+
+      '<div><div class="pname">'+creatorDisplayName(p.person)+'</div><div class="prank">Rank #'+rank+' by '+rl[cM]+'</div></div></div>'+
       '<div class="srow">'+
       '<div class="st"><div class="stl">Clicks</div><div class="stv">'+f(p.clicks)+'</div></div>'+
       '<div class="st"><div class="stl">CTR</div><div class="stv">'+fd(p.ctr)+'%</div></div>'+
