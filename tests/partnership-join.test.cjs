@@ -129,3 +129,43 @@ test('thumbnail matches renamed partnership spaces and underscores without match
   assert.equal(vm.runInContext("getAdImg('l_yuhann','PCO','Partner','2026-10-01','2026-10-31','vdo')", context), 'https://example.com/yuhann.png');
   assert.equal(vm.runInContext("getAdImg('mishka dii4','GS','Partner','2026-10-01','2026-10-31','vdo')", context), '');
 });
+
+test('Amazon -CREATIVE partnership rows join the matching Meta product and handle', async () => {
+  const date = '2026-11-20';
+  const creatives = [
+    ['GPG', 'chxxry.glowy'],
+    ['GPG', 'nicoletazmau'],
+    ['PCO', 'minseon.kimm'],
+    ['PCO', 'yejj.lee'],
+  ];
+  const context = dashboard([
+    ['날짜', 'Contents 소재명', 'Link 링크클릭', 'Cost 광고비', 'Imp 노출', 'Campaign 캠페인명'],
+    ...creatives.map(([product, handle]) => [
+      date, `파트너십_제품랜딩_Alwz_${product}_vdo_${handle}-p`, 50, 10000, 500, 'Partnership Campaign',
+    ]),
+    [date, 'Alwz_PCO_vdo_nicoletazmau-p', 20, 5000, 200, 'PCO Campaign'],
+  ], [
+    ['날짜', 'Contents 소재명', '구매', '한화매출'],
+    ...creatives.map(([product, handle], i) => [
+      date, `Alwz_${product}_vdo_${handle}-p-CREATIVE`, i + 1, (i + 1) * 10000,
+    ]),
+    [date, 'Alwz_GPG_vdo_nicoletazmau-p', 5, 50000],
+  ]);
+  await vm.runInContext('loadData()', context);
+
+  for (const campaign of ['All', 'Partnership Campaign']) {
+    context.campaign = campaign;
+    const ads = vm.runInContext("computeData('2026-11-01','2026-11-30',campaign).ads", context);
+    assert.equal(ads.length, campaign === 'All' ? 5 : 4);
+    creatives.forEach(([product, handle], i) => {
+      const ad = ads.find(row => row.product === product && row.ad_name === handle);
+      const purchases = i + 1 + (handle === 'nicoletazmau' ? 5 : 0);
+      assert.equal(ad.person, 'Partner');
+      assert.equal(ad.spend, 10000);
+      assert.equal(ad.purchases, purchases);
+      assert.equal(ad.revenue, purchases * 10000);
+    });
+    assert.equal(ads.reduce((sum, row) => sum + row.purchases, 0), 15);
+    assert.equal(ads.reduce((sum, row) => sum + row.revenue, 0), 150000);
+  }
+});
