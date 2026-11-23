@@ -473,7 +473,7 @@ function isVisibleCreator(person,date){
 }
 const PAGE_PARAMS=new URLSearchParams(window.location?.search||'');
 const QA_VIEW=PAGE_PARAMS.get('view')==='qa';
-const APP_VERSION='20261110-all-month-creator-creative-counts';
+const APP_VERSION='20261123-partnership-creative-suffix';
 const FRESH_DATA=PAGE_PARAMS.has('refresh')||PAGE_PARAMS.get('fresh')==='1';
 if(QA_VIEW){
   document.documentElement.classList.add('qa-view');
@@ -530,6 +530,11 @@ function parseCSV(text){
   });
 }
 
+// Some reports append -CREATIVE to the partnership marker.
+function stripPartnershipCreativeSuffix(name){
+  return name.replace(/([-_]p)-creative$/i,'$1');
+}
+
 // Explicit exceptions approved for these two nonstandard partnership names.
 const PARTNERSHIP_NAME_EXCEPTIONS=new Set([
   'Alwz_GS_vdo_Milkeydew p',
@@ -538,7 +543,7 @@ const PARTNERSHIP_NAME_EXCEPTIONS=new Set([
 function isPartnershipName(name){
   if(!name)return false;
   if(PARTNERSHIP_NAME_EXCEPTIONS.has(String(name).trim()))return true;
-  const parts=name.split('_');
+  const parts=stripPartnershipCreativeSuffix(name).split('_');
   const first=String(parts[0]||'').trim().toLowerCase();
   const hasPartnershipSuffix=parts.some(part=>String(part||'').trim().toLowerCase().endsWith('-p'));
   const hasUnderscoreSuffix=String(parts[parts.length-1]||'').trim().toLowerCase()==='p';
@@ -592,7 +597,7 @@ function parseMedia(name){
 }
 function parseAdName(name){
   if(!name)return null;
-  const parts=name.split('_');
+  const parts=stripPartnershipCreativeSuffix(name).split('_');
   for(let i=0;i<parts.length;i++){
     if((parts[i]==='vdo'||parts[i]==='img')&&i+1<parts.length){
       const rest=parts.slice(i+1);
