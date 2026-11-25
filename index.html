@@ -749,7 +749,11 @@ async function loadData(){
           if(Object.values(metrics).some(v=>v!==0))throw new Error('Meta 날짜 확인 필요: '+String(r[nameKey]||'(소재명 없음)'));
           return null;
         }
-        const name=String(r[nameKey]||'');
+        const rawName=String(r[nameKey]||'');
+        // The Meta report used the product name for this partnership ad on 2026-11-21.
+        const name=r['Meta Ad ID']==='120254004363510067'&&rawName==='GSP'
+          ?'Alwz_GSP_vdo_danicolexx -p'
+          :rawName;
         const campaign_name=String(r[campaignKey]||'').trim()||null;
         SOURCE_METRICS.meta.push({date,campaign_name,...metrics});
         return{date,month:date.slice(0,7),...rowIdentity(name,campaign_name,'Meta'),
